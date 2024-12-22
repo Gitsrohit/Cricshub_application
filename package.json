@@ -10,9 +10,12 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.1.0",
+    "@react-native-community/cli": "latest",
     "@react-native-community/masked-view": "^0.1.11",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/stack": "^7.1.1",
+    "axios": "^1.7.9",
     "expo": "~52.0.19",
     "expo-linear-gradient": "^14.0.1",
     "expo-status-bar": "~2.0.0",
@@ -28,6 +31,7 @@
     "react-native-svg-transformer": "^1.5.0",
     "react-native-tab-view": "^4.0.5",
     "react-native-vector-icons": "^10.2.0",
+    "replace": "^1.2.2",
     "stack": "^0.1.0"
   },
   "devDependencies": {

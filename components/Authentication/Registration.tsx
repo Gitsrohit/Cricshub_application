@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-
 const logo = require('/Users/iceberg/score/Frontend/assets/images/SCORE360.png');
-
-const Registration = () => {
+import { useNavigation } from '@react-navigation/native';
+const Registration = ({ navigation }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -13,22 +12,58 @@ const Registration = () => {
     confirmPassword: '',
     otp: '',
   });
+
   const handleInputChange = (key, value) => {
     setFormData({ ...formData, [key]: value });
   };
 
+
+const handleVerifyEmail = async () => {
+    if (!formData.email) {
+      Alert.alert('Error', 'Please enter an email address to verify.');
+      return;
+    }
+  
+    try {
+        const url = `https://75a5-2409-40e5-99-d714-90eb-25b2-6b0-51cb.ngrok-free.app/api/v1/auth/sendOtp?email=${encodeURIComponent(formData.email)}`;
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        Alert.alert('Success', 'Verification email sent!');
+      } else {
+        Alert.alert('Error', `Error ${response.status}: ${data.message || 'Failed to send verification email.'}`);
+      }
+    }catch (error) {
+        Alert.alert('Success', 'Verification email sent!');
+     }
+  };
+  
+
   const handleSubmit = async () => {
     const { name, email, mobile, password, confirmPassword, otp } = formData;
+  
+    // Check if all fields are filled
     if (!name || !email || !mobile || !password || !confirmPassword || !otp) {
       Alert.alert('Error', 'Please fill all the fields.');
       return;
     }
+  
+    // Check if passwords match
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match.');
       return;
     }
+  
     try {
-      const response = await fetch('http://127.0.0.1:8080/api/v1/auth/login', {
+      const response = await fetch('https://75a5-2409-40e5-99-d714-90eb-25b2-6b0-51cb.ngrok-free.app/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,20 +73,32 @@ const Registration = () => {
           email,
           mobile,
           password,
+          confirmPassword,
           otp,
         }),
       });
-      const data = await response.json();
-
+  
+      // Check if the response is JSON
+      const contentType = response.headers.get('Content-Type');
+      let data = null;
+  
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json(); // Parse JSON response
+      } else {
+        data = await response.text(); // If not JSON, get response as plain text
+      }
+  
       if (response.ok) {
         Alert.alert('Success', 'Registration successful!');
       } else {
-        Alert.alert('Error', data.message || 'Something went wrong.');
+        Alert.alert('Error', `Error ${response.status}: ${data.message || data}`);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to connect to the server.');
+      console.error(error);
     }
   };
+  
 
   return (
     <LinearGradient
@@ -80,6 +127,12 @@ const Registration = () => {
           value={formData.email}
           onChangeText={(value) => handleInputChange('email', value)}
         />
+
+        {/* Verify Email Button */}
+        <TouchableOpacity style={styles.verifyEmailButton} onPress={handleVerifyEmail}>
+          <Text style={styles.verifyEmailButtonText}>Verify Email</Text>
+        </TouchableOpacity>
+
         <TextInput
           style={styles.input}
           placeholder="Mobile No"
@@ -120,9 +173,15 @@ const Registration = () => {
 
         {/* Login Link */}
         <Text style={styles.loginText}>
-          Already have an account?{' '}
-          <Text style={styles.loginLink}>Login</Text>
-        </Text>
+  Already have an account?{' '}
+  <Text
+    style={styles.loginLink}
+    onPress={() => navigation.navigate('Login')} // Use the screen name as a string
+  >
+    Login
+  </Text>
+</Text>
+
       </View>
     </LinearGradient>
   );
@@ -165,6 +224,18 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     height: 40,
     color: '#333',
+  },
+  verifyEmailButton: {
+    backgroundColor: '#36B0D5',
+    borderRadius: 5,
+    paddingVertical: 10,
+    marginVertical: 10,
+    alignItems: 'center',
+  },
+  verifyEmailButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   signUpButton: {
     backgroundColor: '#004466',
