@@ -33,7 +33,7 @@ const Login = ({ navigation }) => {
 
     try {
       const response = await axios.post(
-        'https://d5f9-2405-201-a416-28cd-b8a7-f55d-8d9f-d25a.ngrok-free.app/api/v1/auth/login',
+        'https://score360-7.onrender.com/api/v1/auth/login',
         {
           username: formData.email,
           password: formData.password,
