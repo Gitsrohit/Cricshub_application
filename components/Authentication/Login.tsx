@@ -72,9 +72,9 @@ const Login = ({ navigation }) => {
       alert('Please enter both Email and Password.');
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       const response = await axios.post(
         'https://score360-7.onrender.com/api/v1/auth/login',
@@ -83,15 +83,21 @@ const Login = ({ navigation }) => {
           password: formData.password,
         }
       );
-
+  
+      console.log('API Response:', response.data); // Debug the response structure
+  
       if (response.data.success) {
-        const token = await getToken();// Assuming the token is in the response data
-
+        const token = response.data.data?.token; // Access token from the nested structure
+  
+        if (!token) {
+          throw new Error('Token is missing in the API response.');
+        }
+  
         console.log('Token:', token); // Debugging
-
+  
         // Save token securely using AsyncStorage
         await saveToken(token);
-
+  
         alert(`Welcome, ${formData.email}!`);
         navigation.replace('Main');
       } else {
@@ -108,6 +114,8 @@ const Login = ({ navigation }) => {
       setLoading(false);
     }
   };
+  
+  
 
   return (
     <LinearGradient

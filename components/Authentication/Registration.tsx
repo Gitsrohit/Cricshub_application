@@ -25,7 +25,7 @@ const Registration = ({ navigation }) => {
     }
 
     try {
-      const url = `https://21cf-2405-201-a416-28cd-106f-34d5-a3ff-3e00.ngrok-free.app/api/v1/auth/sendOtp?email=${encodeURIComponent(
+      const url = `https://score360-7.onrender.com/api/v1/auth/sendOtp?email=${encodeURIComponent(
         formData.email
       )}`;
 
@@ -66,7 +66,7 @@ const Registration = ({ navigation }) => {
 
     try {
       const response = await fetch(
-        'https://21cf-2405-201-a416-28cd-106f-34d5-a3ff-3e00.ngrok-free.app/api/v1/auth/register',
+        'https://score360-7.onrender.com/api/v1/auth/register',
         {
           method: 'POST',
           headers: {
