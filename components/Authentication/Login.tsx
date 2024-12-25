@@ -8,12 +8,56 @@ import {
   Image,
   ImageBackground,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient
-import { BlurView } from 'expo-blur'; // Import BlurView for glassmorphism effect
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 
 const logo = require('/Users/iceberg/score/Frontend/assets/images/SCORE360.png');
 const background = require('/Users/iceberg/score/Frontend/assets/images/bg.png');
+
+// Save JWT token securely
+const saveToken = async (token) => {
+  try {
+    if (token === undefined || token === null) {
+      throw new Error('Token is undefined or null. Cannot save.');
+    }
+    // Ensure token is a string
+    const tokenString = typeof token === 'string' ? token : JSON.stringify(token);
+
+    await AsyncStorage.setItem('jwtToken', tokenString);
+    console.log('Token saved securely');
+  } catch (error) {
+    console.error('Error saving token securely:', error);
+  }
+};
+
+// Retrieve JWT token as a string
+const getToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem('jwtToken');
+    if (token) {
+      console.log('Token retrieved successfully');
+      console.log(token);
+    } else {
+      console.log('No token found');
+    }
+    return token;
+  } catch (error) {
+    console.error('Error retrieving token:', error);
+    return null;
+  }
+};
+
+// Remove JWT token
+const removeToken = async () => {
+  try {
+    await AsyncStorage.removeItem('jwtToken');
+    console.log('Token removed securely');
+  } catch (error) {
+    console.error('Error removing token:', error);
+  }
+};
 
 const Login = ({ navigation }) => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -41,9 +85,15 @@ const Login = ({ navigation }) => {
       );
 
       if (response.data.success) {
+        const token = await getToken();// Assuming the token is in the response data
+
+        console.log('Token:', token); // Debugging
+
+        // Save token securely using AsyncStorage
+        await saveToken(token);
+
         alert(`Welcome, ${formData.email}!`);
         navigation.replace('Main');
-
       } else {
         alert('Invalid credentials, please try again!');
       }
@@ -124,8 +174,7 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     resizeMode: 'cover',
-    opacity: 0.8, // Slight transparency for the background image
-    height: '500%', // Reduce height for better appearance
+    opacity: 0.8,
   },
   container: {
     flex: 1,
@@ -141,14 +190,14 @@ const styles = StyleSheet.create({
   },
   loginContainer: {
     width: '90%',
-    borderRadius: 15, // Smooth rounded corners
-    overflow: 'hidden', // Ensure blur doesn't bleed outside
+    borderRadius: 15,
+    overflow: 'hidden',
   },
   glassyStroke: {
-    borderWidth: 2, // Semi-transparent border
+    borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 15, // Match container radius
-    padding: 20, // Inner padding
+    borderRadius: 15,
+    padding: 20,
     alignItems: 'center',
   },
   title: {
