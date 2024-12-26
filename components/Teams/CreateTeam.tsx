@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   ImageBackground,
   Image,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,7 +28,9 @@ const CreateTeam = () => {
   const [activeIndex, setActiveIndex] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [logoUri, setLogoUri] = useState(null);
-  const [userId, setUserId] = useState([]); // List to store selected player ids
+  const [userId, setUserId] = useState([]); 
+  const [captainId, setCaptainId] = useState(null);
+  const [userID,setUserID] = useState('');
 
   useEffect(() => {
     const debounceSearch = setTimeout(() => {
@@ -38,7 +41,22 @@ const CreateTeam = () => {
 
     return () => clearTimeout(debounceSearch);
   }, [searchQuery]);
-
+  const getUserUUID = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userUUID');
+      if (userId) {
+        console.log('User UUID retrieved:', userId);
+        setUserID(userId);
+      } else {
+        console.log('No User UUID found');
+      }
+      return userId;
+    } catch (error) {
+      console.error('Error retrieving User UUID:', error);
+      return null;
+    }
+  };
+  
   const getToken = async () => {
     try {
       return await AsyncStorage.getItem('jwtToken');
@@ -74,10 +92,20 @@ const CreateTeam = () => {
       setLoading(false);
     }
   };
-
+  const makeCaptain = async (playerId) => {
+    setCaptainId(playerId); 
+    Alert.alert(
+      "Captain Assigned",
+      `Player has been successfully assigned as the captain.`,
+      [{ text: "OK" }],
+      { cancelable: true }
+    );
+  };
+  
+  
   const addPlayerToTeam = (player) => {
     if (!userId.includes(player.id)) {
-      setUserId((prev) => [...prev, player.id]); // Add player id to userId list
+      setUserId((prev) => [...prev, player.id]); 
       setTeamPlayers((prev) => [...prev, player]);
     }
     setSearchQuery('');
@@ -85,7 +113,7 @@ const CreateTeam = () => {
   };
 
   const removePlayerFromTeam = (playerId) => {
-    setUserId((prev) => prev.filter((id) => id !== playerId)); // Remove player id from userId list
+    setUserId((prev) => prev.filter((id) => id !== playerId)); 
     setTeamPlayers((prev) => prev.filter((player) => player.id !== playerId));
   };
 
@@ -94,32 +122,51 @@ const CreateTeam = () => {
       setErrorMessage('Please enter a team name and add players.');
       return;
     }
-
+  
     setCreatingTeam(true);
     setErrorMessage('');
-
+  
     try {
       const token = await getToken();
-      const formData = new FormData();
-      formData.append('name', teamName);
-      formData.append('players', JSON.stringify(userId)); 
-
-      if (logoUri) {
-        const fileName = logoUri.split('/').pop();
-        const fileType = `image/${fileName.split('.').pop()}`;
-        formData.append('logo', { uri: logoUri, name: fileName, type: fileType });
+      const storedCaptainId = await AsyncStorage.getItem('captainId');
+      const storedUserId = await AsyncStorage.getItem('userUUID');
+  
+      if (!storedCaptainId) {
+        setErrorMessage('Please assign a captain before creating the team.');
+        setCreatingTeam(false);
+        return;
       }
-
-      const response = await fetch(`https://score360-7.onrender.com/api/v1/teams/${userId}`, {
+  
+      if (!storedUserId) {
+        setErrorMessage('Unable to retrieve the creator’s user ID.');
+        setCreatingTeam(false);
+        return;
+      }
+  
+      // Prepare query parameters
+      const queryParams = new URLSearchParams({
+        name: teamName,
+        captainId: storedCaptainId,
+        playerIds: userId.join(','),
+      }).toString();
+  
+      const body = logoUri ? { logo: logoUri } : {};
+  
+      const response = await fetch(`https://score360-7.onrender.com/api/v1/teams/${storedUserId}?${queryParams}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body), 
       });
-
+  
       if (response.ok) {
         setTeamName('');
         setTeamPlayers([]);
-        setUserId([]); 
+        setUserId([]);
+        setCaptainId(null);
+        await AsyncStorage.removeItem('captainId');
         setLogoUri(null);
         alert('Team created successfully!');
       } else {
@@ -133,6 +180,8 @@ const CreateTeam = () => {
       setCreatingTeam(false);
     }
   };
+  
+  
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -185,35 +234,58 @@ const CreateTeam = () => {
     key={player.id}
     onPress={() => {
       addPlayerToTeam(player);
-      setActiveIndex(index); // Set the currently active index
+      setActiveIndex(index); 
     }}
     style={[
       styles.dropdownItem,
-      activeIndex === index && styles.dropdownItemActive, // Apply active style
+      activeIndex === index && styles.dropdownItemActive, 
     ]}
   >
     <Text style={styles.dropdownText}>{player.name}</Text>
   </TouchableOpacity>
+ 
 ))}
 
 
 
 <FlatList
   data={teamPlayers}
-  keyExtractor={(item) => item.id.toString()}
+  keyExtractor={(item) => item.id}
   renderItem={({ item }) => (
     <View style={styles.teamPlayerCard}>
       <View>
         <Text style={styles.playerName}>{item.name}</Text>
         <Text style={styles.playerRole}>{item.role || 'Unknown Role'}</Text>
       </View>
-      <TouchableOpacity onPress={() => removePlayerFromTeam(item.id)}>
-        <MaterialIcons name="delete" size={24} color="#fff" />
-      </TouchableOpacity>
+      <View style={styles.cardActions}>
+      <TouchableOpacity
+  style={styles.captainButton}
+  onPress={() =>
+    Alert.alert(
+      "Confirm Captain",
+      `Are you sure you want to make ${item.name} the captain?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm",
+          onPress: () => makeCaptain(item.id), 
+        },
+      ],
+      { cancelable: true }
+    )
+  }
+>
+  <Text style={styles.captainButtonText}>C</Text>
+</TouchableOpacity>
+
+        <TouchableOpacity onPress={() => removePlayerFromTeam(item.uuid)}>
+          <MaterialIcons name="delete" size={24} color="#fff" />
+        </TouchableOpacity>
+        
+      </View>
     </View>
   )}
 />
-
 
           <TouchableOpacity onPress={createTeam} style={styles.createButton} disabled={creatingTeam}>
             <Text style={styles.createButtonText}>Create Team</Text>
@@ -267,17 +339,38 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     color: '#fff', 
   },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10, 
+  },
+  captainButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  captainButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  
   logo: {
     width: 100,
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
     borderColor: '#fff',
-    shadowColor: '#000', // Shadow color
-    shadowOffset: { width: 0, height: 2 }, // Shadow offset
-    shadowOpacity: 0.3, // Shadow transparency
-    shadowRadius: 4, // Shadow blur radius
-    elevation: 5, // Shadow effect for Android
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 4, 
+    elevation: 5, 
   },
   
   uploadLogoButton: {

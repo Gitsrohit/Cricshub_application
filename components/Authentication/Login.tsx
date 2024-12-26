@@ -87,16 +87,19 @@ const Login = ({ navigation }) => {
       console.log('API Response:', response.data); // Debug the response structure
   
       if (response.data.success) {
-        const token = response.data.data?.token; // Access token from the nested structure
+        const token = response.data.data?.token;
+        const userId = response.data.data?.user?.id; // Extract the user's UUID from the response
   
-        if (!token) {
-          throw new Error('Token is missing in the API response.');
+        if (!token || !userId) {
+          throw new Error('Token or User ID is missing in the API response.');
         }
   
         console.log('Token:', token); // Debugging
+        console.log('User ID:', userId); // Debugging
   
-        // Save token securely using AsyncStorage
+        // Save token and User ID securely using AsyncStorage
         await saveToken(token);
+        await AsyncStorage.setItem('userUUID', userId);
   
         alert(`Welcome, ${formData.email}!`);
         navigation.replace('Main');
@@ -114,6 +117,8 @@ const Login = ({ navigation }) => {
       setLoading(false);
     }
   };
+  
+  
   
   
 
