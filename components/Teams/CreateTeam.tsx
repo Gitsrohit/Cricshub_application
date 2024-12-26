@@ -28,7 +28,7 @@ const CreateTeam = () => {
   const [activeIndex, setActiveIndex] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [logoUri, setLogoUri] = useState(null);
-  const [userId, setUserId] = useState([]); 
+  const [playerId, setPlayerId] = useState([]); 
   const [captainId, setCaptainId] = useState(null);
   const [userID,setUserID] = useState('');
 
@@ -104,8 +104,8 @@ const CreateTeam = () => {
   
   
   const addPlayerToTeam = (player) => {
-    if (!userId.includes(player.id)) {
-      setUserId((prev) => [...prev, player.id]); 
+    if (!playerId.includes(player.id)) {
+      setPlayerId((prev) => [...prev, player.id]); 
       setTeamPlayers((prev) => [...prev, player]);
     }
     setSearchQuery('');
@@ -113,12 +113,12 @@ const CreateTeam = () => {
   };
 
   const removePlayerFromTeam = (playerId) => {
-    setUserId((prev) => prev.filter((id) => id !== playerId)); 
+    setPlayerId((prev) => prev.filter((id) => id !== playerId)); 
     setTeamPlayers((prev) => prev.filter((player) => player.id !== playerId));
   };
 
   const createTeam = async () => {
-    if (!teamName.trim() || userId.length === 0) {
+    if (!teamName.trim() || playerId.length === 0) {
       setErrorMessage('Please enter a team name and add players.');
       return;
     }
@@ -128,8 +128,8 @@ const CreateTeam = () => {
   
     try {
       const token = await getToken();
-      const storedCaptainId = await AsyncStorage.getItem('captainId');
-      const storedUserId = await AsyncStorage.getItem('userUUID');
+      const storedCaptainId = captainId; // Use the local `captainId` state
+      const userId = await getUserUUID(); // Ensure `userUUID` is retrieved
   
       if (!storedCaptainId) {
         setErrorMessage('Please assign a captain before creating the team.');
@@ -137,40 +137,45 @@ const CreateTeam = () => {
         return;
       }
   
-      if (!storedUserId) {
+      if (!userId) {
         setErrorMessage('Unable to retrieve the creator’s user ID.');
         setCreatingTeam(false);
         return;
       }
   
-      // Prepare query parameters
-      const queryParams = new URLSearchParams({
-        name: teamName,
-        captainId: storedCaptainId,
-        playerIds: userId.join(','),
-      }).toString();
-  
-      const body = logoUri ? { logo: logoUri } : {};
-  
-      const response = await fetch(`https://score360-7.onrender.com/api/v1/teams/${storedUserId}?${queryParams}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body), 
+      const formData = new FormData();
+    formData.append('name', teamName);
+    formData.append('captainId', storedCaptainId);
+    formData.append('playerIds', Array.isArray(playerId) ? playerId.join(',') : ''); // Safeguard
+    if (logoUri) {
+      const fileName = logoUri.split('/').pop();
+      const fileType = fileName.split('.').pop();
+      formData.append('logo', {
+        uri: logoUri,
+        name: fileName,
+        type: `image/${fileType}`,
       });
+    }
+  
+    const response = await fetch(`https://score360-7.onrender.com/api/v1/teams/${userId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+      body: formData,
+    });
   
       if (response.ok) {
         setTeamName('');
         setTeamPlayers([]);
-        setUserId([]);
+        setPlayerId([]);
         setCaptainId(null);
-        await AsyncStorage.removeItem('captainId');
         setLogoUri(null);
         alert('Team created successfully!');
       } else {
         const data = await response.json();
+        console.error('API Error:', data); // Log the full error response
         setErrorMessage(data.message || 'Failed to create team.');
       }
     } catch (error) {
@@ -180,6 +185,7 @@ const CreateTeam = () => {
       setCreatingTeam(false);
     }
   };
+  
   
   
 
