@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons } from '@expo/vector-icons'; // For trash icon
-import * as ImagePicker from 'expo-image-picker'; // Import ImagePicker
+import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
 const background = require('/Users/iceberg/score/Frontend/assets/images/bg.png');
 
@@ -24,47 +24,26 @@ const CreateTeam = () => {
   const [teamPlayers, setTeamPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [creatingTeam, setCreatingTeam] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [logoUri, setLogoUri] = useState(null); // State for storing the logo URI
+  const [logoUri, setLogoUri] = useState(null);
+  const [userId, setUserId] = useState([]); // List to store selected player ids
 
   useEffect(() => {
-    const delayDebounce = setTimeout(() => {
+    const debounceSearch = setTimeout(() => {
       if (searchQuery.trim() !== '') {
-        handleSearch(searchQuery);
+        fetchPlayers(searchQuery);
       }
     }, 500);
 
-    return () => clearTimeout(delayDebounce);
+    return () => clearTimeout(debounceSearch);
   }, [searchQuery]);
 
   const getToken = async () => {
     try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      return token;
+      return await AsyncStorage.getItem('jwtToken');
     } catch (error) {
       console.error('Error retrieving token:', error);
-      return null;
-    }
-  };
-
-  const getUserId = async () => {
-    try {
-      const token = await getToken();
-      const response = await fetch('https://score360-7.onrender.com/api/v1/user', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        return userData.id; // Assuming the response has user info
-      } else {
-        throw new Error('Failed to fetch user ID');
-      }
-    } catch (error) {
-      console.error('Error retrieving user ID:', error);
       return null;
     }
   };
@@ -73,64 +52,45 @@ const CreateTeam = () => {
     try {
       setLoading(true);
       const token = await getToken();
+      const responses = await Promise.all([
+        fetch(
+          `https://score360-7.onrender.com/api/v1/teams/players/search/name?name=${query}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        ),
+        fetch(
+          `https://score360-7.onrender.com/api/v1/teams/players/search/phone?phone=${query}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        ),
+      ]);
 
-      const nameResponse = await fetch(
-        `https://score360-7.onrender.com/api/v1/teams/players/search/name?name=${query}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const [nameData, phoneData] = await Promise.all(
+        responses.map((res) => (res.ok ? res.json() : { data: [] }))
       );
 
-      const phoneResponse = await fetch(
-        `https://score360-7.onrender.com/api/v1/teams/players/search/phone?phone=${query}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      const nameData = nameResponse.ok ? await nameResponse.json() : { data: [] };
-      const phoneData = phoneResponse.ok ? await phoneResponse.json() : { data: [] };
-
-      setLoading(false);
-
-      const combinedPlayers = [...nameData.data, ...phoneData.data];
-
-      return combinedPlayers;
+      setFilteredPlayers([...nameData.data, ...phoneData.data]);
     } catch (error) {
-      setLoading(false);
       console.error('Error fetching players:', error);
-      return [];
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSearch = async (query) => {
-    if (!query.trim()) return;
-    const playersData = await fetchPlayers(query);
-    setFilteredPlayers(playersData);
-  };
-
   const addPlayerToTeam = (player) => {
-    if (!teamPlayers.find((p) => p.id === player.id)) {
-      setTeamPlayers([...teamPlayers, player]);
+    if (!userId.includes(player.id)) {
+      setUserId((prev) => [...prev, player.id]); // Add player id to userId list
+      setTeamPlayers((prev) => [...prev, player]);
     }
     setSearchQuery('');
     setFilteredPlayers([]);
   };
 
   const removePlayerFromTeam = (playerId) => {
-    setTeamPlayers(teamPlayers.filter((player) => player.id !== playerId));
+    setUserId((prev) => prev.filter((id) => id !== playerId)); // Remove player id from userId list
+    setTeamPlayers((prev) => prev.filter((player) => player.id !== playerId));
   };
 
   const createTeam = async () => {
-    if (!teamName.trim() || teamPlayers.length === 0) {
+    if (!teamName.trim() || userId.length === 0) {
       setErrorMessage('Please enter a team name and add players.');
       return;
     }
@@ -140,49 +100,35 @@ const CreateTeam = () => {
 
     try {
       const token = await getToken();
-      const userId = await getUserId();
-      if (!userId) {
-        setErrorMessage('User not found');
-        return;
-      }
-
       const formData = new FormData();
       formData.append('name', teamName);
-      formData.append('players', JSON.stringify(teamPlayers.map((player) => player.id)));
+      formData.append('players', JSON.stringify(userId)); 
 
-      // If logo exists, append the logo to FormData
       if (logoUri) {
-        const localUri = logoUri;
-        const filename = localUri.split('/').pop();
-        const type = `image/${filename.split('.').pop()}`;
-        formData.append('logo', {
-          uri: localUri,
-          name: filename,
-          type,
-        });
+        const fileName = logoUri.split('/').pop();
+        const fileType = `image/${fileName.split('.').pop()}`;
+        formData.append('logo', { uri: logoUri, name: fileName, type: fileType });
       }
 
       const response = await fetch(`https://score360-7.onrender.com/api/v1/teams/${userId}`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
       if (response.ok) {
-        // Reset form after successful team creation
         setTeamName('');
         setTeamPlayers([]);
-        setLogoUri(null); // Reset the logo
+        setUserId([]); 
+        setLogoUri(null);
         alert('Team created successfully!');
       } else {
         const data = await response.json();
-        setErrorMessage(data.message || 'Failed to create team');
+        setErrorMessage(data.message || 'Failed to create team.');
       }
     } catch (error) {
       console.error('Error creating team:', error);
-      setErrorMessage('Error creating team');
+      setErrorMessage('Error creating team.');
     } finally {
       setCreatingTeam(false);
     }
@@ -199,7 +145,7 @@ const CreateTeam = () => {
       });
 
       if (!result.canceled) {
-        setLogoUri(result.assets[0].uri); // Set the logo URI
+        setLogoUri(result.assets[0].uri);
       }
     } else {
       alert('Permission to access media library is required!');
@@ -207,88 +153,70 @@ const CreateTeam = () => {
   };
 
   return (
-    <ImageBackground source={background} style={styles.background} resizeMode="cover">
-      <LinearGradient colors={['rgba(0, 0, 0, 0.8)', 'rgba(10, 48, 59, 0.7)', 'rgba(54, 176, 213, 0.5)']} style={styles.gradient}>
+    <ImageBackground source={background} style={styles.background}>
+      <LinearGradient colors={['rgba(0, 0, 0, 0.8)', 'rgba(54, 176, 213, 0.5)']} style={styles.gradient}>
         <View style={styles.container}>
-          {/* Team Logo Section */}
           <View style={styles.logoContainer}>
-            {logoUri ? (
-              <Image source={{ uri: logoUri }} style={styles.logo} />
-            ) : (
-              <Text style={styles.logoText}>No logo selected</Text>
-            )}
-            <TouchableOpacity style={styles.uploadLogoButton} onPress={pickImage}>
+            {logoUri ? <Image source={{ uri: logoUri }} style={styles.logo} /> : <Text>No logo selected</Text>}
+            <TouchableOpacity onPress={pickImage} style={styles.uploadLogoButton}>
               <Text style={styles.uploadLogoText}>Upload Logo</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>TEAM NAME</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter team name"
-              placeholderTextColor="#ccc"
-              value={teamName}
-              onChangeText={setTeamName}
-            />
-          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Team Name"
+            placeholderTextColor="#ccc"
+            value={teamName}
+            onChangeText={setTeamName}
+          />
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>ADD PLAYERS</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Search by name or phone number"
-              placeholderTextColor="#ccc"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {loading && <ActivityIndicator size="small" color="#fff" />}
-            {filteredPlayers.length > 0 && (
-              <View style={styles.dropdown}>
-                {filteredPlayers.map((player, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.dropdownItem}
-                    onPress={() => addPlayerToTeam(player)}
-                  >
-                    <Text style={styles.dropdownText}>{`${player.name} (${player.phone})`}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Search players"
+            placeholderTextColor="#ccc"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
 
-          <View style={styles.teamListContainer}>
-            <Text style={styles.label}>TEAM PLAYERS</Text>
-            <FlatList
-              data={teamPlayers}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <View style={styles.teamPlayerItem}>
-                  <Text style={styles.teamPlayerText}>{`${item.name} (${item.phone})`}</Text>
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => removePlayerFromTeam(item.id)}
-                  >
-                    <MaterialIcons name="delete" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              )}
-            />
-          </View>
+          {loading && <ActivityIndicator size="small" color="#fff" />}
+          {filteredPlayers.map((player, index) => (
+  <TouchableOpacity
+    key={player.id}
+    onPress={() => {
+      addPlayerToTeam(player);
+      setActiveIndex(index); // Set the currently active index
+    }}
+    style={[
+      styles.dropdownItem,
+      activeIndex === index && styles.dropdownItemActive, // Apply active style
+    ]}
+  >
+    <Text style={styles.dropdownText}>{player.name}</Text>
+  </TouchableOpacity>
+))}
 
-          {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
 
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={createTeam}
-            disabled={creatingTeam}
-          >
-            {creatingTeam ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.createButtonText}>Create Team</Text>
-            )}
+
+<FlatList
+  data={teamPlayers}
+  keyExtractor={(item) => item.id.toString()}
+  renderItem={({ item }) => (
+    <View style={styles.teamPlayerCard}>
+      <View>
+        <Text style={styles.playerName}>{item.name}</Text>
+        <Text style={styles.playerRole}>{item.role || 'Unknown Role'}</Text>
+      </View>
+      <TouchableOpacity onPress={() => removePlayerFromTeam(item.id)}>
+        <MaterialIcons name="delete" size={24} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  )}
+/>
+
+
+          <TouchableOpacity onPress={createTeam} style={styles.createButton} disabled={creatingTeam}>
+            <Text style={styles.createButtonText}>Create Team</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -308,42 +236,58 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    paddingTop:90
+    paddingTop: 90,
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 20,
   },
+  dropdown: {
+    backgroundColor: '#1c3a47', 
+    borderRadius: 8, 
+    marginTop: 10,
+    maxHeight: 200,
+    overflow: 'hidden', 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 4, 
+    elevation: 5,
+  },
+  dropdownItem: {
+    padding: 15, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#0a2a34', 
+    backgroundColor: '#1c3a47',
+  },
+  dropdownItemActive: {
+    backgroundColor: '#296f86', 
+  },
+  dropdownText: {
+    fontSize: 16, 
+    color: '#fff', 
+  },
   logo: {
     width: 100,
     height: 100,
     borderRadius: 50,
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000', // Shadow color
+    shadowOffset: { width: 0, height: 2 }, // Shadow offset
+    shadowOpacity: 0.3, // Shadow transparency
+    shadowRadius: 4, // Shadow blur radius
+    elevation: 5, // Shadow effect for Android
   },
-  logoText: {
-    color: '#fff',
-    fontSize: 16,
-  },
+  
   uploadLogoButton: {
     marginTop: 10,
     padding: 10,
-    backgroundColor: '#0c2d3d',  // Darker background color
+    backgroundColor: '#0c2d3d',
     borderRadius: 5,
-    elevation: 5, // Android shadow effect
-    shadowColor: '#000', // Shadow color for iOS
-    shadowOffset: { width: 0, height: 2 }, // Shadow offset
-    shadowOpacity: 0.3, // Shadow opacity
-    shadowRadius: 4, // Shadow blur radius
   },
   uploadLogoText: {
     color: '#fff',
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 5,
   },
   input: {
     borderColor: '#fff',
@@ -351,21 +295,12 @@ const styles = StyleSheet.create({
     padding: 10,
     color: '#fff',
     borderRadius: 5,
+    marginBottom: 20,
   },
-  dropdown: {
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    maxHeight: 200,
-    marginTop: 5,
-  },
-  dropdownItem: {
+  playerItem: {
     padding: 10,
-  },
-  dropdownText: {
-    fontSize: 16,
-  },
-  teamListContainer: {
-    marginTop: 20,
+    backgroundColor: '#333',
+    marginBottom: 5,
   },
   teamPlayerItem: {
     flexDirection: 'row',
@@ -375,22 +310,34 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ccc',
     borderBottomWidth: 1,
   },
-  teamPlayerText: {
-    color: '#fff',
+  teamPlayerCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#0c2d3d', 
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  deleteButton: {
-    padding: 5,
+  playerName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  playerRole: {
+    color: '#ccc',
+    fontSize: 14,
   },
   createButton: {
-    backgroundColor: '#0c2d3d',  // Darker background color
+    backgroundColor: '#0c2d3d',
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
-    elevation: 5, // Android shadow effect
-    shadowColor: '#000', // Shadow color for iOS
-    shadowOffset: { width: 0, height: 2 }, // Shadow offset
-    shadowOpacity: 0.3, // Shadow opacity
-    shadowRadius: 4, // Shadow blur radius
   },
   createButtonText: {
     color: '#fff',
@@ -402,6 +349,5 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 });
-
 
 export default CreateTeam;
