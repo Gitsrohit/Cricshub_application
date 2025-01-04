@@ -11,6 +11,7 @@ import Teams from './components/Teams/Teams';
 import Settings from './components/Settings/Settings';
 import Footer from './components/Footer'; // Footer component
 import CreateTeam from './components/Teams/CreateTeam';
+import CreateTournaments from './components/Tournaments/CreateTournaments';
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -43,6 +44,7 @@ const MainScreens = () => {
         <Stack.Screen name="Teams" component={Teams} />
         <Stack.Screen name="Settings" component={Settings} />
         <Stack.Screen name="CreateTeam" component={CreateTeam} /> 
+        <Stack.Screen name="CreateTournaments" component={CreateTournaments} /> 
       </Stack.Navigator>
       <Footer style={styles.footer} />
     </SafeAreaView>

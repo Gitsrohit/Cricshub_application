@@ -259,39 +259,44 @@ const CreateTeam = () => {
   keyExtractor={(item) => item.id}
   renderItem={({ item }) => (
     <View style={styles.teamPlayerCard}>
-      <View>
+      <Image
+        source={{
+          uri: item.profilePic || 'https://via.placeholder.com/50', // Dummy profile pic URL
+        }}
+        style={styles.playerProfilePic}
+      />
+      <View style={styles.playerInfo}>
         <Text style={styles.playerName}>{item.name}</Text>
         <Text style={styles.playerRole}>{item.role || 'Unknown Role'}</Text>
       </View>
       <View style={styles.cardActions}>
-      <TouchableOpacity
-  style={styles.captainButton}
-  onPress={() =>
-    Alert.alert(
-      "Confirm Captain",
-      `Are you sure you want to make ${item.name} the captain?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Confirm",
-          onPress: () => makeCaptain(item.id), 
-        },
-      ],
-      { cancelable: true }
-    )
-  }
->
-  <Text style={styles.captainButtonText}>C</Text>
-</TouchableOpacity>
-
-        <TouchableOpacity onPress={() => removePlayerFromTeam(item.uuid)}>
+        <TouchableOpacity
+          style={styles.captainButton}
+          onPress={() =>
+            Alert.alert(
+              "Confirm Captain",
+              `Are you sure you want to make ${item.name} the captain?`,
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Confirm",
+                  onPress: () => makeCaptain(item.id),
+                },
+              ],
+              { cancelable: true }
+            )
+          }
+        >
+          <Text style={styles.captainButtonText}>C</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => removePlayerFromTeam(item.id)}>
           <MaterialIcons name="delete" size={24} color="#fff" />
         </TouchableOpacity>
-        
       </View>
     </View>
   )}
 />
+
 
           <TouchableOpacity onPress={createTeam} style={styles.createButton} disabled={creatingTeam}>
             <Text style={styles.createButtonText}>Create Team</Text>
@@ -332,6 +337,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4, 
     elevation: 5,
   },
+  
   dropdownItem: {
     padding: 15, 
     borderBottomWidth: 1, 
@@ -345,26 +351,61 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     color: '#fff', 
   },
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10, 
-  },
-  captainButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  captainButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
+    teamPlayerCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#0c2d3d',
+      borderRadius: 10,
+      padding: 15,
+      marginBottom: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    playerProfilePic: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      marginRight: 10, // Space between picture and text
+      backgroundColor: '#ccc', // Fallback background for dummy image
+    },
+    playerInfo: {
+      flex: 1, // Take available space for name and role
+    },
+    playerName: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    playerRole: {
+      color: '#ccc',
+      fontSize: 14,
+    },
+    cardActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    captainButton: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      borderWidth: 2,
+      borderColor: '#fff',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+    },
+    captainButtonText: {
+      color: '#fff',
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+  
+
+
   
   logo: {
     width: 100,
@@ -409,29 +450,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ccc',
     borderBottomWidth: 1,
   },
-  teamPlayerCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#0c2d3d', 
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  playerName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  playerRole: {
-    color: '#ccc',
-    fontSize: 14,
-  },
+  
+
   createButton: {
     backgroundColor: '#0c2d3d',
     padding: 15,

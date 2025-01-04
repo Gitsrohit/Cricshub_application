@@ -24,7 +24,7 @@ const Home = () => {
       title: 'Want to host Tournament?',
       buttonText: 'Host',
       image: require('/Users/iceberg/score/Frontend/assets/images/image.jpg'),
-      navigateTo: 'HostTournamentScreen',
+      navigateTo: 'CreateTournaments',
     },
     {
       title: 'Want to create team?',

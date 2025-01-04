@@ -11,18 +11,16 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
 const logo = require('/Users/iceberg/score/Frontend/assets/images/SCORE360.png');
 const background = require('/Users/iceberg/score/Frontend/assets/images/bg.png');
 
-// Save JWT token securely
 const saveToken = async (token) => {
   try {
     if (token === undefined || token === null) {
       throw new Error('Token is undefined or null. Cannot save.');
     }
-    // Ensure token is a string
     const tokenString = typeof token === 'string' ? token : JSON.stringify(token);
 
     await AsyncStorage.setItem('jwtToken', tokenString);
@@ -32,7 +30,6 @@ const saveToken = async (token) => {
   }
 };
 
-// Retrieve JWT token as a string
 const getToken = async () => {
   try {
     const token = await AsyncStorage.getItem('jwtToken');
@@ -49,7 +46,6 @@ const getToken = async () => {
   }
 };
 
-// Remove JWT token
 const removeToken = async () => {
   try {
     await AsyncStorage.removeItem('jwtToken');
@@ -84,20 +80,19 @@ const Login = ({ navigation }) => {
         }
       );
   
-      console.log('API Response:', response.data); // Debug the response structure
+      console.log('API Response:', response.data); 
   
       if (response.data.success) {
         const token = response.data.data?.token;
-        const userId = response.data.data?.user?.id; // Extract the user's UUID from the response
+        const userId = response.data.data?.user?.id; 
   
         if (!token || !userId) {
           throw new Error('Token or User ID is missing in the API response.');
         }
   
-        console.log('Token:', token); // Debugging
-        console.log('User ID:', userId); // Debugging
+        console.log('Token:', token); 
+        console.log('User ID:', userId); 
   
-        // Save token and User ID securely using AsyncStorage
         await saveToken(token);
         await AsyncStorage.setItem('userUUID', userId);
   

@@ -12,12 +12,15 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.0",
     "@react-native-community/cli": "latest",
+    "@react-native-community/datetimepicker": "^8.2.0",
     "@react-native-community/masked-view": "^0.1.11",
+    "@react-native-picker/picker": "^2.10.2",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/stack": "^7.1.1",
     "axios": "^1.7.9",
     "expo": "~52.0.19",
     "expo-blur": "~14.0.1",
+    "expo-image-picker": "~16.0.3",
     "expo-linear-gradient": "^14.0.1",
     "expo-secure-store": "~14.0.0",
     "expo-status-bar": "~2.0.0",
@@ -35,8 +38,7 @@
     "react-native-tab-view": "^4.0.5",
     "react-native-vector-icons": "^10.2.0",
     "replace": "^1.2.2",
-    "stack": "^0.1.0",
-    "expo-image-picker": "~16.0.3"
+    "stack": "^0.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
