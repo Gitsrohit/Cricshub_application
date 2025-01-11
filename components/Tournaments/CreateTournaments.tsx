@@ -6,13 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  FlatList,
   ImageBackground,
   Image,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
 const background = require('/Users/iceberg/score/Frontend/assets/images/bg.png'); 
 
@@ -24,69 +25,99 @@ const CreateTournament = () => {
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [format, setFormat] = useState('');
   const [ballType, setBallType] = useState('');
-  const [numTeams, setNumTeams] = useState('');
-  const [teamQuery, setTeamQuery] = useState('');
-  const [teams, setTeams] = useState([]);
-  const [selectedTeams, setSelectedTeams] = useState('');
-  const [overs, setOvers] = useState(''); 
+  const [overs, setOvers] = useState('');
+  const [banner, setBanner] = useState(null);
 
-  const fetchTeams = async (query) => {
+  const getToken = async () => {
     try {
-      const response = await fetch(`https://score360-7.onrender.com/api/teams?search=${query}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTeams(data);
-      } else {
-        setTeams([]);
-      }
+      return await AsyncStorage.getItem('jwtToken');
     } catch (error) {
-      console.error(error);
-      setTeams([]);
+      console.error('Error retrieving token:', error);
+      return null;
     }
   };
 
-  const handleAddTeam = (team) => {
-    if (!selectedTeams.includes(team)) {
-      setSelectedTeams([...selectedTeams, team]);
-    } else {
-      Alert.alert('Error', 'Team already added.');
+  const getUserUUID = async () => {
+    try {
+      return await AsyncStorage.getItem('userUUID');
+    } catch (error) {
+      console.error('Error retrieving token:', error);
+      return null;
     }
   };
 
   const handleCreateTournament = async () => {
-    if (!tournamentName || !format || !ballType || !numTeams || selectedTeams.length === 0) {
-      Alert.alert('Error', 'Please fill all fields and add at least one team.');
+    const userId = await getUserUUID();
+    if (!tournamentName || !format || !ballType) {
+      Alert.alert('Error', 'Please fill all fields.');
       return;
     }
 
     try {
-      const payload = {
-        tournamentName,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        format,
-        ballType,
-        numTeams,
-        selectedTeams,
-        overs, 
-      };
+      const formData = new FormData();
+      formData.append('name', tournamentName);
+      formData.append('startDate', startDate.toISOString().split('T')[0]);
+      formData.append('endDate', endDate.toISOString().split('T')[0]);
+      formData.append('format', format);
+      formData.append('ballType', ballType);
+      formData.append('matchesPerDay', 1);
+      formData.append('matchesPerTeam', 1);
+      formData.append('venues[]', "Default Venue");
+
+      if (banner) {
+        const fileName = banner.split('/').pop();
+        const fileType = fileName.split('.').pop();
+        formData.append('banner', {
+          uri: banner,
+          name: 'banner',
+          type: `image/${fileType}`,
+        });
+      } else {
+        formData.append('banner', 'Default Banner');
+      }
+
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found!');
+        return;
+      }
 
       const response = await fetch(`https://score360-7.onrender.com/api/v1/tournaments/${userId}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
         },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       if (response.ok) {
         Alert.alert('Success', 'Tournament created successfully!');
       } else {
-        Alert.alert('Error', 'Failed to create the tournament.');
+        const errorData = await response.json();
+        Alert.alert('Error', `Failed to create the tournament. ${errorData.message}`);
       }
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Something went wrong.');
+    }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status === 'granted') {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 4],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setBanner(result.assets[0].uri);
+      }
+    } else {
+      alert('Permission to access media library is required!');
     }
   };
 
@@ -95,6 +126,15 @@ const CreateTournament = () => {
       <ImageBackground source={background} style={styles.logo} resizeMode="contain">
         <View style={styles.container}>
           <View style={styles.card}>
+            {/* Banner Upload Field */}
+            <TouchableOpacity onPress={pickImage} style={styles.bannerUploadContainer}>
+              {banner ? (
+                <Image source={{ uri: banner }} style={styles.bannerImage} />
+              ) : (
+                <Text style={styles.bannerUploadText}>Upload Banner</Text>
+              )}
+            </TouchableOpacity>
+
             <TextInput
               style={styles.input}
               placeholder="Tournament name"
@@ -102,6 +142,7 @@ const CreateTournament = () => {
               value={tournamentName}
               onChangeText={setTournamentName}
             />
+
             <View style={styles.dateInputContainer}>
               <TouchableOpacity
                 style={styles.input}
@@ -118,6 +159,7 @@ const CreateTournament = () => {
                 <MaterialCommunityIcons name="calendar" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
+
             {showStartDatePicker && (
               <DateTimePicker
                 value={startDate}
@@ -129,6 +171,7 @@ const CreateTournament = () => {
                 }}
               />
             )}
+
             <View style={styles.dateInputContainer}>
               <TouchableOpacity
                 style={styles.input}
@@ -145,6 +188,7 @@ const CreateTournament = () => {
                 <MaterialCommunityIcons name="calendar" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
+
             {showEndDatePicker && (
               <DateTimePicker
                 value={endDate}
@@ -156,6 +200,8 @@ const CreateTournament = () => {
                 }}
               />
             )}
+
+            {/* Format Picker */}
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={format}
@@ -169,16 +215,19 @@ const CreateTournament = () => {
                 <Picker.Item label="Custom" value="Custom" />
               </Picker>
             </View>
+
             {format === 'Custom' && (
               <TextInput
                 style={styles.input}
                 placeholder="Enter no. of overs"
-                placeholderTextColor="#aaa" 
+                placeholderTextColor="#aaa"
                 value={overs}
                 onChangeText={setOvers}
                 keyboardType="numeric"
               />
             )}
+
+            {/* Ball Type Picker */}
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={ballType}
@@ -190,38 +239,7 @@ const CreateTournament = () => {
                 <Picker.Item label="Season Ball" value="Season Ball" />
               </Picker>
             </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Number of Teams"
-              placeholderTextColor="#aaa" 
-              keyboardType="numeric"
-              value={numTeams}
-              onChangeText={setNumTeams}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Search Teams"
-              placeholderTextColor="#aaa"
-              value={teamQuery}
-              onChangeText={(text) => {
-                setTeamQuery(text);
-                fetchTeams(text);
-              }}
-            />
-            <FlatList
-              data={teams}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.teamItem}
-                  onPress={() => handleAddTeam(item)}
-                >
-                  <Text style={styles.teamName}>{item.name}</Text>
-                </TouchableOpacity>
-              )}
-            />
 
-            {/* Create Tournament Button */}
             <TouchableOpacity
               style={styles.button}
               onPress={handleCreateTournament}
@@ -308,13 +326,21 @@ const styles = StyleSheet.create({
     right: 10,
     zIndex: 1,
   },
-  teamItem: {
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 5,
-    marginBottom: 5,
+  bannerUploadContainer: {
+    height: 150,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderRadius: 10,
   },
-  teamName: {
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+    resizeMode: 'cover',
+  },
+  bannerUploadText: {
     color: '#fff',
     fontSize: 16,
   },
