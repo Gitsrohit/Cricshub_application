@@ -17,25 +17,25 @@ const Home = () => {
     {
       title: 'Want to start a match?',
       buttonText: 'Start',
-      image: require('/Users/iceberg/score/Frontend/assets/images/image 1.jpg'),
+      image: require('../../assets/images/image 1.jpg'),
       navigateTo: 'StartMatchScreen',
     },
     {
       title: 'Want to host Tournament?',
       buttonText: 'Host',
-      image: require('/Users/iceberg/score/Frontend/assets/images/image.jpg'),
+      image: require('../../assets/images/image.jpg'),
       navigateTo: 'CreateTournaments',
     },
     {
       title: 'Want to create team?',
       buttonText: 'Create',
-      image: require('/Users/iceberg/score/Frontend/assets/images/image 2.jpg'),
+      image: require('../../assets/images/image 2.jpg'),
       navigateTo: 'CreateTeam',
     },
     {
       title: 'Fantasy Cricket',
       buttonText: 'Explore',
-      image: require('/Users/iceberg/score/Frontend/assets/images/image 2.jpg'),
+      image: require('../../assets/images/image 2.jpg'),
       navigateTo: 'FantasyCricketScreen',
     },
   ];

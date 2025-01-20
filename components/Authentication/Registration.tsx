@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur'; // Import BlurView for glassmorphism
-const logo = require('/Users/iceberg/score/Frontend/assets/images/SCORE360.png');
+const logo = require('../../assets/images/SCORE360.png');
 
 const Registration = ({ navigation }) => {
   const [formData, setFormData] = useState({
