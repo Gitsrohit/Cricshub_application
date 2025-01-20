@@ -2,31 +2,25 @@ import React, { useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
-import MyMatches from './My matches/CricketAppScreen'
-import Tournaments from './Tournaments/Tournaments';
-import Home from './Home/Home';
-import Teams from './Teams/Teams';
-import Settings from './Settings/Settings';
+
 const Footer = () => {
   const [activeTab, setActiveTab] = useState('MATCHES'); // Default active tab
-  const navigation = useNavigation(); // Initialize navigation
+  const navigation = useNavigation(); // Navigation context
 
-  // Footer buttons data
   const footerTabs = [
-    { key: 'MATCHES', icon: 'home', label: 'My Matches', route: 'MyMatches' },
-    { key: 'TOURNAMENTS', icon: 'trophy', label: 'Tournaments', route: 'Tournaments' },
-    { key: 'HOME', icon: 'home', label: 'Home', route: 'Home' },
-    { key: 'TEAMS', icon: 'users', label: 'Teams', route: 'Teams' },
-    { key: 'SETTINGS', icon: 'cogs', label: 'Settings', route: 'Settings' },
+    { key: 'MATCHES', icon: 'home', label: 'My Matches', route: 'Main', nestedRoute: 'MyMatches' },
+    { key: 'TOURNAMENTS', icon: 'trophy', label: 'Tournaments', route: 'Main', nestedRoute: 'Tournaments' },
+    { key: 'HOME', icon: 'home', label: 'Home', route: 'Main', nestedRoute: 'Home' },
+    { key: 'TEAMS', icon: 'users', label: 'Teams', route: 'Main', nestedRoute: 'Teams' },
+    { key: 'SETTINGS', icon: 'cogs', label: 'Settings', route: 'Main', nestedRoute: 'Settings' },
   ];
 
-  // Function to handle tab redirection
   const handleTabPress = (tab) => {
     setActiveTab(tab.key); // Update active tab
-    if (tab.route) {
-      navigation.navigate(tab.route); // Navigate to the corresponding screen
+    if (tab.route && tab.nestedRoute) {
+      navigation.navigate(tab.route, { screen: tab.nestedRoute });
     } else {
-      console.error(`Route not defined for tab: ${tab.key}`);
+      console.error(`Route or nested route not defined for tab: ${tab.key}`);
     }
   };
 
@@ -36,11 +30,10 @@ const Footer = () => {
         <TouchableOpacity
           key={tab.key}
           style={styles.footerButton}
-          onPress={() => handleTabPress(tab)} // Trigger the navigation
+          onPress={() => handleTabPress(tab)}
           activeOpacity={0.8}
         >
           <View style={styles.iconContainer}>
-            {/* Render the active circle only if the tab is active */}
             {activeTab === tab.key ? (
               <View style={styles.activeCircle}>
                 <Icon name={tab.icon} size={28} color="#FFFFFF" />

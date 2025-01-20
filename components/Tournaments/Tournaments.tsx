@@ -1,19 +1,56 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
-
-const tournamentImage = require('/Users/iceberg/score/Frontend/assets/images/tournamentCardBg.jpg');
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Button } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 const Tournaments = () => {
-  const [activeTab, setActiveTab] = useState('MY'); // Default active tab
+  const [activeTab, setActiveTab] = useState('MY');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [expandedCards, setExpandedCards] = useState({});
+  const [tournaments, setTournaments] = useState([]);
 
-  const tournaments = [
-    { id: 1, title: 'TOURNAMENT A', status: 'ONGOING', date: '1 Jan, 2025 to 15 Feb, 2025', location: 'Dhanbad, Jharkhand', tab: 'MY' },
-    { id: 2, title: 'TOURNAMENT B', status: 'LIVE', date: '10 Jan, 2025 to 20 Feb, 2025', location: 'Mumbai, Maharashtra', tab: 'LIVE' },
-    { id: 3, title: 'TOURNAMENT C', status: 'UPCOMING', date: '15 Jan, 2025 to 25 Feb, 2025', location: 'Chennai, Tamil Nadu', tab: 'UPCOMING' },
-    { id: 4, title: 'TOURNAMENT D', status: 'COMPLETED', date: '5 Dec, 2024 to 15 Dec, 2024', location: 'Delhi, India', tab: 'PAST' },
-  ];
+  const fetchTournaments = async (status) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      const userUUID = await AsyncStorage.getItem('userUUID');
 
-  const filteredTournaments = tournaments.filter(tournament => tournament.tab === activeTab);
+      if (!token || (status === 'my' && !userUUID)) {
+        throw new Error('Please login again');
+      }
+
+      const endpoint =
+        status === 'my'
+          ? `https://score360-7.onrender.com/api/v1/tournaments/user/${userUUID}`
+          : `https://score360-7.onrender.com/api/v1/tournaments`;
+
+      const response = await axios.get(endpoint, {
+        params: status !== 'my' ? { status } : {},
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setTournaments(response.data);
+    } catch (err) {
+      setError('Failed to load tournaments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTournaments(activeTab.toLowerCase());
+  }, [activeTab]);
+
+  const toggleCardExpansion = (cardId) => {
+    setExpandedCards((prev) => ({
+      ...prev,
+      [cardId]: !prev[cardId],
+    }));
+  };
 
   return (
     <View style={styles.container}>
@@ -30,7 +67,7 @@ const Tournaments = () => {
 
       {/* Toggle Buttons */}
       <View style={styles.toggleContainer}>
-        {['MY', 'LIVE', 'UPCOMING', 'PAST'].map(tab => (
+        {['MY', 'LIVE', 'UPCOMING', 'PAST'].map((tab) => (
           <TouchableOpacity
             key={tab}
             style={[
@@ -52,24 +89,66 @@ const Tournaments = () => {
       </View>
 
       {/* Tournament Cards */}
-      <ScrollView contentContainerStyle={styles.cardContainer}>
-        {filteredTournaments.map(tournament => (
-          <View key={tournament.id} style={styles.card}>
-            <Image
-              source={tournamentImage}
-              style={styles.cardImage}
-            />
-            <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>{tournament.title}</Text>
-              <Text style={styles.cardDetails}>{tournament.date}</Text>
-              <Text style={styles.cardDetails}>📍 {tournament.location}</Text>
-            </View>
-            <View style={styles.statusTag}>
-              <Text style={styles.statusText}>{tournament.status}</Text>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
+      ) : error ? (
+        <Text style={styles.errorText}>{error}</Text>
+      ) : (
+        <ScrollView contentContainerStyle={styles.cardContainer}>
+          {tournaments.map((tournament) => {
+            const sanitizedBannerUrl = tournament.banner.replace(
+              'https://score360-7.onrender.com/api/v1/files/http:/',
+              'https://'
+            );
+            return (
+              <View key={tournament.id} style={styles.card}>
+                <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} />
+                <View style={styles.cardContent}>
+                  <Text style={styles.tournamentName}>{tournament.name}</Text>
+                  <Text style={styles.tournamentContent}>🗓 {tournament.startDate} to {tournament.endDate}</Text>
+                </View>
+                {expandedCards[tournament.id] && (
+                  <>
+                    <View style={styles.contentCols}>
+                      <Text style={styles.tournamentContent}>⚾ {tournament.ballType}</Text>
+                      <Text style={styles.tournamentContent}>{tournament.format}</Text>
+                    </View>
+                    <Text style={[styles.tournamentContent, styles.maintainPadding]}>
+                      <Text style={styles.contentSubHeading}>Matches/Day:</Text>
+                      {tournament.matchesPerDay}
+                    </Text>
+                    <View style={styles.contentCols}>
+                      <Text style={styles.tournamentContent}>
+                        <Text style={styles.contentSubHeading}>Teams:</Text>
+                        {tournament.noOfTeams}
+                      </Text>
+                      <Text style={styles.tournamentContent}>
+                        <Text style={styles.contentSubHeading}>Matches:</Text>
+                        {tournament.numberOfMatches}
+                      </Text>
+                    </View>
+                    <Text style={[styles.tournamentContent, styles.maintainPadding]} numberOfLines={2}>{tournament.teamNames}</Text>
+                    <Text style={[styles.tournamentContent, styles.maintainPadding]}>
+                      <Text style={styles.contentSubHeading}>Venues:</Text>
+                      {tournament.venues.map((venue, index) => (
+                        <Text key={index}>
+                          {index > 0 && ', '}
+                          {`\u00A0${venue}`}
+                        </Text>
+                      ))}
+                    </Text>
+                  </>
+                )}
+                <Button
+                  color="#013A50"
+                  title={expandedCards[tournament.id] ? 'Show Less' : 'Show More'}
+                  onPress={() => toggleCardExpansion(tournament.id)}
+                />
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -86,7 +165,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     backgroundColor: '#002233',
-    paddingTop:40
+    paddingTop: 40
   },
   filterButton: {
     padding: 5,
@@ -135,54 +214,61 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   activeToggleText: {
-     color: '#FFF', fontSize: 16, fontWeight: 'bold'
+    color: '#FFF', fontSize: 16, fontWeight: 'bold'
   },
   cardContainer: {
+    width: '100%',
     padding: 10,
+    overflow: 'hidden',
   },
   card: {
     backgroundColor: '#013A50',
     borderRadius: 10,
     overflow: 'hidden',
     marginBottom: 15,
-    elevation: 5, // Adds shadow for Android
-    shadowColor: '#000', // Shadow for iOS
+    elevation: 5,
+    shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 3 },
-    height: 200, // Increased card height
+    paddingBottom: 10,
   },
   cardImage: {
     width: '100%',
-    height: '60%', // Adjust image height to fit the new card height
-    justifyContent: 'flex-end', // Align content to the bottom of the image
+    justifyContent: 'flex-end',
+    height: 100,
   },
   cardContent: {
-    padding: 10,
-    backgroundColor: 'rgba(0, 43, 61, 0.8)', // Slightly transparent background
+    paddingHorizontal: 6,
   },
-  cardTitle: {
-    fontSize: 20, // Increased font size
-    color: '#fff',
-    fontWeight: 'bold', // Made text bold
+  tournamentName: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'semibold',
   },
-  cardDetails: {
-    color: '#A9CCE3',
-    fontSize: 14,
-    marginTop: 5,
+  tournamentContent: {
+    color: '#c6effe',
+    fontSize: 16,
+    marginVertical: 2,
   },
-  statusTag: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#00A86B',
-    borderRadius: 5,
-    padding: 5,
+  contentSubHeading: {
+    color: 'white',
   },
-  statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+  contentCols: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 6,
+  },
+  maintainPadding: {
+    paddingHorizontal: 6
+  },
+  loader: {
+    marginTop: 20,
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 

@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
-const background = require('/Users/iceberg/score/Frontend/assets/images/bg.png');
+const background = require('../../assets/images/bg.png');
 
 const CreateTeam = () => {
   const [teamName, setTeamName] = useState('');
@@ -28,9 +28,9 @@ const CreateTeam = () => {
   const [activeIndex, setActiveIndex] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [logoUri, setLogoUri] = useState(null);
-  const [playerId, setPlayerId] = useState([]); 
+  const [playerId, setPlayerId] = useState([]);
   const [captainId, setCaptainId] = useState(null);
-  const [userID,setUserID] = useState('');
+  const [userID, setUserID] = useState('');
 
   useEffect(() => {
     const debounceSearch = setTimeout(() => {
@@ -56,7 +56,7 @@ const CreateTeam = () => {
       return null;
     }
   };
-  
+
   const getToken = async () => {
     try {
       return await AsyncStorage.getItem('jwtToken');
@@ -93,7 +93,7 @@ const CreateTeam = () => {
     }
   };
   const makeCaptain = async (playerId) => {
-    setCaptainId(playerId); 
+    setCaptainId(playerId);
     Alert.alert(
       "Captain Assigned",
       `Player has been successfully assigned as the captain.`,
@@ -101,11 +101,11 @@ const CreateTeam = () => {
       { cancelable: true }
     );
   };
-  
-  
+
+
   const addPlayerToTeam = (player) => {
     if (!playerId.includes(player.id)) {
-      setPlayerId((prev) => [...prev, player.id]); 
+      setPlayerId((prev) => [...prev, player.id]);
       setTeamPlayers((prev) => [...prev, player]);
     }
     setSearchQuery('');
@@ -113,7 +113,7 @@ const CreateTeam = () => {
   };
 
   const removePlayerFromTeam = (playerId) => {
-    setPlayerId((prev) => prev.filter((id) => id !== playerId)); 
+    setPlayerId((prev) => prev.filter((id) => id !== playerId));
     setTeamPlayers((prev) => prev.filter((player) => player.id !== playerId));
   };
 
@@ -122,50 +122,50 @@ const CreateTeam = () => {
       setErrorMessage('Please enter a team name and add players.');
       return;
     }
-  
+
     setCreatingTeam(true);
     setErrorMessage('');
-  
+
     try {
       const token = await getToken();
       const storedCaptainId = captainId; // Use the local `captainId` state
       const userId = await getUserUUID(); // Ensure `userUUID` is retrieved
-  
+
       if (!storedCaptainId) {
         setErrorMessage('Please assign a captain before creating the team.');
         setCreatingTeam(false);
         return;
       }
-  
+
       if (!userId) {
         setErrorMessage('Unable to retrieve the creator’s user ID.');
         setCreatingTeam(false);
         return;
       }
-  
+
       const formData = new FormData();
-    formData.append('name', teamName);
-    formData.append('captainId', storedCaptainId);
-    formData.append('playerIds', Array.isArray(playerId) ? playerId.join(',') : ''); // Safeguard
-    if (logoUri) {
-      const fileName = logoUri.split('/').pop();
-      const fileType = fileName.split('.').pop();
-      formData.append('logo', {
-        uri: logoUri,
-        name: fileName,
-        type: `image/${fileType}`,
+      formData.append('name', teamName);
+      formData.append('captainId', storedCaptainId);
+      formData.append('playerIds', Array.isArray(playerId) ? playerId.join(',') : ''); // Safeguard
+      if (logoUri) {
+        const fileName = logoUri.split('/').pop();
+        const fileType = fileName.split('.').pop();
+        formData.append('logo', {
+          uri: logoUri,
+          name: fileName,
+          type: `image/${fileType}`,
+        });
+      }
+
+      const response = await fetch(`https://score360-7.onrender.com/api/v1/teams/${userId}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
       });
-    }
-  
-    const response = await fetch(`https://score360-7.onrender.com/api/v1/teams/${userId}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
-      },
-      body: formData,
-    });
-  
+
       if (response.ok) {
         setTeamName('');
         setTeamPlayers([]);
@@ -185,9 +185,9 @@ const CreateTeam = () => {
       setCreatingTeam(false);
     }
   };
-  
-  
-  
+
+
+
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -236,66 +236,66 @@ const CreateTeam = () => {
 
           {loading && <ActivityIndicator size="small" color="#fff" />}
           {filteredPlayers.map((player, index) => (
-  <TouchableOpacity
-    key={player.id}
-    onPress={() => {
-      addPlayerToTeam(player);
-      setActiveIndex(index); 
-    }}
-    style={[
-      styles.dropdownItem,
-      activeIndex === index && styles.dropdownItemActive, 
-    ]}
-  >
-    <Text style={styles.dropdownText}>{player.name}</Text>
-  </TouchableOpacity>
- 
-))}
+            <TouchableOpacity
+              key={player.id}
+              onPress={() => {
+                addPlayerToTeam(player);
+                setActiveIndex(index);
+              }}
+              style={[
+                styles.dropdownItem,
+                activeIndex === index && styles.dropdownItemActive,
+              ]}
+            >
+              <Text style={styles.dropdownText}>{player.name}</Text>
+            </TouchableOpacity>
+
+          ))}
 
 
 
-<FlatList
-  data={teamPlayers}
-  keyExtractor={(item) => item.id}
-  renderItem={({ item }) => (
-    <View style={styles.teamPlayerCard}>
-      <Image
-        source={{
-          uri: item.profilePic || 'https://via.placeholder.com/50', // Dummy profile pic URL
-        }}
-        style={styles.playerProfilePic}
-      />
-      <View style={styles.playerInfo}>
-        <Text style={styles.playerName}>{item.name}</Text>
-        <Text style={styles.playerRole}>{item.role || 'Unknown Role'}</Text>
-      </View>
-      <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={styles.captainButton}
-          onPress={() =>
-            Alert.alert(
-              "Confirm Captain",
-              `Are you sure you want to make ${item.name} the captain?`,
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Confirm",
-                  onPress: () => makeCaptain(item.id),
-                },
-              ],
-              { cancelable: true }
-            )
-          }
-        >
-          <Text style={styles.captainButtonText}>C</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => removePlayerFromTeam(item.id)}>
-          <MaterialIcons name="delete" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  )}
-/>
+          <FlatList
+            data={teamPlayers}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.teamPlayerCard}>
+                <Image
+                  source={{
+                    uri: item.profilePic || 'https://via.placeholder.com/50', // Dummy profile pic URL
+                  }}
+                  style={styles.playerProfilePic}
+                />
+                <View style={styles.playerInfo}>
+                  <Text style={styles.playerName}>{item.name}</Text>
+                  <Text style={styles.playerRole}>{item.role || 'Unknown Role'}</Text>
+                </View>
+                <View style={styles.cardActions}>
+                  <TouchableOpacity
+                    style={styles.captainButton}
+                    onPress={() =>
+                      Alert.alert(
+                        "Confirm Captain",
+                        `Are you sure you want to make ${item.name} the captain?`,
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "Confirm",
+                            onPress: () => makeCaptain(item.id),
+                          },
+                        ],
+                        { cancelable: true }
+                      )
+                    }
+                  >
+                    <Text style={styles.captainButtonText}>C</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => removePlayerFromTeam(item.id)}>
+                    <MaterialIcons name="delete" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          />
 
 
           <TouchableOpacity onPress={createTeam} style={styles.createButton} disabled={creatingTeam}>
@@ -326,87 +326,87 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   dropdown: {
-    backgroundColor: '#1c3a47', 
-    borderRadius: 8, 
+    backgroundColor: '#1c3a47',
+    borderRadius: 8,
     marginTop: 10,
     maxHeight: 200,
-    overflow: 'hidden', 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 4, 
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
     elevation: 5,
   },
-  
+
   dropdownItem: {
-    padding: 15, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#0a2a34', 
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#0a2a34',
     backgroundColor: '#1c3a47',
   },
   dropdownItemActive: {
-    backgroundColor: '#296f86', 
+    backgroundColor: '#296f86',
   },
   dropdownText: {
-    fontSize: 16, 
-    color: '#fff', 
+    fontSize: 16,
+    color: '#fff',
   },
-    teamPlayerCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#0c2d3d',
-      borderRadius: 10,
-      padding: 15,
-      marginBottom: 10,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 5,
-    },
-    playerProfilePic: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
-      marginRight: 10, // Space between picture and text
-      backgroundColor: '#ccc', // Fallback background for dummy image
-    },
-    playerInfo: {
-      flex: 1, // Take available space for name and role
-    },
-    playerName: {
-      color: '#fff',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-    playerRole: {
-      color: '#ccc',
-      fontSize: 14,
-    },
-    cardActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-    },
-    captainButton: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      borderWidth: 2,
-      borderColor: '#fff',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'transparent',
-    },
-    captainButtonText: {
-      color: '#fff',
-      fontWeight: 'bold',
-      fontSize: 16,
-    },
-  
+  teamPlayerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0c2d3d',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  playerProfilePic: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10, // Space between picture and text
+    backgroundColor: '#ccc', // Fallback background for dummy image
+  },
+  playerInfo: {
+    flex: 1, // Take available space for name and role
+  },
+  playerName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  playerRole: {
+    color: '#ccc',
+    fontSize: 14,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  captainButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  captainButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 
 
-  
+
+
   logo: {
     width: 100,
     height: 100,
@@ -414,12 +414,12 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#fff',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 4, 
-    elevation: 5, 
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  
+
   uploadLogoButton: {
     marginTop: 10,
     padding: 10,
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ccc',
     borderBottomWidth: 1,
   },
-  
+
 
   createButton: {
     backgroundColor: '#0c2d3d',

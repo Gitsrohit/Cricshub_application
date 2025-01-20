@@ -15,7 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 
-const background = require('/Users/iceberg/score/Frontend/assets/images/bg.png'); 
+const background = require('../../assets/images/bg.png');
 
 const CreateTournament = () => {
   const [tournamentName, setTournamentName] = useState('');

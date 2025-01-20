@@ -11,10 +11,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const logo = require('/Users/iceberg/score/Frontend/assets/images/SCORE360.png');
-const background = require('/Users/iceberg/score/Frontend/assets/images/bg.png');
+const logo = require('../../assets/images/SCORE360.png');
+const background = require('../../assets/images/bg.png');
 
 const saveToken = async (token) => {
   try {
@@ -68,9 +68,9 @@ const Login = ({ navigation }) => {
       alert('Please enter both Email and Password.');
       return;
     }
-  
+
     setLoading(true);
-  
+
     try {
       const response = await axios.post(
         'https://score360-7.onrender.com/api/v1/auth/login',
@@ -79,23 +79,23 @@ const Login = ({ navigation }) => {
           password: formData.password,
         }
       );
-  
-      console.log('API Response:', response.data); 
-  
+
+      console.log('API Response:', response.data);
+
       if (response.data.success) {
         const token = response.data.data?.token;
-        const userId = response.data.data?.user?.id; 
-  
+        const userId = response.data.data?.user?.id;
+
         if (!token || !userId) {
           throw new Error('Token or User ID is missing in the API response.');
         }
-  
-        console.log('Token:', token); 
-        console.log('User ID:', userId); 
-  
+
+        console.log('Token:', token);
+        console.log('User ID:', userId);
+
         await saveToken(token);
         await AsyncStorage.setItem('userUUID', userId);
-  
+
         alert(`Welcome, ${formData.email}!`);
         navigation.replace('Main');
       } else {
@@ -112,10 +112,10 @@ const Login = ({ navigation }) => {
       setLoading(false);
     }
   };
-  
-  
-  
-  
+
+
+
+
 
   return (
     <LinearGradient
