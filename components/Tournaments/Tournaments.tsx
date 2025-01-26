@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Button } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { useNavigation } from '@react-navigation/native';
 
 const Tournaments = () => {
   const [activeTab, setActiveTab] = useState('MY');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [expandedCards, setExpandedCards] = useState({});
+
   const [tournaments, setTournaments] = useState([]);
 
   const fetchTournaments = async (status) => {
@@ -22,12 +23,12 @@ const Tournaments = () => {
       }
 
       const endpoint =
-        status === 'my'
+        status === 'MY'
           ? `https://score360-7.onrender.com/api/v1/tournaments/user/${userUUID}`
-          : `https://score360-7.onrender.com/api/v1/tournaments`;
+          : `https://score360-7.onrender.com/api/v1/tournaments/status`;
 
       const response = await axios.get(endpoint, {
-        params: status !== 'my' ? { status } : {},
+        params: status !== 'MY' ? { status } : {},
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -42,15 +43,8 @@ const Tournaments = () => {
   };
 
   useEffect(() => {
-    fetchTournaments(activeTab.toLowerCase());
+    fetchTournaments(activeTab.toUpperCase());
   }, [activeTab]);
-
-  const toggleCardExpansion = (cardId) => {
-    setExpandedCards((prev) => ({
-      ...prev,
-      [cardId]: !prev[cardId],
-    }));
-  };
 
   return (
     <View style={styles.container}>
@@ -94,64 +88,13 @@ const Tournaments = () => {
       ) : error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
-        <ScrollView contentContainerStyle={styles.cardContainer}>
-          {tournaments.map((tournament) => {
-            const sanitizedBannerUrl = tournament.banner.replace(
-              'https://score360-7.onrender.com/api/v1/files/http:/',
-              'https://'
-            );
-            return (
-              <View key={tournament.id} style={styles.card}>
-                <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} />
-                <View style={styles.cardContent}>
-                  <Text style={styles.tournamentName}>{tournament.name}</Text>
-                  <Text style={styles.tournamentContent}>🗓 {tournament.startDate} to {tournament.endDate}</Text>
-                </View>
-                {expandedCards[tournament.id] && (
-                  <>
-                    <View style={styles.contentCols}>
-                      <Text style={styles.tournamentContent}>⚾ {tournament.ballType}</Text>
-                      <Text style={styles.tournamentContent}>{tournament.format}</Text>
-                    </View>
-                    <Text style={[styles.tournamentContent, styles.maintainPadding]}>
-                      <Text style={styles.contentSubHeading}>Matches/Day:</Text>
-                      {tournament.matchesPerDay}
-                    </Text>
-                    <View style={styles.contentCols}>
-                      <Text style={styles.tournamentContent}>
-                        <Text style={styles.contentSubHeading}>Teams:</Text>
-                        {tournament.noOfTeams}
-                      </Text>
-                      <Text style={styles.tournamentContent}>
-                        <Text style={styles.contentSubHeading}>Matches:</Text>
-                        {tournament.numberOfMatches}
-                      </Text>
-                    </View>
-                    <Text style={[styles.tournamentContent, styles.maintainPadding]} numberOfLines={2}>{tournament.teamNames}</Text>
-                    <Text style={[styles.tournamentContent, styles.maintainPadding]}>
-                      <Text style={styles.contentSubHeading}>Venues:</Text>
-                      {tournament.venues.map((venue, index) => (
-                        <Text key={index}>
-                          {index > 0 && ', '}
-                          {`\u00A0${venue}`}
-                        </Text>
-                      ))}
-                    </Text>
-                  </>
-                )}
-                <Button
-                  color="#013A50"
-                  title={expandedCards[tournament.id] ? 'Show Less' : 'Show More'}
-                  onPress={() => toggleCardExpansion(tournament.id)}
-                />
-              </View>
-            );
-          })}
-        </ScrollView>
+        activeTab !== 'MY' ? <OthersTournaments tournaments={tournaments} /> : <MyTournaments tournaments={tournaments} />
       )}
     </View>
   );
 };
+
+export default Tournaments;
 
 const styles = StyleSheet.create({
   container: {
@@ -272,4 +215,103 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Tournaments;
+export const OthersTournaments = ({ tournaments }) => {
+  const [expandedCards, setExpandedCards] = useState({});
+
+  const toggleCardExpansion = (cardId) => {
+    setExpandedCards((prev) => ({
+      ...prev,
+      [cardId]: !prev[cardId],
+    }));
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.cardContainer}>
+      {tournaments.map((tournament) => {
+        const sanitizedBannerUrl = tournament.banner.replace(
+          'https://score360-7.onrender.com/api/v1/files/http:/',
+          'https://'
+        );
+        return (
+          <View key={tournament.id} style={styles.card}>
+            <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} />
+            <View style={styles.cardContent}>
+              <Text style={styles.tournamentName}>{tournament.name}</Text>
+              <Text style={styles.tournamentContent}>🗓 {tournament.startDate} to {tournament.endDate}</Text>
+            </View>
+            {expandedCards[tournament.id] && (
+              <>
+                <View style={styles.contentCols}>
+                  <Text style={styles.tournamentContent}>⚾ {tournament.ballType}</Text>
+                  <Text style={styles.tournamentContent}>{tournament.format}</Text>
+                </View>
+                <Text style={[styles.tournamentContent, styles.maintainPadding]}>
+                  <Text style={styles.contentSubHeading}>Matches/Day:</Text>
+                  {tournament.matchesPerDay}
+                </Text>
+                <View style={styles.contentCols}>
+                  <Text style={styles.tournamentContent}>
+                    <Text style={styles.contentSubHeading}>Teams:</Text>
+                    {tournament.noOfTeams}
+                  </Text>
+                  <Text style={styles.tournamentContent}>
+                    <Text style={styles.contentSubHeading}>Matches:</Text>
+                    {tournament.numberOfMatches}
+                  </Text>
+                </View>
+                <Text style={[styles.tournamentContent, styles.maintainPadding]} numberOfLines={2}>{tournament.teamNames}</Text>
+                <Text style={[styles.tournamentContent, styles.maintainPadding]}>
+                  <Text style={styles.contentSubHeading}>Venues:</Text>
+                  {tournament.venues.map((venue, index) => (
+                    <Text key={index}>
+                      {index > 0 && ', '}
+                      {`\u00A0${venue}`}
+                    </Text>
+                  ))}
+                </Text>
+              </>
+            )}
+            <Button
+              color="#013A50"
+              title={expandedCards[tournament.id] ? 'Show Less' : 'Show More'}
+              onPress={() => toggleCardExpansion(tournament.id)}
+            />
+          </View>
+        );
+      })}
+      {tournaments.length === 0 && <Text style={styles.errorText}>No matches</Text>}
+    </ScrollView>
+  )
+}
+
+export const MyTournaments = ({ tournaments }) => {
+  const navigation = useNavigation();
+  const manageTournamentHandler = (id: string) => {
+    navigation.navigate('ManageTournaments', { id });
+  }
+  return (
+    <ScrollView contentContainerStyle={styles.cardContainer}>
+      {tournaments.map((tournament) => {
+        const sanitizedBannerUrl = tournament.banner.replace(
+          'https://score360-7.onrender.com/api/v1/files/http:/',
+          'https://'
+        );
+        return (
+          <View key={tournament.id} style={styles.card}>
+            <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} />
+            <View style={styles.cardContent}>
+              <Text style={styles.tournamentName}>{tournament.name}</Text>
+              <Text style={styles.tournamentContent}>🗓 {tournament.startDate} to {tournament.endDate}</Text>
+            </View>
+            <Button
+              color="#013A50"
+              title='Manage'
+              onPress={() => manageTournamentHandler(tournament.id)}
+            />
+          </View>
+        );
+      })}
+      {tournaments.length === 0 && <Text style={styles.errorText}>No matches</Text>}
+    </ScrollView>
+  )
+}
