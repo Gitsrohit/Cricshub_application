@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Button, Modal, TextInput, Pressable } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Button, Modal, TextInput, Pressable, FlatList } from 'react-native';
 
 export default function ManageTournaments({ route }) {
   const [activeTab, setActiveTab] = useState('INFO');
@@ -233,6 +233,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
+  //Teams
+  dropdown: {
+    backgroundColor: 'white',
+    color: 'black',
+    padding: 4,
+    borderRadius: 4,
+  },
+  dropdownOption: {
+    borderBottomColor: 'grey',
+    borderBottomWidth: 1,
+    fontSize: 16,
+    backgroundColor: '#e5e5e5',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
 });
 
 export const Info = ({ id }) => {
@@ -423,13 +438,18 @@ export const Info = ({ id }) => {
 
 export const Teams = ({ id }) => {
   const [teams, setTeams] = useState([]);
-  const [error, setError] = useState('');
-  const [teamName, setTeamName] = useState('');
+  const [error, setError] = useState("");
+  const [teamId, setTeamId] = useState("");
+  const [dropdownOptions, setDropdownOptions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [loading, setLoading] = useState({ key: '', value: false });
+  const [enteredTeamName, setEnteredTeamName] = useState('');
 
   const fetchTeams = async (id) => {
     try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
+      const token = await AsyncStorage.getItem("jwtToken");
+      if (!token) throw new Error("Please login again");
+      setLoading({ key: 'All', value: true });
       const response = await axios.get(
         `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
         {
@@ -437,46 +457,102 @@ export const Teams = ({ id }) => {
         }
       );
       setTeams(response.data.teamNames);
-      console.log(response.data.teamNames);
     } catch (err) {
-      setError('Failed to fetch Team names');
+      setError("Failed to fetch Team names");
+    } finally {
+      setLoading({ key: 'All', value: false });
     }
   };
 
-  const addNewTeam = async () => {
-    if (!teamName.trim()) {
-      setError('Team name cannot be empty');
-      return;
-    }
-
+  const fetchAllTeams = async () => {
     try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
+      const token = await AsyncStorage.getItem("jwtToken");
+      if (!token) throw new Error("Please login again");
+      setLoading({ key: 'Search', value: true });
+      const response = await axios.get(
+        "https://score360-7.onrender.com/api/v1/teams",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setDropdownOptions(response.data.data);
+      setShowDropdown(true);
+    } catch (err) {
+      setError("Failed to fetch all teams");
+    } finally {
+      setLoading({ key: 'Search', value: false });
+    }
+  };
 
-      const response = await axios.post(
+  const searchTeamsByName = async (name) => {
+    try {
+      const token = await AsyncStorage.getItem("jwtToken");
+      if (!token) throw new Error("Please login again");
+      setLoading({ key: 'Search', value: true });
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/teams/search/name`,
+        {
+          params: { name },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setDropdownOptions(response.data.data);
+    } catch (err) {
+      setError("Failed to search for teams");
+    } finally {
+      setLoading({ key: 'Search', value: false });
+    }
+  };
+
+  function debounce(func, delay) {
+    let timer;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        func.apply(this, args);
+      }, delay);
+    };
+  }
+
+
+  const debouncedSearch = useCallback(
+    debounce((name: string) => searchTeamsByName(name), 500),
+    []
+  );
+
+  const handleInputChange = (value: string) => {
+    setEnteredTeamName(value);
+    if (value.trim() === "") {
+      fetchAllTeams();
+    } else {
+      debouncedSearch(value);
+    }
+  };
+
+  const addNewTeam = async (teamid: string, teamname: string) => {
+    try {
+      const token = await AsyncStorage.getItem("jwtToken");
+      if (!token) throw new Error("Please login again");
+      setLoading({ key: 'Add', value: true });
+      await axios.post(
         `https://score360-7.onrender.com/api/v1/tournaments/${id}/add-teams`,
-        [teamName.trim()], // Sending teamName as an array
+        [teamid.trim()],
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }
       );
-
-      // If successful, refresh the team list and clear the input
-      setTeams((prevTeams) => [...prevTeams, { name: teamName.trim() }]);
-      setTeamName('');
-      setError('');
-      console.log('Team added successfully:', response.data);
+      setEnteredTeamName('');
+      setTeamId('');
+      fetchTeams(id);
+      setError("");
     } catch (err) {
-      setError('Failed to add team');
-      console.error(err);
+      setError("Failed to add team");
+    } finally {
+      setLoading({ key: 'All', value: false });
     }
-  };
-
-  const inviteCaptainHandler = () => {
-    // Implementation for inviting the captain can go here
   };
 
   useEffect(() => {
@@ -486,14 +562,36 @@ export const Teams = ({ id }) => {
   return (
     <SafeAreaView style={styles.tournamentTeams}>
       <View style={styles.inputTeamContainer}>
-        <Text style={styles.inputTeamLabel}>Enter Team Name</Text>
+        <Text style={styles.inputTeamLabel}>Add Team</Text>
         <TextInput
           style={styles.teamNameInput}
-          placeholder="Team Name"
-          value={teamName}
-          onChangeText={(value) => setTeamName(value)}
+          placeholder="Enter Team Name"
+          value={enteredTeamName}
+          onChangeText={(value) => handleInputChange(value)}
+          onFocus={fetchAllTeams}
         />
-        <Button onPress={addNewTeam} title="Add Team" />
+        {showDropdown && (
+          <View style={styles.dropdown}>
+            {dropdownOptions.length === 0 && <Text>No results</Text>}
+            <FlatList
+              data={dropdownOptions}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    setEnteredTeamName(item.name);
+                    setTeamId(item.id);
+                    addNewTeam(item.id, item.name);
+                    setShowDropdown(false);
+                  }}
+                >
+                  <Text style={styles.dropdownOption}>{item.name}</Text>
+                </Pressable>
+              )}
+            />
+          </View>
+        )}
+        {loading.value === true && <ActivityIndicator />}
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
       {teams?.length !== 0 ? (
@@ -504,20 +602,10 @@ export const Teams = ({ id }) => {
               {team.captain ? (
                 <Text style={styles.teamCaptain}>{team.captain.name}</Text>
               ) : (
-                <Pressable onPress={inviteCaptainHandler}>
+                <Pressable>
                   <Text style={styles.teamInvite}>Invite captain</Text>
                 </Pressable>
               )}
-            </View>
-            <View style={styles.teamPlayers}>
-              <Text style={styles.teamPlayerHeading}>
-                Players:
-                {team.players?.map((player, index) => (
-                  <Text key={index} style={styles.teamPlayerName}>
-                    {player}
-                  </Text>
-                ))}
-              </Text>
             </View>
           </View>
         ))
@@ -527,7 +615,6 @@ export const Teams = ({ id }) => {
     </SafeAreaView>
   );
 };
-
 
 export const Matches = ({ id }) => {
   return (
