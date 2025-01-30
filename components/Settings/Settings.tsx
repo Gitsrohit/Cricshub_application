@@ -1,283 +1,414 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, FlatList } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome'; // Importing the FontAwesome icons
+import React, { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  ActivityIndicator,
+  SafeAreaView,
+  ImageBackground,
+  TextInput,
+  Modal,
+  Pressable,
+  Button,
+  TouchableOpacity,
+  Image,
+} from "react-native";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import bgImage from "../../assets/images/bg.png";
+import { LinearGradient } from "expo-linear-gradient";
+import IconSet from "react-native-vector-icons/FontAwesome";
+import { BlurView } from "expo-blur";
+import * as ImagePicker from "expo-image-picker";
 
-// Reusable Match Card Component
-const MatchCard = ({ teamAScore, matchStatus, isLive, teamBScore, showFooter, isPastMatch }) => (
-  <View style={styles.cardContainer}>
-    <View style={styles.cardHeader}>
-      <Text style={styles.cardTitle}>Individual Match</Text>
-      <Text style={styles.cardSubTitle}>Sindri, Dhanbad | 16-Dec-24 | 6 Ov.</Text>
-      {isLive && <Text style={styles.liveBadge}>LIVE°</Text>}
-    </View>
-    <View style={styles.cardContent}>
-      <View style={styles.divider} />
-      <View style={styles.teamRow}>
-        <Text style={styles.teamName}>Team A</Text>
-        <Text style={styles.teamScore}>{teamAScore}</Text>
+const Settings = () => {
+  const [profile, setProfile] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [updatedProfile, setUpdatedProfile] = useState({
+    name: "",
+    phoneNumber: "",
+    profilePicturePath: "",
+  });
+
+  const myIcon = <IconSet name="user" size={80} color="#fff" />;
+
+  const fetchProfile = async () => {
+    try {
+      const token = await AsyncStorage.getItem("jwtToken");
+      if (!token) throw new Error("Please login again");
+
+      const response = await axios.get(
+        "https://score360-7.onrender.com/api/v1/profile/current",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setProfile(response.data);
+      setUpdatedProfile({
+        name: response.data.name,
+        phoneNumber: response.data.phone,
+        profilePicturePath: response.data.profilePicturePath || "",
+      });
+      setError("");
+    } catch (err) {
+      setError("Failed to load profile information");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status === "granted") {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 4],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setUpdatedProfile((prev) => ({
+          ...prev,
+          profilePicturePath: result.assets[0].uri,
+        }));
+      }
+    } else {
+      alert("Permission to access media library is required!");
+    }
+  };
+
+  const updateProfile = async () => {
+    try {
+      const token = await AsyncStorage.getItem("jwtToken");
+      if (!token) throw new Error("Please login again");
+
+      await axios.put(
+        "https://score360-7.onrender.com/api/v1/profile/update",
+        updatedProfile,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      // setProfile((prev) => ({ ...prev, ...updatedProfile }));
+      setModalVisible(false);
+    } catch (err) {
+      alert("Failed to update profile");
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
       </View>
+    );
+  }
 
-      <View style={styles.teamRow}>
-        <Text style={styles.teamName}>Team B</Text>
-        <Text style={styles.teamScore}>{teamBScore || matchStatus}</Text>
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
-
-    </View>
-    <View style={styles.divider} />
-    {isPastMatch ? (
-      <Text style={styles.matchFooter}>{matchStatus}</Text>
-    ) : (
-      showFooter && <Text style={styles.matchFooter}>Team A won the toss and elected to bat.</Text>
-    )}
-  </View>
-);
-
-const CricketAppScreen = () => {
-  const [searchText, setSearchText] = useState(''); // State for search input
-  const [selectedTab, setSelectedTab] = useState('LIVE'); // State for active tab
-
-  // Sample data for Match Cards
-  const liveMatchData = [
-    { id: '1', teamAScore: '29/0 (1.5 Ov)', matchStatus: 'Yet to bat', isLive: true },
-    { id: '2', teamAScore: '45/2 (4 Ov)', matchStatus: 'Yet to bat', isLive: true },
-    { id: '3', teamAScore: '60/1 (5 Ov)', matchStatus: 'Yet to bat', isLive: true },
-    { id: '4', teamAScore: '29/0 (1.5 Ov)', matchStatus: 'Yet to bat', isLive: true },
-  ];
-
-  const upcomingMatchData = [
-    { id: '5', teamAScore: 'Match starts at 10:00 AM', matchStatus: 'UPCOMING', isLive: false },
-    { id: '6', teamAScore: 'Match starts at 2:00 PM', matchStatus: 'UPCOMING', isLive: false },
-    { id: '7', teamAScore: 'Match starts at 6:00 PM', matchStatus: 'UPCOMING', isLive: false },
-  ];
-
-  const pastMatchData = [
-    { id: '8', teamAScore: '150/7 (20 Ov)', teamBScore: '153/7 (19.4 Ov)', matchStatus: 'Team B won by 3 wickets', isLive: false, isPastMatch: true },
-    { id: '9', teamAScore: '180/5 (20 Ov)', teamBScore: '160/8 (20 Ov)', matchStatus: 'Team A won by 20 runs', isLive: false, isPastMatch: true },
-    { id: '10', teamAScore: '200/3 (20 Ov)', teamBScore: '190/6 (20 Ov)', matchStatus: 'Team A won by 10 runs', isLive: false, isPastMatch: true },
-  ];
-
-  const matchData =
-    selectedTab === 'LIVE'
-      ? liveMatchData
-      : selectedTab === 'UPCOMING'
-      ? upcomingMatchData
-      : pastMatchData;
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton}>
-          <Text style={styles.menuIcon}>☰</Text>
-        </TouchableOpacity>
-
-        {/* Search Input */}
-        <TextInput
-          style={styles.searchBar}
-          placeholder="Search for matches..."
-          placeholderTextColor="#666"
-          value={searchText}
-          onChangeText={(text) => setSearchText(text)}
-        />
-
-        <TouchableOpacity>
-          <Text style={styles.filterIcon}>⚲</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Buttons Section */}
-      <View style={styles.buttonSection}>
-        <TouchableOpacity
-          style={selectedTab === 'LIVE' ? styles.buttonSelected : styles.button}
-          onPress={() => setSelectedTab('LIVE')}
+    <SafeAreaView style={styles.settings}>
+      <LinearGradient
+        colors={['#000000', '#0A303B', '#36B0D5']}
+        style={styles.gradient}
+      >
+        <ImageBackground
+          source={bgImage} // Dynamically set the image source
+          style={styles.cardBackground} // Added shadow styling
+          imageStyle={styles.cardImage}
         >
-          <Text
-            style={
-              selectedTab === 'LIVE' ? styles.buttonTextSelected : styles.buttonText
-            }
-          >
-            LIVE
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={selectedTab === 'UPCOMING' ? styles.buttonSelected : styles.button}
-          onPress={() => setSelectedTab('UPCOMING')}
-        >
-          <Text
-            style={
-              selectedTab === 'UPCOMING' ? styles.buttonTextSelected : styles.buttonText
-            }
-          >
-            UPCOMING
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={selectedTab === 'PAST' ? styles.buttonSelected : styles.button}
-          onPress={() => setSelectedTab('PAST')}
-        >
-          <Text
-            style={
-              selectedTab === 'PAST' ? styles.buttonTextSelected : styles.buttonText
-            }
-          >
-            PAST
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.settingsContent}>
+            <View style={styles.userImageContainer}>
+              <View style={styles.userImage}>{myIcon}</View>
+              <Pressable
+                style={styles.editIconContainer}
+                onPress={() => setModalVisible(true)}
+              >
+                <IconSet name="edit" size={20} color="#fff" />
+              </Pressable>
+            </View>
 
-      {/* Match Cards List */}
-      <FlatList
-        data={matchData}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <MatchCard
-            teamAScore={item.teamAScore}
-            matchStatus={item.matchStatus}
-            isLive={item.isLive}
-            teamBScore={item.teamBScore}
-            showFooter={!item.isPastMatch}
-            isPastMatch={item.isPastMatch}
-          />
-        )}
-        contentContainerStyle={styles.listContainer}
-      />
+            <View style={styles.namePhone}>
+              <Text style={styles.headerHeading}>Name: <Text style={styles.headerValue}>{profile.name}</Text></Text>
+              <Text style={styles.headerHeading}>Phone: <Text style={styles.headerValue}>{profile.phone}</Text></Text>
+            </View>
 
+            <BlurView intensity={80} style={styles.blurContainer}>
+              <Text style={{ fontSize: 22, fontWeight: 'bold', color: 'white', textAlign: 'center' }}>Player Statistics</Text>
+            </BlurView>
+
+            <BlurView intensity={180} style={styles.statisticsBlurContainer}>
+              <Text style={styles.playerRole}>{profile.role}</Text>
+
+              <View style={styles.statisticsContainer}>
+                <Text style={styles.statisticsHeading}>Total Matches: </Text>
+                <Text style={styles.statisticsValue}>{profile.totalMatchesPlayed}</Text>
+              </View>
+
+              <View style={styles.statisticsContainer}>
+                <Text style={styles.statisticsHeading}>Total Runs: </Text>
+                <Text style={styles.statisticsValue}>{profile.totalRuns}</Text>
+              </View>
+
+              <View style={styles.statisticsContainer}>
+                <Text style={styles.statisticsHeading}>Total Wickets: </Text>
+                <Text style={styles.statisticsValue}>{profile.totalWickets}</Text>
+              </View>
+
+              <View style={styles.statisticsContainer}>
+                <Text style={styles.statisticsHeading}>Total 100: </Text>
+                <Text style={styles.statisticsValue}>{profile.total100s}</Text>
+              </View>
+
+              <View style={styles.statisticsContainer}>
+                <Text style={styles.statisticsHeading}>Total 50: </Text>
+                <Text style={styles.statisticsValue}>{profile.total50s}</Text>
+              </View>
+
+              <View style={styles.statisticsContainer}>
+                <Text style={styles.statisticsHeading}>Total Sixes: </Text>
+                <Text style={styles.statisticsValue}>{profile.total50s}</Text>
+              </View>
+
+              <View style={styles.statisticsContainer}>
+                <Text style={styles.statisticsHeading}>Total Fours: </Text>
+                <Text style={styles.statisticsValue}>{profile.total50s}</Text>
+              </View>
+            </BlurView>
+          </View>
+        </ImageBackground>
+      </LinearGradient>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Update Profile</Text>
+            <TouchableOpacity onPress={pickImage} style={styles.userUpdatedImage}>
+              {updatedProfile.profilePicturePath !== "" ? (
+                <Image resizeMode="cover" source={{ uri: updatedProfile.profilePicturePath }} style={styles.bannerImage} />
+              ) : (
+                <Pressable style={styles.imagePickerButton} onPress={pickImage}>
+                  <Text style={styles.imagePickerButtonText}>Pick Profile Picture</Text>
+                </Pressable>
+              )}
+            </TouchableOpacity>
+            <View style={styles.modalInputLabelContainer}>
+              <Text style={styles.modalTitle}>Name</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Name"
+                value={updatedProfile.name}
+                onChangeText={(text) =>
+                  setUpdatedProfile((prev) => ({ ...prev, name: text }))
+                }
+              />
+            </View>
+            <View style={styles.modalInputLabelContainer}>
+              <Text style={styles.modalTitle}>Phone</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Phone Number"
+                value={updatedProfile.phoneNumber}
+                onChangeText={(text) =>
+                  setUpdatedProfile((prev) => ({ ...prev, phoneNumber: text }))
+                }
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <Button title="Save" onPress={updateProfile} />
+              <Button title="Cancel" onPress={() => setModalVisible(false)} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-// Styles
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#003344',
-    
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    backgroundColor: '#002233',
-    paddingTop:40
-    
-  },
-  menuButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    
-    alignItems: 'center',
-    backgroundColor: '#004466',
-    borderRadius: 20,
-  },
-  menuIcon: { fontSize: 24, color: '#FFFFFF' },
-  searchBar: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontSize: 14,
-    backgroundColor: 'rgba(128, 128, 128, 0.4)',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    marginHorizontal: 12,
-  },
-  filterIcon: { fontSize: 24, color: '#FFFFFF' },
-  buttonSection: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 10,
-    paddingVertical: 6,
-  },
-  button: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    marginHorizontal: 10,
-    backgroundColor: '#003344',
-    borderRadius: 20,
-  },
-  buttonSelected: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    marginHorizontal: 10,
-    backgroundColor: '#004E62',
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  buttonText: { color: '#AAA', fontSize: 16 },
-  buttonTextSelected: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
-  listContainer: {
-    padding: 16,
-  },
-  
-  cardContainer: {
-    backgroundColor: '#e6f9ff',
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#004E62',
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-    position: 'relative',
-  },
-  cardHeader: {
-    marginBottom: 8,
-    position: 'relative',
-  },
-  liveBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    color: 'red',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#CCC',
-    marginVertical: 2,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#444',
-  },
-  cardContent: {
-    marginTop: 8,
-  },
-  cardSubTitle: {
-    fontSize: 12,
-    color: '#888',
-  },
-  teamRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 4,
-  },
-  teamName: {
-    fontSize: 14,
-    color: '#444',
-  },
-  teamScore: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  matchFooter: {
-    marginTop: 10,
-    fontSize: 12,
-    color: '#777',
-  },
-});
+export default Settings;
 
-export default CricketAppScreen;
+const styles = StyleSheet.create({
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+  },
+  blurContainer: {
+    padding: 6,
+    borderRadius: 10,
+    width: '60%',
+    textAlign: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginTop: 30,
+    marginBottom: 30,
+  },
+  cardBackground: {
+    width: '100%',
+    height: '100%',
+    marginBottom: 35,
+  },
+  cardImage: {
+    resizeMode: 'cover',
+    opacity: 0.5,
+    borderRadius: 10,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 16,
+  },
+  gradient: {
+    flex: 1,
+  },
+  headerHeading: {
+    fontSize: 14,
+    color: '#fff',
+  },
+  headerValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  imagePickerButton: {
+    width: 100,
+    height: 100,
+    padding: 10,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'black',
+    marginTop: 10,
+    marginBottom: 10
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 4
+  },
+  modalContainer: {
+    overflow: 'hidden',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  modalContent: {
+    height: 400,
+    width: '80%',
+    borderRadius: 20,
+    backgroundColor: 'white',
+    padding: 20,
+    overflow: 'hidden',
+  },
+  modalInput: {
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'black',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  modalInputLabelContainer: {
+    marginBottom: 10,
+  },
+  namePhone: {
+    marginTop: 10,
+  },
+  playerRole: {
+    marginBottom: 10,
+    fontSize: 20,
+    color: '#4e545c',
+    textAlign: 'center'
+  },
+  settings: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+  },
+  settingsContent: {
+    flex: 1,
+    marginVertical: 40,
+    alignItems: 'center',
+  },
+  statisticsBlurContainer: {
+    width: '80%',
+    overflow: 'hidden',
+    borderRadius: 10,
+    padding: 10,
+  },
+  statisticsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  statisticsHeading: {
+    fontSize: 20,
+    color: '#4e545c',
+    textAlign: 'left'
+  },
+  statisticsValue: {
+    fontSize: 20,
+    color: 'black',
+    textAlign: 'right'
+  },
+  userImage: {
+    backgroundColor: '#002B46',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 100,
+    height: 100,
+    borderRadius: '100%',
+    borderWidth: 1,
+    borderColor: '#fff'
+  },
+  userUpdatedImage: {
+    marginTop: 10,
+    marginBottom: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 100,
+    height: 100,
+    borderRadius: '100%',
+    borderWidth: 1,
+    borderColor: '#fff'
+  },
+  userImageContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  editIconContainer: {},
+});

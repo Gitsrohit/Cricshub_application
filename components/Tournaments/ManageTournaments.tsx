@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Button, Modal, TextInput, Pressable, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Button, Modal, TextInput, Pressable, FlatList, TouchableHighlight } from 'react-native';
 
 export default function ManageTournaments({ route }) {
   const [activeTab, setActiveTab] = useState('INFO');
@@ -207,6 +207,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 3 },
+    paddingHorizontal: 15,
+    paddingVertical: 10,
   },
   teamHeader: {
     flexDirection: 'row',
@@ -214,10 +216,12 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   teamName: {
+    color: 'white',
     fontSize: 16,
     fontWeight: 'semibold',
   },
   teamCaptain: {
+    color: 'white',
     fontSize: 14,
   },
   teamInvite: {
@@ -232,8 +236,6 @@ const styles = StyleSheet.create({
   teamPlayerName: {
     fontSize: 12,
   },
-
-  //Teams
   dropdown: {
     backgroundColor: 'white',
     color: 'black',
@@ -248,6 +250,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 4,
   },
+  addTournamentWarning: {
+    color: 'white',
+    textAlign: 'center',
+    marginTop: 10,
+    fontSize: 16,
+  },
+
+  //Matches
+  matchTab: {},
+  scheduleButtons: {},
 });
 
 export const Info = ({ id }) => {
@@ -514,7 +526,6 @@ export const Teams = ({ id }) => {
     };
   }
 
-
   const debouncedSearch = useCallback(
     debounce((name: string) => searchTeamsByName(name), 500),
     []
@@ -594,7 +605,7 @@ export const Teams = ({ id }) => {
         {loading.value === true && <ActivityIndicator />}
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
-      {teams?.length !== 0 ? (
+      {teams?.length !== 0 && (
         teams?.map((team) => (
           <View key={team.name} style={styles.teamCard}>
             <View style={styles.teamHeader}>
@@ -609,15 +620,61 @@ export const Teams = ({ id }) => {
             </View>
           </View>
         ))
-      ) : (
-        <Text>Add teams to the tournament</Text>
+      )}
+      {loading.value !== true && teams?.length == 0 && (
+        <Text style={styles.addTournamentWarning}>Add teams to the tournament</Text>
       )}
     </SafeAreaView>
   );
 };
 
 export const Matches = ({ id }) => {
+  const [matchDetails, setMatchDetails] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const fetchMatchDetails = async (id: string) => {
+    setLoading(true);
+    const token = await AsyncStorage.getItem('jwtToken');
+    if (!token) throw new Error("Please Login Again");
+    try {
+      const response = await axios.get(`https://score360-7.onrender.com/api/v1/tournaments/${id}/matches`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+      setMatchDetails(response.data);
+      console.log(response.data);
+    } catch (error) {
+      setError('Failed to fetch matches');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchMatchDetails(id);
+  }, [id])
+
+  const aiMatchScheduleHandler = async () => {
+    setLoading(true);
+  }
+
   return (
-    <Text>Matches</Text>
+    <View style={styles.matchTab}>
+      {loading && <ActivityIndicator />}
+      {!loading &&
+        <View style={styles.scheduleButtons}>
+          <TouchableHighlight onPress={aiMatchScheduleHandler}>
+            <Text>Generate AI Schedule</Text>
+          </TouchableHighlight>
+          <TouchableHighlight>
+            <Text>Schedule A Match Manually</Text>
+          </TouchableHighlight>
+        </View>
+      }
+
+    </View>
   )
 }
