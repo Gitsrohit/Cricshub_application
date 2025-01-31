@@ -140,17 +140,20 @@ const styles = StyleSheet.create({
   modalContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'white',
-    marginHorizontal: 15,
-    borderRadius: 4
+    flex: 1
   },
   modalContent: {
-    padding: 10,
+    backgroundColor: 'white',
+    marginHorizontal: 10,
+    borderRadius: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     color: 'black',
+    width: '80%'
   },
   modalTitle: {
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 20,
     textAlign: 'center',
     marginTop: 12,
   },
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginTop: 4,
     height: 40,
-    fontSize: 16
+    fontSize: 16,
   },
   modalInputLabel: {
     marginTop: 10,
@@ -199,8 +202,8 @@ const styles = StyleSheet.create({
     color: 'black'
   },
   teamCard: {
-    backgroundColor: '#013A50',
-    borderRadius: 10,
+    backgroundColor: 'white',
+    borderRadius: 4,
     overflow: 'hidden',
     elevation: 5,
     shadowColor: '#000',
@@ -208,20 +211,21 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 3 },
     paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
-  teamHeader: {
+    paddingVertical: 6,
+    marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+  },
+  teamHeader: {
   },
   teamName: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'semibold',
+    color: 'black',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   teamCaptain: {
-    color: 'white',
+    color: 'grey',
     fontSize: 14,
   },
   teamInvite: {
@@ -259,7 +263,61 @@ const styles = StyleSheet.create({
 
   //Matches
   matchTab: {},
-  scheduleButtons: {},
+  scheduleButtonsHeading: {
+    color: 'white',
+    fontSize: 16,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  scheduleButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center'
+  },
+  buttonText: {
+    color: 'black',
+    fontSize: 16
+  },
+  button: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'white',
+    overflow: 'hidden',
+    borderRadius: 30,
+  },
+  matchesContainer: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  matchCard: {
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 15,
+    width: '90%',
+    borderRadius: 4,
+  },
+  matchText: {
+    color: 'grey',
+    fontWeight: 'bold',
+  },
+  matchStage: {
+    fontSize: 16,
+    marginVertical: 6,
+    color: 'grey',
+    fontWeight: 'bold',
+  },
+  noMatchText: {
+    color: 'red',
+    fontSize: 20,
+    marginTop: 16,
+  },
+  matchTeamName: {
+    fontSize: 18,
+    color: 'grey',
+    fontWeight: 'bold',
+  },
 });
 
 export const Info = ({ id }) => {
@@ -268,7 +326,14 @@ export const Info = ({ id }) => {
   const [error, setError] = useState(null);
   const [sanitizedBannerUrl, setSanitizedBannerUrl] = useState('');
   const [editingTournament, setEditingTournament] = useState(false);
-  const [editedDetails, setEditedDetails] = useState({});
+  const [editedDetails, setEditedDetails] = useState({
+    name: '',
+    startDate: '',
+    endDate: '',
+    type: '',
+    ballType: '',
+    venues: [''],
+  });
 
   const fetchTournamentDetails = async (id) => {
     try {
@@ -388,37 +453,49 @@ export const Info = ({ id }) => {
                   onChangeText={(text) => setEditedDetails({ ...editedDetails, name: text })}
                 />
 
-                <Text style={styles.modalInputLabel}>Start Date</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Start Date"
-                  value={editedDetails.startDate || ''}
-                  onChangeText={(text) => setEditedDetails({ ...editedDetails, startDate: text })}
-                />
+                <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'column' }}>
+                    <Text style={styles.modalInputLabel}>Start Date</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="Start Date"
+                      value={editedDetails.startDate || ''}
+                      onChangeText={(text) => setEditedDetails({ ...editedDetails, startDate: text })}
+                    />
+                  </View>
 
-                <Text style={styles.modalInputLabel}>End Date</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="End Date"
-                  value={editedDetails.endDate || ''}
-                  onChangeText={(text) => setEditedDetails({ ...editedDetails, endDate: text })}
-                />
+                  <View style={{ flexDirection: 'column' }}>
+                    <Text style={styles.modalInputLabel}>End Date</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="End Date"
+                      value={editedDetails.endDate || ''}
+                      onChangeText={(text) => setEditedDetails({ ...editedDetails, endDate: text })}
+                    />
+                  </View>
+                </View>
 
-                <Text style={styles.modalInputLabel}>Type</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Type"
-                  value={editedDetails.type || ''}
-                  onChangeText={(text) => setEditedDetails({ ...editedDetails, type: text })}
-                />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'column' }}>
+                    <Text style={styles.modalInputLabel}>Overs</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="Type"
+                      value={editedDetails.type || ''}
+                      onChangeText={(text) => setEditedDetails({ ...editedDetails, type: text })}
+                    />
+                  </View>
 
-                <Text style={styles.modalInputLabel}>Ball</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Ball Type"
-                  value={editedDetails.ballType || ''}
-                  onChangeText={(text) => setEditedDetails({ ...editedDetails, ballType: text })}
-                />
+                  <View style={{ flexDirection: 'column' }}>
+                    <Text style={styles.modalInputLabel}>Ball</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="Ball Type"
+                      value={editedDetails.ballType || ''}
+                      onChangeText={(text) => setEditedDetails({ ...editedDetails, ballType: text })}
+                    />
+                  </View>
+                </View>
 
                 <Text style={styles.modalInputLabel}>Venues <Text style={{ fontSize: 12, fontWeight: 'light' }}>(, separated)</Text></Text>
                 <TextInput
@@ -618,6 +695,9 @@ export const Teams = ({ id }) => {
                 </Pressable>
               )}
             </View>
+            <View>
+              <Text></Text>
+            </View>
           </View>
         ))
       )}
@@ -632,49 +712,138 @@ export const Matches = ({ id }) => {
   const [matchDetails, setMatchDetails] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [venues, setVenues] = useState([]);
 
-  const fetchMatchDetails = async (id: string) => {
+  // Fetch Match Details
+  const fetchMatchDetails = async (id) => {
     setLoading(true);
     const token = await AsyncStorage.getItem('jwtToken');
-    if (!token) throw new Error("Please Login Again");
+    if (!token) {
+      setError('Please Login Again');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await axios.get(`https://score360-7.onrender.com/api/v1/tournaments/${id}/matches`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/tournaments/${id}/matches`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
       setMatchDetails(response.data);
-      console.log(response.data);
     } catch (error) {
+      console.error('Error fetching matches:', error?.response?.data || error.message);
       setError('Failed to fetch matches');
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  // Fetch Venues
+  const fetchTournamentDetails = async (id) => {
+    const token = await AsyncStorage.getItem('jwtToken');
+    if (!token) {
+      setError('Please Login Again');
+      return;
+    }
+
+    try {
+      const response = await axios.get(`https://score360-7.onrender.com/api/v1/tournaments/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const tournamentData = response.data;
+      setVenues(tournamentData.venues);
+    } catch (error) {
+      setError('Failed to fetch tournament details');
+    }
+  };
+
+  // AI Match Schedule Handler
+  const aiMatchScheduleHandler = async () => {
+    setLoading(true);
+    const token = await AsyncStorage.getItem('jwtToken');
+    if (!token) {
+      setError('Please Login Again');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const venuesQuery = venues.join(',');
+      await axios.post(`https://score360-7.onrender.com/api/v1/tournaments/${id}/schedule-matches?venues=${venuesQuery}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      fetchMatchDetails(id);
+    } catch (error) {
+      setError('Failed to schedule matches');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchMatchDetails(id);
-  }, [id])
-
-  const aiMatchScheduleHandler = async () => {
-    setLoading(true);
-  }
+    fetchTournamentDetails(id);
+  }, [id]);
 
   return (
     <View style={styles.matchTab}>
       {loading && <ActivityIndicator />}
-      {!loading &&
-        <View style={styles.scheduleButtons}>
-          <TouchableHighlight onPress={aiMatchScheduleHandler}>
-            <Text>Generate AI Schedule</Text>
-          </TouchableHighlight>
-          <TouchableHighlight>
-            <Text>Schedule A Match Manually</Text>
-          </TouchableHighlight>
-        </View>
-      }
+      {!loading && (
+        <>
+          {/* Match Details Section */}
+          <View style={styles.matchesContainer}>
+            {matchDetails.length > 0 ? (
+              matchDetails.map((match, index) => (
+                <View key={index} style={styles.matchCard}>
+                  <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline', borderBottomColor: 'grey', borderBottomWidth: 1 }}>
+                    <Text style={styles.matchTeamName}>{match.team1?.name}</Text>
+                    <Text style={{ color: 'black' }}>v/s</Text>
+                    <Text style={styles.matchTeamName}>{match.team2?.name}</Text>
+                  </View>
+                  <Text style={styles.matchStage}>{match.stage}</Text>
+                  <Text style={[styles.matchText, { textTransform: 'uppercase' }]}>📍 {match.venue}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={styles.matchText}>📅 {match.matchDate ? new Date(match.matchDate).toLocaleString() : 'Date not decided'}</Text>
+                    <Text style={styles.matchText}>🏆 {match.winner || 'N/A'}</Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <>
+                <Text style={styles.noMatchText}>No matches scheduled yet.</Text>
+                {/* Schedule Buttons */}
+                <Text style={styles.scheduleButtonsHeading}>How would you like to schedule the matches?</Text>
+                <View style={styles.scheduleButtons}>
+                  <Pressable onPress={aiMatchScheduleHandler} style={styles.button}>
+                    <Text style={styles.buttonText}>USING AI</Text>
+                  </Pressable>
+                  <Pressable style={styles.button}>
+                    <Text style={styles.buttonText}>MANUALLY</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
 
+
+
+        </>
+      )}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
-  )
-}
+  );
+};

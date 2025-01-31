@@ -209,23 +209,19 @@ const CreateTournament = () => {
                 style={styles.picker}
               >
                 <Picker.Item label="Select Format" value="" />
-                <Picker.Item label="Test" value="Test" />
-                <Picker.Item label="T20" value="T20" />
-                <Picker.Item label="50-50" value="50-50" />
-                <Picker.Item label="Custom" value="Custom" />
+                <Picker.Item label="Double Round Robin" value="DOUBLE_ROUND_ROBIN" />
+                <Picker.Item label="Single Round Robin" value="SINGLE_ROUND_ROBIN" />
               </Picker>
             </View>
 
-            {format === 'Custom' && (
-              <TextInput
-                style={styles.input}
-                placeholder="Enter no. of overs"
-                placeholderTextColor="#aaa"
-                value={overs}
-                onChangeText={setOvers}
-                keyboardType="numeric"
-              />
-            )}
+            <TextInput
+              style={styles.input}
+              placeholder="Enter no. of overs"
+              placeholderTextColor="#aaa"
+              value={overs}
+              onChangeText={setOvers}
+              keyboardType="numeric"
+            />
 
             {/* Ball Type Picker */}
             <View style={styles.pickerContainer}>
