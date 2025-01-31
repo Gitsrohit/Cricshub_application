@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Button } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Button, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
@@ -213,6 +213,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
+  myTournamentButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+    paddingHorizontal: 6
+  }
 });
 
 export const OthersTournaments = ({ tournaments }) => {
@@ -289,6 +295,40 @@ export const MyTournaments = ({ tournaments }) => {
   const manageTournamentHandler = (id: string) => {
     navigation.navigate('ManageTournaments', { id });
   }
+
+  const deleteTournamentHandler = async (id) => {
+    Alert.alert(
+      'Delete Tournament',
+      'Are you sure you want to delete this tournament?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            const token = await AsyncStorage.getItem('jwtToken');
+            if (!token) {
+              Alert.alert('Error', 'Please log in again.');
+              return;
+            }
+            try {
+              await axios.delete(`https://score360-7.onrender.com/api/v1/tournaments/${id}`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              Alert.alert('Success', 'Tournament deleted successfully.');
+              fetchTournaments();
+            } catch (error) {
+              console.error('Error deleting tournament:', error?.response?.data || error.message);
+              Alert.alert('Error', 'Failed to delete the tournament.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.cardContainer}>
       {tournaments.map((tournament) => {
@@ -303,11 +343,17 @@ export const MyTournaments = ({ tournaments }) => {
               <Text style={styles.tournamentName}>{tournament.name}</Text>
               <Text style={styles.tournamentContent}>🗓 {tournament.startDate} to {tournament.endDate}</Text>
             </View>
-            <Button
-              color="#013A50"
-              title='Manage'
-              onPress={() => manageTournamentHandler(tournament.id)}
-            />
+            <View style={styles.myTournamentButtons}>
+              <Button
+                title='Manage'
+                onPress={() => manageTournamentHandler(tournament.id)}
+              />
+              <Button
+                title='Delete'
+                onPress={() => deleteTournamentHandler(tournament.id)}
+              />
+
+            </View>
           </View>
         );
       })}
