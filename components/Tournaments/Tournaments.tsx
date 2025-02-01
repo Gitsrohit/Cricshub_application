@@ -157,7 +157,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   activeToggleText: {
-    color: '#FFF', fontSize: 16, fontWeight: 'bold'
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold'
   },
   cardContainer: {
     width: '100%',
@@ -165,37 +167,47 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   card: {
-    backgroundColor: '#013A50',
+    backgroundColor: 'white',
     borderRadius: 10,
     overflow: 'hidden',
+    margin: 10,
     marginBottom: 15,
     elevation: 5,
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 3 },
-    paddingBottom: 10,
+    padding: 10,
+  },
+  tournamentDetails: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    gap: 10,
+    paddingBottom: 5,
+    borderBottomColor: 'grey',
+    borderBottomWidth: 1,
   },
   cardImage: {
-    width: '100%',
+    overflow: 'hidden',
+    borderRadius: 50,
     justifyContent: 'flex-end',
-    height: 100,
+    height: 50,
+    width: 50,
   },
-  cardContent: {
-    paddingHorizontal: 6,
-  },
+  cardContent: {},
   tournamentName: {
-    color: 'white',
+    color: 'grey',
     fontSize: 20,
-    fontWeight: 'semibold',
+    fontWeight: 'bold',
   },
   tournamentContent: {
-    color: '#c6effe',
+    color: 'black',
     fontSize: 16,
     marginVertical: 2,
   },
   contentSubHeading: {
-    color: 'white',
+    color: 'black',
   },
   contentCols: {
     flexDirection: 'row',
@@ -215,6 +227,7 @@ const styles = StyleSheet.create({
   },
   myTournamentButtons: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: 10,
     marginTop: 10,
     paddingHorizontal: 6
@@ -240,32 +253,41 @@ export const OthersTournaments = ({ tournaments }) => {
         );
         return (
           <View key={tournament.id} style={styles.card}>
-            <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} />
-            <View style={styles.cardContent}>
-              <Text style={styles.tournamentName}>{tournament.name}</Text>
-              <Text style={styles.tournamentContent}>🗓 {tournament.startDate} to {tournament.endDate}</Text>
+            <View style={styles.tournamentDetails}>
+              <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='cover' />
+              <View style={styles.cardContent}>
+                <Text style={styles.tournamentName}>{tournament.name}</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+              <Text style={styles.tournamentContent}>🗓 From:  {tournament.startDate}</Text>
+              <Text style={styles.tournamentContent}>Overs:  {tournament.type}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={styles.tournamentContent}>🗓 To: {tournament.endDate}</Text>
+              <Text style={styles.tournamentContent}>⚾: {tournament.ballType}</Text>
             </View>
             {expandedCards[tournament.id] && (
               <>
                 <View style={styles.contentCols}>
-                  <Text style={styles.tournamentContent}>⚾ {tournament.ballType}</Text>
-                  <Text style={styles.tournamentContent}>{tournament.format}</Text>
-                </View>
-                <Text style={[styles.tournamentContent, styles.maintainPadding]}>
-                  <Text style={styles.contentSubHeading}>Matches/Day:</Text>
-                  {tournament.matchesPerDay}
-                </Text>
-                <View style={styles.contentCols}>
+                  <Text style={styles.tournamentContent}>Matches/Day: {tournament.matchesPerDay}</Text>
                   <Text style={styles.tournamentContent}>
                     <Text style={styles.contentSubHeading}>Teams:</Text>
                     {tournament.noOfTeams}
                   </Text>
+                </View>
+                <View style={styles.contentCols}>
+                  <Text style={styles.tournamentContent}>{tournament.format}</Text>
                   <Text style={styles.tournamentContent}>
                     <Text style={styles.contentSubHeading}>Matches:</Text>
                     {tournament.numberOfMatches}
                   </Text>
                 </View>
-                <Text style={[styles.tournamentContent, styles.maintainPadding]} numberOfLines={2}>{tournament.teamNames}</Text>
+                <Text style={[styles.tournamentContent, styles.maintainPadding]} numberOfLines={2}>
+                  Teams: {tournament.teamNames && Array.isArray(tournament.teamNames)
+                    ? tournament.teamNames.map((teamName) => teamName.name).join(', ')
+                    : 'No teams'}
+                </Text>
                 <Text style={[styles.tournamentContent, styles.maintainPadding]}>
                   <Text style={styles.contentSubHeading}>Venues:</Text>
                   {tournament.venues.map((venue, index) => (
@@ -291,10 +313,42 @@ export const OthersTournaments = ({ tournaments }) => {
 }
 
 export const MyTournaments = ({ tournaments }) => {
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
   const navigation = useNavigation();
+
   const manageTournamentHandler = (id: string) => {
     navigation.navigate('ManageTournaments', { id });
   }
+
+  const fetchTournaments = async (status) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      const userUUID = await AsyncStorage.getItem('userUUID');
+
+      if (!token || (status === 'my' && !userUUID)) {
+        throw new Error('Please login again');
+      }
+
+      const endpoint = `https://score360-7.onrender.com/api/v1/tournaments/user/${userUUID}`;
+
+      const response = await axios.get(endpoint, {
+        params: status !== 'MY' ? { status } : {},
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      tournaments = response.data;
+    } catch (err) {
+      setError('Failed to load tournaments');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const deleteTournamentHandler = async (id) => {
     Alert.alert(
@@ -338,10 +392,19 @@ export const MyTournaments = ({ tournaments }) => {
         );
         return (
           <View key={tournament.id} style={styles.card}>
-            <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} />
-            <View style={styles.cardContent}>
-              <Text style={styles.tournamentName}>{tournament.name}</Text>
-              <Text style={styles.tournamentContent}>🗓 {tournament.startDate} to {tournament.endDate}</Text>
+            <View style={styles.tournamentDetails}>
+              <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='cover' />
+              <View style={styles.cardContent}>
+                <Text style={styles.tournamentName}>{tournament.name}</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+              <Text style={styles.tournamentContent}>🗓 From:  {tournament.startDate}</Text>
+              <Text style={styles.tournamentContent}>Overs:  {tournament.type}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={styles.tournamentContent}>🗓 To: {tournament.endDate}</Text>
+              <Text style={styles.tournamentContent}>⚾: {tournament.ballType}</Text>
             </View>
             <View style={styles.myTournamentButtons}>
               <Button

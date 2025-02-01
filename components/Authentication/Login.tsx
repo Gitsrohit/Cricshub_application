@@ -24,7 +24,6 @@ const saveToken = async (token) => {
     const tokenString = typeof token === 'string' ? token : JSON.stringify(token);
 
     await AsyncStorage.setItem('jwtToken', tokenString);
-    console.log('Token saved securely');
   } catch (error) {
     console.error('Error saving token securely:', error);
   }
@@ -80,8 +79,6 @@ const Login = ({ navigation }) => {
         }
       );
 
-      console.log('API Response:', response.data);
-
       if (response.data.success) {
         const token = response.data.data?.token;
         const userId = response.data.data?.user?.id;
@@ -89,9 +86,6 @@ const Login = ({ navigation }) => {
         if (!token || !userId) {
           throw new Error('Token or User ID is missing in the API response.');
         }
-
-        console.log('Token:', token);
-        console.log('User ID:', userId);
 
         await saveToken(token);
         await AsyncStorage.setItem('userUUID', userId);
@@ -112,10 +106,6 @@ const Login = ({ navigation }) => {
       setLoading(false);
     }
   };
-
-
-
-
 
   return (
     <LinearGradient
