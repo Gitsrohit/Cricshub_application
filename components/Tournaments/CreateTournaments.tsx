@@ -27,6 +27,7 @@ const CreateTournament = () => {
   const [ballType, setBallType] = useState('');
   const [overs, setOvers] = useState('');
   const [banner, setBanner] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const getToken = async () => {
     try {
@@ -47,6 +48,7 @@ const CreateTournament = () => {
   };
 
   const handleCreateTournament = async () => {
+    setLoading(true);
     const userId = await getUserUUID();
     if (!tournamentName || !format || !ballType) {
       Alert.alert('Error', 'Please fill all fields.');
@@ -100,6 +102,15 @@ const CreateTournament = () => {
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Something went wrong.');
+    } finally {
+      setTournamentName('');
+      setStartDate(new Date());
+      setEndDate(new Date());
+      setFormat('');
+      setBallType('');
+      setOvers('');
+      setBanner(null);
+      setLoading(false);
     }
   };
 
@@ -239,8 +250,9 @@ const CreateTournament = () => {
             <TouchableOpacity
               style={styles.button}
               onPress={handleCreateTournament}
+              disabled={loading}
             >
-              <Text style={styles.buttonText}>Create Tournament</Text>
+              <Text style={styles.buttonText}>{loading ? 'Creating' : `Create Tournament`}</Text>
             </TouchableOpacity>
           </View>
         </View>

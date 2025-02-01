@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Button, Modal, TextInput, Pressable, FlatList, TouchableHighlight } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function ManageTournaments({ route }) {
   const [activeTab, setActiveTab] = useState('INFO');
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   card: {
-    backgroundColor: '#013A50',
+    backgroundColor: '#004E62',
     borderRadius: 10,
     overflow: 'hidden',
     marginBottom: 15,
@@ -643,6 +644,32 @@ export const Teams = ({ id }) => {
     }
   };
 
+  const handleDeleteTeamHandler = async (teamId) => {
+    const token = await AsyncStorage.getItem('jwtToken');
+    setLoading({ key: 'All', value: true })
+    if (!token) {
+      throw new Error("Login Again");
+      return;
+    }
+    try {
+      await axios.post(
+        `https://score360-7.onrender.com/api/v1/tournaments/${id}/remove-teams`,
+        [teamId.trim()],
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    } catch (err) {
+      setError("Couldn't delete team");
+    } finally {
+      setLoading({ key: 'All', value: false });
+      fetchTeams(id);
+    }
+  }
+
   useEffect(() => {
     fetchTeams(id);
   }, [id]);
@@ -695,9 +722,9 @@ export const Teams = ({ id }) => {
                 </Pressable>
               )}
             </View>
-            <View>
-              <Text></Text>
-            </View>
+            <Pressable onPress={() => handleDeleteTeamHandler(team.id)}>
+              <Icon name="delete" size={24} color="black" />
+            </Pressable>
           </View>
         ))
       )}
