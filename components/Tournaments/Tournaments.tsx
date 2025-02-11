@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Button, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Button, Alert, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const Tournaments = () => {
   const [activeTab, setActiveTab] = useState('MY');
@@ -24,7 +25,7 @@ const Tournaments = () => {
 
       const endpoint =
         status === 'MY'
-          ? `https://score360-7.onrender.com/api/v1/tournaments/user/${userUUID}`
+          ? `https://score360-7.onrender.com/api/v1/tournaments/tournaments-play`
           : `https://score360-7.onrender.com/api/v1/tournaments/status`;
 
       const response = await axios.get(endpoint, {
@@ -33,7 +34,6 @@ const Tournaments = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       setTournaments(response.data);
     } catch (err) {
       setError('Failed to load tournaments');
@@ -60,7 +60,7 @@ const Tournaments = () => {
       </View>
 
       {/* Toggle Buttons */}
-      <View style={styles.toggleContainer}>
+      <ScrollView style={styles.toggleContainer} horizontal={true}>
         {['MY', 'LIVE', 'UPCOMING', 'PAST'].map((tab) => (
           <TouchableOpacity
             key={tab}
@@ -80,7 +80,7 @@ const Tournaments = () => {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Tournament Cards */}
       {loading ? (
@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     backgroundColor: '#002233',
-    paddingTop: 40
   },
   filterButton: {
     padding: 5,
@@ -126,10 +125,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   toggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     marginTop: 10,
     paddingVertical: 6,
+    height: 66,
   },
   toggleButton: {
     paddingVertical: 10,
@@ -137,6 +135,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     backgroundColor: '#003344',
     borderRadius: 10,
+    height: 44,
   },
   activeToggleButton: {
     paddingVertical: 8,
@@ -195,7 +194,12 @@ const styles = StyleSheet.create({
     height: 50,
     width: 50,
   },
-  cardContent: {},
+  cardContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
   tournamentName: {
     color: 'grey',
     fontSize: 20,
@@ -260,12 +264,12 @@ export const OthersTournaments = ({ tournaments }) => {
               </View>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-              <Text style={styles.tournamentContent}>🗓 From:  {tournament.startDate}</Text>
+              <Text style={styles.tournamentContent}><Icon name="calendar-month" color="black" size={20} /> From:  {tournament.startDate[2]}-{tournament.startDate[1]}-{tournament.startDate[0]}</Text>
               <Text style={styles.tournamentContent}>Overs:  {tournament.type}</Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={styles.tournamentContent}>🗓 To: {tournament.endDate}</Text>
-              <Text style={styles.tournamentContent}>⚾: {tournament.ballType}</Text>
+              <Text style={styles.tournamentContent}><Icon name="calendar-month" color="black" size={20} /> To: {tournament.endDate[2]}-{tournament.endDate[1]}-{tournament.endDate[0]}</Text>
+              <Text style={styles.tournamentContent}><Icon name="sports-baseball" color="black" size={20} />: {tournament.ballType}</Text>
             </View>
             {expandedCards[tournament.id] && (
               <>
@@ -371,7 +375,6 @@ export const MyTournaments = ({ tournaments }) => {
                 },
               });
               Alert.alert('Success', 'Tournament deleted successfully.');
-              fetchTournaments();
             } catch (error) {
               console.error('Error deleting tournament:', error?.response?.data || error.message);
               Alert.alert('Error', 'Failed to delete the tournament.');
@@ -391,33 +394,23 @@ export const MyTournaments = ({ tournaments }) => {
           'https://'
         );
         return (
-          <View key={tournament.id} style={styles.card}>
+          <Pressable key={tournament.id} style={styles.card} onPress={() => manageTournamentHandler(tournament.id)}>
             <View style={styles.tournamentDetails}>
               <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='cover' />
               <View style={styles.cardContent}>
                 <Text style={styles.tournamentName}>{tournament.name}</Text>
+                <Icon name="delete" size={24} color="black" onPress={() => deleteTournamentHandler(tournament.id)} />
               </View>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-              <Text style={styles.tournamentContent}>🗓 From:  {tournament.startDate}</Text>
+              <Text style={styles.tournamentContent}><Icon name="calendar-month" color="black" size={20} /> From:  {tournament.startDate[2]}-{tournament.startDate[1]}-{tournament.startDate[0]}</Text>
               <Text style={styles.tournamentContent}>Overs:  {tournament.type}</Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={styles.tournamentContent}>🗓 To: {tournament.endDate}</Text>
-              <Text style={styles.tournamentContent}>⚾: {tournament.ballType}</Text>
+              <Text style={styles.tournamentContent}><Icon name="calendar-month" color="black" size={20} /> To: {tournament.endDate[2]}-{tournament.endDate[1]}-{tournament.endDate[0]}</Text>
+              <Text style={styles.tournamentContent}><Icon name="sports-baseball" color="black" size={20} />: {tournament.ballType}</Text>
             </View>
-            <View style={styles.myTournamentButtons}>
-              <Button
-                title='Manage'
-                onPress={() => manageTournamentHandler(tournament.id)}
-              />
-              <Button
-                title='Delete'
-                onPress={() => deleteTournamentHandler(tournament.id)}
-              />
-
-            </View>
-          </View>
+          </Pressable>
         );
       })}
       {tournaments.length === 0 && <Text style={styles.errorText}>No matches</Text>}

@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 
 const Footer = () => {
-  const [activeTab, setActiveTab] = useState('MATCHES'); // Default active tab
+  const [activeTab, setActiveTab] = useState('HOME'); // Default active tab
   const navigation = useNavigation(); // Navigation context
 
   const footerTabs = [
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: '#002233',
-    height: 80, // Fixed footer height for consistent spacing
+    height: 60, // Fixed footer height for consistent spacing
     paddingHorizontal: 10, // Equal horizontal padding
   },
   footerButton: {
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   },
   footerButtonText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 10,
     marginTop: 5,
   },
   activeCircle: {

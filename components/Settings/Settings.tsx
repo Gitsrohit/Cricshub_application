@@ -22,7 +22,18 @@ import { BlurView } from "expo-blur";
 import * as ImagePicker from "expo-image-picker";
 
 const Settings = () => {
-  const [profile, setProfile] = useState({});
+  const [profile, setProfile] = useState({
+    name: "",
+    phone: "",
+    role: "",
+    totalMatchesPlayed: "",
+    totalRuns: 0,
+    totalWickets: 0,
+    total100s: 0,
+    total50s: 0,
+    totalSixes: 0,
+    totalFours: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
@@ -183,12 +194,12 @@ const Settings = () => {
 
               <View style={styles.statisticsContainer}>
                 <Text style={styles.statisticsHeading}>Total Sixes: </Text>
-                <Text style={styles.statisticsValue}>{profile.total50s}</Text>
+                <Text style={styles.statisticsValue}>{profile.totalSixes}</Text>
               </View>
 
               <View style={styles.statisticsContainer}>
                 <Text style={styles.statisticsHeading}>Total Fours: </Text>
-                <Text style={styles.statisticsValue}>{profile.total50s}</Text>
+                <Text style={styles.statisticsValue}>{profile.totalFours}</Text>
               </View>
             </BlurView>
           </View>
@@ -307,6 +318,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 10
   },
+  imagePickerButtonText: {},
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

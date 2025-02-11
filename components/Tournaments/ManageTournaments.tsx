@@ -1,18 +1,52 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Button, Modal, TextInput, Pressable, FlatList, TouchableHighlight } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Button, Modal, TextInput, Pressable, FlatList, TouchableHighlight, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function ManageTournaments({ route }) {
   const [activeTab, setActiveTab] = useState('INFO');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [sanitizedBannerUrl, setSanitizedBannerUrl] = useState('');
   const { id } = route.params;
+
+  const fetchTournamentDetails = async (id) => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) throw new Error('Please login again');
+
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setSanitizedBannerUrl(
+        response.data.banner.replace(
+          'https://score360-7.onrender.com/api/v1/files/http:/',
+          'https://'
+        )
+      );
+    } catch (err) {
+      setError('Failed to fetch tournament details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTournamentDetails(id);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
+
+      <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} />
       {/* Toggle Buttons */}
-      <View style={styles.toggleContainer}>
-        {['INFO', 'TEAMS', 'MATCHES'].map((tab) => (
+      <ScrollView style={styles.toggleContainer} horizontal={true}>
+        {['INFO', 'TEAMS', 'MATCHES', 'POINTS TABLE'].map((tab) => (
           <TouchableOpacity
             key={tab}
             style={[
@@ -31,10 +65,12 @@ export default function ManageTournaments({ route }) {
             </Text>
           </TouchableOpacity>
         ))}
+      </ScrollView>
+      <View style={{ height: '65%', backgroundColor: '#002B3D' }}>
+        {activeTab === 'INFO' && <Info id={id} />}
+        {activeTab === 'TEAMS' && <Teams id={id} />}
+        {activeTab === 'MATCHES' && <Matches id={id} />}
       </View>
-      {activeTab === 'INFO' && <Info id={id} />}
-      {activeTab === 'TEAMS' && <Teams id={id} />}
-      {activeTab === 'MATCHES' && <Matches id={id} />}
     </SafeAreaView>
   );
 };
@@ -42,24 +78,22 @@ export default function ManageTournaments({ route }) {
 const styles = StyleSheet.create({
   // ManageTournaments
   container: {
-    flex: 1,
+    height: '100%',
     backgroundColor: '#002B3D',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    paddingTop: 40,
+    paddingHorizontal: 6,
   },
   toggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     marginTop: 10,
     paddingVertical: 6,
+    height: 66,
   },
   toggleButton: {
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     marginHorizontal: 10,
     backgroundColor: '#003344',
     borderRadius: 10,
+    height: 44,
   },
   activeToggleButton: {
     paddingVertical: 8,
@@ -84,51 +118,41 @@ const styles = StyleSheet.create({
   },
 
   // Info
-  cardContainer: {
-    width: '100%',
-    padding: 10,
-    overflow: 'hidden',
-  },
-  card: {
-    backgroundColor: '#004E62',
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginBottom: 15,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 3 },
-    paddingBottom: 10,
-  },
+
   cardImage: {
     width: '100%',
     justifyContent: 'flex-end',
-    height: 100,
+    height: 150,
   },
-  cardContent: {
-    paddingHorizontal: 6,
+  tournamentDetails: {
+    width: '90%',
+    backgroundColor: '#002233',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 4
   },
   tournamentName: {
-    color: 'white',
     fontSize: 20,
-    fontWeight: 'semibold',
-  },
-  tournamentContent: {
-    color: '#c6effe',
-    fontSize: 16,
-    marginVertical: 2,
-  },
-  contentSubHeading: {
     color: 'white',
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
+    borderBottomColor: 'grey',
+    borderBottomWidth: 1
   },
-  contentCols: {
+  tournamentDetailsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 6,
+    marginTop: 6
   },
-  maintainPadding: {
-    paddingHorizontal: 6
+  tournamentDetailsHeading: {
+    color: 'grey',
+    flex: 1,
+    fontSize: 16,
+    textTransform: 'uppercase',
+  },
+  tournamentDetailsValue: {
+    color: 'white',
+    flex: 2,
+    fontSize: 16,
   },
   loader: {
     marginTop: 20,
@@ -348,6 +372,7 @@ export const Info = ({ id }) => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      console.log(response.data);
       setTournamentDetails(response.data);
       setEditedDetails({
         ...response.data,
@@ -413,26 +438,43 @@ export const Info = ({ id }) => {
   }
 
   return (
-    <SafeAreaView>
+    <View style={{ flexDirection: 'column', alignItems: 'center' }}>
       {tournamentDetails ? (
         <>
-          <View key={tournamentDetails.id} style={styles.card}>
-            <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} />
-            <View style={styles.cardContent}>
-              <Text style={styles.tournamentName}>{tournamentDetails.name}</Text>
-              <Text style={styles.tournamentContent}>
-                🗓 {tournamentDetails.startDate} to {tournamentDetails.endDate}
-              </Text>
+          <View style={styles.tournamentDetails}>
+            <Text style={styles.tournamentName}>{tournamentDetails.name}</Text>
+            <View style={styles.tournamentDetailsRow}>
+              <Text style={styles.tournamentDetailsHeading}>Organizer</Text>
+              <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.creatorName.name}</Text>
             </View>
-            <View style={styles.contentCols}>
-              <Text style={styles.tournamentContent}>⚾ {tournamentDetails.ballType}</Text>
-              <Text style={styles.tournamentContent}>{tournamentDetails.type}</Text>
+            <View style={styles.tournamentDetailsRow}>
+              <Text style={styles.tournamentDetailsHeading}>Teams</Text>
+              <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.teamNames?.map((team) => team?.name).join(", ")}</Text>
             </View>
-            <Text style={[styles.tournamentContent, styles.maintainPadding]}>
-              <Text style={styles.contentSubHeading}>Venues:</Text>
-              {tournamentDetails.venues.join(', ')}
-            </Text>
-            <Button color="#013A50" title="✏️ Edit" onPress={() => setEditingTournament(true)} />
+            <View style={styles.tournamentDetailsRow}>
+              <Text style={styles.tournamentDetailsHeading}>Venues</Text>
+              <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.venues?.map((venue) => venue).join(", ")}</Text>
+            </View>
+            <View style={styles.tournamentDetailsRow}>
+              <Text style={styles.tournamentDetailsHeading}><Icon name="calendar-month" color="white" size={14} /> Start</Text>
+              <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.startDate[2]}-{tournamentDetails.startDate[1]}-{tournamentDetails.startDate[0]}</Text>
+            </View>
+            <View style={styles.tournamentDetailsRow}>
+              <Text style={styles.tournamentDetailsHeading}><Icon name="calendar-month" color="white" size={14} /> End</Text>
+              <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.endDate[2]}-{tournamentDetails.endDate[1]}-{tournamentDetails.endDate[0]}</Text>
+            </View>
+            <View style={styles.tournamentDetailsRow}>
+              <Text style={styles.tournamentDetailsHeading}>Overs</Text>
+              <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.type}</Text>
+            </View>
+            <View style={styles.tournamentDetailsRow}>
+              <Text style={styles.tournamentDetailsHeading}>Format</Text>
+              <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.format}</Text>
+            </View>
+            <View style={styles.tournamentDetailsRow}>
+              <Text style={styles.tournamentDetailsHeading}>Ball</Text>
+              <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.ballType}</Text>
+            </View>
           </View>
 
           {/* Modal for Editing Tournament Details */}
@@ -522,7 +564,7 @@ export const Info = ({ id }) => {
       ) : (
         <Text>No details available</Text>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -551,26 +593,6 @@ export const Teams = ({ id }) => {
       setError("Failed to fetch Team names");
     } finally {
       setLoading({ key: 'All', value: false });
-    }
-  };
-
-  const fetchAllTeams = async () => {
-    try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Please login again");
-      setLoading({ key: 'Search', value: true });
-      const response = await axios.get(
-        "https://score360-7.onrender.com/api/v1/teams",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setDropdownOptions(response.data.data);
-      setShowDropdown(true);
-    } catch (err) {
-      setError("Failed to fetch all teams");
-    } finally {
-      setLoading({ key: 'Search', value: false });
     }
   };
 
@@ -611,11 +633,7 @@ export const Teams = ({ id }) => {
 
   const handleInputChange = (value: string) => {
     setEnteredTeamName(value);
-    if (value.trim() === "") {
-      fetchAllTeams();
-    } else {
-      debouncedSearch(value);
-    }
+    debouncedSearch(value);
   };
 
   const addNewTeam = async (teamid: string, teamname: string) => {
@@ -675,7 +693,7 @@ export const Teams = ({ id }) => {
   }, [id]);
 
   return (
-    <SafeAreaView style={styles.tournamentTeams}>
+    <View style={styles.tournamentTeams}>
       <View style={styles.inputTeamContainer}>
         <Text style={styles.inputTeamLabel}>Add Team</Text>
         <TextInput
@@ -683,7 +701,6 @@ export const Teams = ({ id }) => {
           placeholder="Enter Team Name"
           value={enteredTeamName}
           onChangeText={(value) => handleInputChange(value)}
-          onFocus={fetchAllTeams}
         />
         {showDropdown && (
           <View style={styles.dropdown}>
@@ -709,29 +726,31 @@ export const Teams = ({ id }) => {
         {loading.value === true && <ActivityIndicator />}
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
-      {teams?.length !== 0 && (
-        teams?.map((team) => (
-          <View key={team.name} style={styles.teamCard}>
-            <View style={styles.teamHeader}>
-              <Text style={styles.teamName}>{team.name}</Text>
-              {team.captain ? (
-                <Text style={styles.teamCaptain}>{team.captain.name}</Text>
-              ) : (
-                <Pressable>
-                  <Text style={styles.teamInvite}>Invite captain</Text>
-                </Pressable>
-              )}
+      <View>
+        {teams?.length !== 0 && (
+          teams?.map((team) => (
+            <View key={team.name} style={styles.teamCard}>
+              <View style={styles.teamHeader}>
+                <Text style={styles.teamName}>{team.name}</Text>
+                {team.captain ? (
+                  <Text style={styles.teamCaptain}>{team.captain.name}</Text>
+                ) : (
+                  <Pressable>
+                    <Text style={styles.teamInvite}>Invite captain</Text>
+                  </Pressable>
+                )}
+              </View>
+              <Pressable onPress={() => handleDeleteTeamHandler(team.id)}>
+                <Icon name="delete" size={24} color="black" />
+              </Pressable>
             </View>
-            <Pressable onPress={() => handleDeleteTeamHandler(team.id)}>
-              <Icon name="delete" size={24} color="black" />
-            </Pressable>
-          </View>
-        ))
-      )}
+          ))
+        )}
+      </View>
       {loading.value !== true && teams?.length == 0 && (
         <Text style={styles.addTournamentWarning}>Add teams to the tournament</Text>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Image,
   ImageBackground,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -108,56 +109,59 @@ const Login = ({ navigation }) => {
   };
 
   return (
-    <LinearGradient
-      colors={['#000000', '#0A303B', '#36B0D5']}
-      style={styles.gradient}
-    >
-      <ImageBackground
-        source={background}
-        style={styles.background}
-        imageStyle={styles.backgroundImage}
+    <>
+      <StatusBar />
+      <LinearGradient
+        colors={['#000000', '#0A303B', '#36B0D5']}
+        style={styles.gradient}
       >
-        <View style={styles.container}>
-          <Image source={logo} style={styles.logo} />
-          <BlurView intensity={50} tint="light" style={styles.loginContainer}>
-            <View style={styles.glassyStroke}>
-              <Text style={styles.title}>LOGIN</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="EMAIL"
-                placeholderTextColor="#999"
-                value={formData.email}
-                onChangeText={(value) => handleInputChange('email', value)}
-                editable={!loading}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="PASSWORD"
-                placeholderTextColor="#999"
-                secureTextEntry
-                value={formData.password}
-                onChangeText={(value) => handleInputChange('password', value)}
-                editable={!loading}
-              />
-              <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
-                <Text style={styles.loginButtonText}>
-                  {loading ? 'Logging in...' : 'Login'}
+        <ImageBackground
+          source={background}
+          style={styles.background}
+          imageStyle={styles.backgroundImage}
+        >
+          <View style={styles.container}>
+            <Image source={logo} style={styles.logo} />
+            <BlurView intensity={50} tint="light" style={styles.loginContainer}>
+              <View style={styles.glassyStroke}>
+                <Text style={styles.title}>LOGIN</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="EMAIL"
+                  placeholderTextColor="#999"
+                  value={formData.email}
+                  onChangeText={(value) => handleInputChange('email', value)}
+                  editable={!loading}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="PASSWORD"
+                  placeholderTextColor="#999"
+                  secureTextEntry
+                  value={formData.password}
+                  onChangeText={(value) => handleInputChange('password', value)}
+                  editable={!loading}
+                />
+                <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
+                  <Text style={styles.loginButtonText}>
+                    {loading ? 'Logging in...' : 'Login'}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={styles.signupText}>
+                  Don't have an account?{' '}
+                  <Text
+                    style={styles.signupLink}
+                    onPress={() => navigation.navigate('Registration')}
+                  >
+                    Create a new account.
+                  </Text>
                 </Text>
-              </TouchableOpacity>
-              <Text style={styles.signupText}>
-                Don't have an account?{' '}
-                <Text
-                  style={styles.signupLink}
-                  onPress={() => navigation.navigate('Registration')}
-                >
-                  Create a new account.
-                </Text>
-              </Text>
-            </View>
-          </BlurView>
-        </View>
-      </ImageBackground>
-    </LinearGradient>
+              </View>
+            </BlurView>
+          </View>
+        </ImageBackground>
+      </LinearGradient>
+    </>
   );
 };
 

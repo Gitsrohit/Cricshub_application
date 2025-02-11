@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { SafeAreaView, StatusBar, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Login from './components/Authentication/Login';
@@ -38,20 +38,23 @@ const App = () => {
 
 const MainScreens = () => {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
-        <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="MyMatches" component={CricketAppScreen} />
-        <Stack.Screen name="Tournaments" component={Tournaments} />
-        <Stack.Screen name="Teams" component={Teams} />
-        <Stack.Screen name="Settings" component={Settings} />
-        <Stack.Screen name="CreateTeam" component={CreateTeam} />
-        <Stack.Screen name="CreateTournaments" component={CreateTournaments} />
-        <Stack.Screen name="ManageTournaments" component={ManageTournaments} />
-        <Stack.Screen name="TeamDetailsScreen" component={TeamDetailsScreen} />
-      </Stack.Navigator>
-      <Footer style={styles.footer} />
-    </SafeAreaView>
+    <>
+      <StatusBar />
+      <SafeAreaView style={{ flex: 1 }}>
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
+          <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="MyMatches" component={CricketAppScreen} />
+          <Stack.Screen name="Tournaments" component={Tournaments} />
+          <Stack.Screen name="Teams" component={Teams} />
+          <Stack.Screen name="Settings" component={Settings} />
+          <Stack.Screen name="CreateTeam" component={CreateTeam} />
+          <Stack.Screen name="CreateTournaments" component={CreateTournaments} />
+          <Stack.Screen name="ManageTournaments" component={ManageTournaments} />
+          <Stack.Screen name="TeamDetailsScreen" component={TeamDetailsScreen} />
+        </Stack.Navigator>
+        <Footer style={styles.footer} />
+      </SafeAreaView>
+    </>
   );
 };
 

@@ -92,8 +92,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: '#004466',
-    paddingTop: 40,
+    backgroundColor: '#004466'
   },
   searchBar: {
     flexDirection: 'row',

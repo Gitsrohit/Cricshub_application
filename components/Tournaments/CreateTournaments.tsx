@@ -8,6 +8,7 @@ import {
   Alert,
   ImageBackground,
   Image,
+  ScrollView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
@@ -52,35 +53,44 @@ const CreateTournament = () => {
     const userId = await getUserUUID();
     if (!tournamentName || !format || !ballType) {
       Alert.alert('Error', 'Please fill all fields.');
+      setLoading(false);
       return;
     }
-
     try {
+      const requestPayload = {
+        request: {
+          name: tournamentName,
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0],
+          format: format,
+          type: overs, // You need to specify the type
+          ballType: ballType,
+          matchesPerDay: 1,
+          matchesPerTeam: 1,
+          venues: ["Default Venue"],
+        },
+        banner: "Default Banner", // Default if no banner is provided
+      };
+
       const formData = new FormData();
-      formData.append('name', tournamentName);
-      formData.append('startDate', startDate.toISOString().split('T')[0]);
-      formData.append('endDate', endDate.toISOString().split('T')[0]);
-      formData.append('format', format);
-      formData.append('ballType', ballType);
-      formData.append('matchesPerDay', 1);
-      formData.append('matchesPerTeam', 1);
-      formData.append('venues[]', "Default Venue");
+      formData.append("request", JSON.stringify(requestPayload.request)); // Send the request object as JSON
 
       if (banner) {
         const fileName = banner.split('/').pop();
         const fileType = fileName.split('.').pop();
-        formData.append('banner', {
+        formData.append("banner", {
           uri: banner,
-          name: 'banner',
+          name: fileName,
           type: `image/${fileType}`,
         });
       } else {
-        formData.append('banner', 'Default Banner');
+        formData.append("banner", "Default Banner");
       }
 
       const token = await getToken();
       if (!token) {
         Alert.alert('Error', 'Authentication token not found!');
+        setLoading(false);
         return;
       }
 
@@ -133,7 +143,7 @@ const CreateTournament = () => {
   };
 
   return (
-    <View style={styles.background}>
+    <ScrollView style={styles.background}>
       <ImageBackground source={background} style={styles.logo} resizeMode="contain">
         <View style={styles.container}>
           <View style={styles.card}>
@@ -257,7 +267,7 @@ const CreateTournament = () => {
           </View>
         </View>
       </ImageBackground>
-    </View>
+    </ScrollView>
   );
 };
 
