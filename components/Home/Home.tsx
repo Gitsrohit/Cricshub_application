@@ -18,7 +18,7 @@ const Home = () => {
       title: 'Want to start a match?',
       buttonText: 'Start',
       image: require('../../assets/images/image 1.jpg'),
-      navigateTo: 'StartMatchScreen',
+      navigateTo: 'InstantMatch',
     },
     {
       title: 'Want to host Tournament?',

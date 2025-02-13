@@ -14,6 +14,11 @@ import CreateTeam from './components/Teams/CreateTeam';
 import CreateTournaments from './components/Tournaments/CreateTournaments';
 import ManageTournaments from './components/Tournaments/ManageTournaments';
 import TeamDetailsScreen from './components/Teams/TeamDetailsScreen';
+import InstantMatch from './components/My matches/InstantMatch/InstantMatch';
+import SelectPlayingII from './components/My matches/SelectPlayingII';
+import Toss from './components/My matches/Toss';
+import Scoring from './components/My matches/Scoring';
+
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -51,6 +56,10 @@ const MainScreens = () => {
           <Stack.Screen name="CreateTournaments" component={CreateTournaments} />
           <Stack.Screen name="ManageTournaments" component={ManageTournaments} />
           <Stack.Screen name="TeamDetailsScreen" component={TeamDetailsScreen} />
+          <Stack.Screen name="InstantMatch" component={InstantMatch} />
+          <Stack.Screen name="SelectPlayingII" component={SelectPlayingII} />
+          <Stack.Screen name="Toss" component={Toss} />
+          <Stack.Screen name="Scoring" component={Scoring} />
         </Stack.Navigator>
         <Footer style={styles.footer} />
       </SafeAreaView>
