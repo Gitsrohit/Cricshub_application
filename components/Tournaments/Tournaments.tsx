@@ -322,9 +322,25 @@ export const MyTournaments = ({ tournaments }) => {
 
   const navigation = useNavigation();
 
-  const manageTournamentHandler = (id: string) => {
-    navigation.navigate('ManageTournaments', { id });
-  }
+  const checkIsCreator = async (tournament) => {
+    try {
+      const creatorId = tournament.creatorName.id;
+      const userId = await AsyncStorage.getItem('userUUID');
+      if (creatorId === userId) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error("Error in checkIsCreator:", error);
+      return false;
+    }
+  };
+
+  const manageTournamentHandler = async (id: string, tournament) => {
+    const isCreator = await checkIsCreator(tournament);
+    navigation.navigate('ManageTournaments', { id, isCreator });
+  };
 
   const fetchTournaments = async (status) => {
     setLoading(true);
@@ -394,7 +410,7 @@ export const MyTournaments = ({ tournaments }) => {
           'https://'
         );
         return (
-          <Pressable key={tournament.id} style={styles.card} onPress={() => manageTournamentHandler(tournament.id)}>
+          <Pressable key={tournament.id} style={styles.card} onPress={() => manageTournamentHandler(tournament.id, tournament)}>
             <View style={styles.tournamentDetails}>
               <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='cover' />
               <View style={styles.cardContent}>

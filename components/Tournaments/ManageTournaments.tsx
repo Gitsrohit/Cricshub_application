@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AntDesign } from "@expo/vector-icons";
 
@@ -12,6 +12,7 @@ export default function ManageTournaments({ route }) {
   const [tournamentDetails, setTournamentsDetails] = useState(null);
   const [sanitizedBannerUrl, setSanitizedBannerUrl] = useState('');
   const { id } = route.params;
+  const { isCreator } = route.params;
 
   const fetchTournamentDetails = async (id) => {
     try {
@@ -69,9 +70,9 @@ export default function ManageTournaments({ route }) {
         ))}
       </ScrollView>
       <View style={{ height: '65%', backgroundColor: '#002B3D' }}>
-        {activeTab === 'INFO' && <Info id={id} tournamentDetails={tournamentDetails} />}
-        {activeTab === 'TEAMS' && <Teams id={id} />}
-        {activeTab === 'MATCHES' && <Matches id={id} />}
+        {activeTab === 'INFO' && <Info id={id} isCreator={isCreator} />}
+        {activeTab === 'TEAMS' && <Teams id={id} isCreator={isCreator} />}
+        {activeTab === 'MATCHES' && <Matches id={id} isCreator={isCreator} />}
       </View>
     </SafeAreaView>
   );
@@ -138,18 +139,15 @@ const styles = StyleSheet.create({
     color: 'white',
     textTransform: 'uppercase',
     fontWeight: 'bold',
-    borderBottomColor: 'grey',
-    borderBottomWidth: 1
   },
   tournamentDetailsRow: {
     flexDirection: 'row',
     marginTop: 6
   },
   tournamentDetailsHeading: {
-    color: 'grey',
+    color: '#e5e5e5',
     flex: 1,
     fontSize: 16,
-    textTransform: 'uppercase',
   },
   tournamentDetailsValue: {
     color: 'white',
@@ -404,9 +402,10 @@ const styles = StyleSheet.create({
   },
 });
 
-export const Info = ({ id, tournamentDetails }) => {
+export const Info = ({ id, isCreator }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [tournamentDetails, setTournamentsDetails] = useState(null);
   const [sanitizedBannerUrl, setSanitizedBannerUrl] = useState('');
   const [editingTournament, setEditingTournament] = useState(false);
   const [editedDetails, setEditedDetails] = useState({
@@ -418,72 +417,73 @@ export const Info = ({ id, tournamentDetails }) => {
     venues: [''],
   });
 
-  // const fetchTournamentDetails = async (id) => {
-  //   try {
-  //     setLoading(true);
-  //     const token = await AsyncStorage.getItem('jwtToken');
-  //     if (!token) throw new Error('Please login again');
+  const fetchTournamentDetails = async (id) => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) throw new Error('Please login again');
 
-  //     const response = await axios.get(
-  //       `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
-  //       {
-  //         headers: { Authorization: `Bearer ${token}` },
-  //       }
-  //     );
-  //     setEditedDetails({
-  //       ...response.data,
-  //       venues: response.data.venues || [],
-  //     }); // Pre-fill modal with current details
-  //     setSanitizedBannerUrl(
-  //       response.data.banner.replace(
-  //         'https://score360-7.onrender.com/api/v1/files/http:/',
-  //         'https://'
-  //       )
-  //     );
-  //   } catch (err) {
-  //     setError('Failed to fetch tournament details');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setTournamentsDetails(response.data);
+      setEditedDetails({
+        ...response.data,
+        venues: response.data.venues || [],
+      }); // Pre-fill modal with current details
+      setSanitizedBannerUrl(
+        response.data.banner.replace(
+          'https://score360-7.onrender.com/api/v1/files/http:/',
+          'https://'
+        )
+      );
+    } catch (err) {
+      setError('Failed to fetch tournament details');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // const updateTournamentDetails = async () => {
-  //   try {
-  //     setLoading(true);
-  //     const token = await AsyncStorage.getItem('jwtToken');
-  //     if (!token) throw new Error('Please login again');
+  const updateTournamentDetails = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) throw new Error('Please login again');
 
-  //     const dataToSend = {
-  //       name: editedDetails.name,
-  //       startDate: editedDetails.startDate,
-  //       endDate: editedDetails.endDate,
-  //       type: editedDetails.type,
-  //       ballType: editedDetails.ballType,
-  //       venues: editedDetails.venues,
-  //     };
+      const dataToSend = {
+        name: editedDetails.name,
+        startDate: editedDetails.startDate,
+        endDate: editedDetails.endDate,
+        type: editedDetails.type,
+        ballType: editedDetails.ballType,
+        venues: editedDetails.venues,
+      };
 
-  //     await axios.put(
-  //       `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
-  //       dataToSend,
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //           'Content-Type': 'application/json',
-  //         },
-  //       }
-  //     );
-  //     setEditingTournament(false);
-  //     await fetchTournamentDetails(id); // Refresh tournament details
-  //   } catch (err) {
-  //     setError('Failed to update tournament details');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+      await axios.put(
+        `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
+        dataToSend,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      setEditingTournament(false);
+      await fetchTournamentDetails(id); // Refresh tournament details
+    } catch (err) {
+      setError('Failed to update tournament details');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // useEffect(() => {
-  //   fetchTournamentDetails(id);
-  // }, [id]);
+  useEffect(() => {
+    fetchTournamentDetails(id);
+  }, [id]);
 
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
@@ -498,7 +498,10 @@ export const Info = ({ id, tournamentDetails }) => {
       {tournamentDetails ? (
         <>
           <View style={styles.tournamentDetails}>
-            <Text style={styles.tournamentName}>{tournamentDetails.name}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomColor: 'grey', borderBottomWidth: 1 }}>
+              <Text style={styles.tournamentName}>{tournamentDetails.name}</Text>
+              {isCreator && <Icon name="edit" color="#e3e3e3" size={20} onPress={() => setEditingTournament(true)} />}
+            </View>
             <View style={styles.tournamentDetailsRow}>
               <Text style={styles.tournamentDetailsHeading}>Organizer</Text>
               <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.creatorName.name}</Text>
@@ -534,7 +537,7 @@ export const Info = ({ id, tournamentDetails }) => {
           </View>
 
           {/* Modal for Editing Tournament Details */}
-          {/* <Modal
+          <Modal
             visible={editingTournament}
             animationType="slide"
             transparent={true}
@@ -615,7 +618,7 @@ export const Info = ({ id, tournamentDetails }) => {
                 </View>
               </View>
             </View>
-          </Modal> */}
+          </Modal>
         </>
       ) : (
         <Text>No details available</Text>
@@ -624,7 +627,7 @@ export const Info = ({ id, tournamentDetails }) => {
   );
 };
 
-export const Teams = ({ id }) => {
+export const Teams = ({ id, isCreator }) => {
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState("");
   const [teamId, setTeamId] = useState("");
@@ -785,9 +788,11 @@ export const Teams = ({ id }) => {
                   </View>
                 </View>
               </View>
-              <Pressable onPress={() => handleDeleteTeamHandler(team.id)}>
-                <Icon name="delete" size={24} color="black" />
-              </Pressable>
+              {isCreator &&
+                <Pressable onPress={() => handleDeleteTeamHandler(team.id)}>
+                  <Icon name="delete" size={24} color="black" />
+                </Pressable>
+              }
             </View>
           ))
         )}
@@ -796,9 +801,9 @@ export const Teams = ({ id }) => {
         <Text style={styles.addTournamentWarning}>Add teams to the tournament</Text>
       )}
       {loading.value === true && <ActivityIndicator size="large" color="white" />}
-      <TouchableOpacity style={styles.addButton} onPress={openModal}>
+      {isCreator && <TouchableOpacity style={styles.addButton} onPress={openModal}>
         <Text style={styles.addButtonText}>Add Team</Text>
-      </TouchableOpacity>
+      </TouchableOpacity>}
 
       {/* Modal for adding a team */}
       <Modal visible={modalVisible} transparent animationType="none">
@@ -846,7 +851,7 @@ export const Teams = ({ id }) => {
   );
 };
 
-export const Matches = ({ id }) => {
+export const Matches = ({ id, isCreator }) => {
   const [matchDetails, setMatchDetails] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -953,10 +958,10 @@ export const Matches = ({ id }) => {
                     <Text style={styles.matchTeamName}>{match.team2?.name}</Text>
                   </View>
                   <Text style={styles.matchStage}>{match.stage}</Text>
-                  <Text style={[styles.matchText, { textTransform: 'uppercase' }]}>📍 {match.venue}</Text>
+                  <Text style={[styles.matchText, { textTransform: 'uppercase' }]}><Icon name="location-on" color="red" size={16} /> {match.venue}</Text>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={styles.matchText}>📅 {match.matchDate ? new Date(match.matchDate).toLocaleString() : 'Date not decided'}</Text>
-                    <Text style={styles.matchText}>🏆 {match.winner || 'N/A'}</Text>
+                    <Text style={styles.matchText}><Icon name="calendar-today" color="black" size={16} /> {match.matchDate !== null ? `${match.matchDate[2]} - ${match.matchDate[1]} - ${match.matchDate[0]}` : 'Date not decided'}</Text>
+                    <Text style={styles.matchText}><Icon name="emoji-events" color="green" size={16} /> {match.winner || 'N/A'}</Text>
                   </View>
                 </View>
               ))
@@ -964,15 +969,19 @@ export const Matches = ({ id }) => {
               <>
                 <Text style={styles.noMatchText}>No matches scheduled yet.</Text>
                 {/* Schedule Buttons */}
-                <Text style={styles.scheduleButtonsHeading}>How would you like to schedule the matches?</Text>
-                <View style={styles.scheduleButtons}>
-                  <Pressable onPress={aiMatchScheduleHandler} style={styles.button}>
-                    <Text style={styles.buttonText}>USING AI</Text>
-                  </Pressable>
-                  <Pressable style={styles.button}>
-                    <Text style={styles.buttonText}>MANUALLY</Text>
-                  </Pressable>
-                </View>
+                {isCreator &&
+                  <>
+                    <Text style={styles.scheduleButtonsHeading}>How would you like to schedule the matches?</Text>
+                    <View style={styles.scheduleButtons}>
+                      <Pressable onPress={aiMatchScheduleHandler} style={styles.button}>
+                        <Text style={styles.buttonText}>USING AI</Text>
+                      </Pressable>
+                      <Pressable style={styles.button}>
+                        <Text style={styles.buttonText}>MANUALLY</Text>
+                      </Pressable>
+                    </View>
+                  </>
+                }
               </>
             )}
           </View>
