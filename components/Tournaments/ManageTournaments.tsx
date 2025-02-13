@@ -1,13 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { useCallback, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Button, Modal, TextInput, Pressable, FlatList, TouchableHighlight, ScrollView } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { AntDesign } from "@expo/vector-icons";
 
 export default function ManageTournaments({ route }) {
   const [activeTab, setActiveTab] = useState('INFO');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [tournamentDetails, setTournamentsDetails] = useState(null);
   const [sanitizedBannerUrl, setSanitizedBannerUrl] = useState('');
   const { id } = route.params;
 
@@ -23,6 +25,7 @@ export default function ManageTournaments({ route }) {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      setTournamentsDetails(response.data);
       setSanitizedBannerUrl(
         response.data.banner.replace(
           'https://score360-7.onrender.com/api/v1/files/http:/',
@@ -42,8 +45,7 @@ export default function ManageTournaments({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-
-      <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} />
+      {loading ? <View style={[styles.cardImage, { backgroundColor: 'grey' }]}></View> : <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='contain' />}
       {/* Toggle Buttons */}
       <ScrollView style={styles.toggleContainer} horizontal={true}>
         {['INFO', 'TEAMS', 'MATCHES', 'POINTS TABLE'].map((tab) => (
@@ -67,7 +69,7 @@ export default function ManageTournaments({ route }) {
         ))}
       </ScrollView>
       <View style={{ height: '65%', backgroundColor: '#002B3D' }}>
-        {activeTab === 'INFO' && <Info id={id} />}
+        {activeTab === 'INFO' && <Info id={id} tournamentDetails={tournamentDetails} />}
         {activeTab === 'TEAMS' && <Teams id={id} />}
         {activeTab === 'MATCHES' && <Matches id={id} />}
       </View>
@@ -210,6 +212,54 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     color: 'white',
   },
+  addButton: {
+    backgroundColor: "#005a7f",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  addButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  modalOverlay: {
+    height: '100%',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)"
+  },
+  teamModalContent: {
+    backgroundColor: "#fff",
+    width: "100%",
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    minHeight: 250,
+    maxHeight: 400,
+    alignItems: "center",
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f0f0",
+    borderRadius: 10,
+    padding: 10,
+    width: "90%"
+  },
+  searchInput: {
+    flex: 1,
+    paddingHorizontal: 10,
+    fontSize: 16,
+    color: "#333"
+  },
+  searchIcon: { padding: 5 },
+  closeButton: {
+    marginTop: 10,
+    backgroundColor: "#d9534f",
+    padding: 10,
+    borderRadius: 5,
+    width: "90%",
+    alignItems: "center"
+  },
+  closeButtonText: { color: "#fff", fontWeight: "bold" },
   inputTeamContainer: {},
   inputTeamLabel: {
     marginTop: 10,
@@ -242,7 +292,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  teamOptions: {
+    width: 300,
+    marginTop: 4,
+  },
   teamHeader: {
+  },
+  teamImage: {
+    overflow: 'hidden',
+    borderRadius: 50,
+    height: 50,
+    width: 50,
   },
   teamName: {
     color: 'black',
@@ -275,9 +335,8 @@ const styles = StyleSheet.create({
     borderBottomColor: 'grey',
     borderBottomWidth: 1,
     fontSize: 16,
-    backgroundColor: '#e5e5e5',
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   addTournamentWarning: {
     color: 'white',
@@ -345,9 +404,8 @@ const styles = StyleSheet.create({
   },
 });
 
-export const Info = ({ id }) => {
-  const [tournamentDetails, setTournamentDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
+export const Info = ({ id, tournamentDetails }) => {
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [sanitizedBannerUrl, setSanitizedBannerUrl] = useState('');
   const [editingTournament, setEditingTournament] = useState(false);
@@ -360,74 +418,72 @@ export const Info = ({ id }) => {
     venues: [''],
   });
 
-  const fetchTournamentDetails = async (id) => {
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
+  // const fetchTournamentDetails = async (id) => {
+  //   try {
+  //     setLoading(true);
+  //     const token = await AsyncStorage.getItem('jwtToken');
+  //     if (!token) throw new Error('Please login again');
 
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      console.log(response.data);
-      setTournamentDetails(response.data);
-      setEditedDetails({
-        ...response.data,
-        venues: response.data.venues || [],
-      }); // Pre-fill modal with current details
-      setSanitizedBannerUrl(
-        response.data.banner.replace(
-          'https://score360-7.onrender.com/api/v1/files/http:/',
-          'https://'
-        )
-      );
-    } catch (err) {
-      setError('Failed to fetch tournament details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     const response = await axios.get(
+  //       `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       }
+  //     );
+  //     setEditedDetails({
+  //       ...response.data,
+  //       venues: response.data.venues || [],
+  //     }); // Pre-fill modal with current details
+  //     setSanitizedBannerUrl(
+  //       response.data.banner.replace(
+  //         'https://score360-7.onrender.com/api/v1/files/http:/',
+  //         'https://'
+  //       )
+  //     );
+  //   } catch (err) {
+  //     setError('Failed to fetch tournament details');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
-  const updateTournamentDetails = async () => {
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
+  // const updateTournamentDetails = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const token = await AsyncStorage.getItem('jwtToken');
+  //     if (!token) throw new Error('Please login again');
 
-      const dataToSend = {
-        name: editedDetails.name,
-        startDate: editedDetails.startDate,
-        endDate: editedDetails.endDate,
-        type: editedDetails.type,
-        ballType: editedDetails.ballType,
-        venues: editedDetails.venues,
-      };
+  //     const dataToSend = {
+  //       name: editedDetails.name,
+  //       startDate: editedDetails.startDate,
+  //       endDate: editedDetails.endDate,
+  //       type: editedDetails.type,
+  //       ballType: editedDetails.ballType,
+  //       venues: editedDetails.venues,
+  //     };
 
-      await axios.put(
-        `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
-        dataToSend,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      setEditingTournament(false);
-      await fetchTournamentDetails(id); // Refresh tournament details
-    } catch (err) {
-      setError('Failed to update tournament details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     await axios.put(
+  //       `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
+  //       dataToSend,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //           'Content-Type': 'application/json',
+  //         },
+  //       }
+  //     );
+  //     setEditingTournament(false);
+  //     await fetchTournamentDetails(id); // Refresh tournament details
+  //   } catch (err) {
+  //     setError('Failed to update tournament details');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
-  useEffect(() => {
-    fetchTournamentDetails(id);
-  }, [id]);
+  // useEffect(() => {
+  //   fetchTournamentDetails(id);
+  // }, [id]);
 
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
@@ -478,7 +534,7 @@ export const Info = ({ id }) => {
           </View>
 
           {/* Modal for Editing Tournament Details */}
-          <Modal
+          {/* <Modal
             visible={editingTournament}
             animationType="slide"
             transparent={true}
@@ -559,7 +615,7 @@ export const Info = ({ id }) => {
                 </View>
               </View>
             </View>
-          </Modal>
+          </Modal> */}
         </>
       ) : (
         <Text>No details available</Text>
@@ -576,6 +632,8 @@ export const Teams = ({ id }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState({ key: '', value: false });
   const [enteredTeamName, setEnteredTeamName] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const slideAnim = useRef(new Animated.Value(500)).current;
 
   const fetchTeams = async (id) => {
     try {
@@ -692,53 +750,40 @@ export const Teams = ({ id }) => {
     fetchTeams(id);
   }, [id]);
 
+  const openModal = () => {
+    setModalVisible(true);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Handle closing modal
+  const closeModal = () => {
+    Animated.timing(slideAnim, {
+      toValue: 500,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setModalVisible(false);
+    });
+  };
+
   return (
     <View style={styles.tournamentTeams}>
-      <View style={styles.inputTeamContainer}>
-        <Text style={styles.inputTeamLabel}>Add Team</Text>
-        <TextInput
-          style={styles.teamNameInput}
-          placeholder="Enter Team Name"
-          value={enteredTeamName}
-          onChangeText={(value) => handleInputChange(value)}
-        />
-        {showDropdown && (
-          <View style={styles.dropdown}>
-            {dropdownOptions.length === 0 && <Text>No results</Text>}
-            <FlatList
-              data={dropdownOptions}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => {
-                    setEnteredTeamName(item.name);
-                    setTeamId(item.id);
-                    addNewTeam(item.id, item.name);
-                    setShowDropdown(false);
-                  }}
-                >
-                  <Text style={styles.dropdownOption}>{item.name}</Text>
-                </Pressable>
-              )}
-            />
-          </View>
-        )}
-        {loading.value === true && <ActivityIndicator />}
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      </View>
-      <View>
+      <ScrollView>
         {teams?.length !== 0 && (
           teams?.map((team) => (
             <View key={team.name} style={styles.teamCard}>
               <View style={styles.teamHeader}>
-                <Text style={styles.teamName}>{team.name}</Text>
-                {team.captain ? (
-                  <Text style={styles.teamCaptain}>{team.captain.name}</Text>
-                ) : (
-                  <Pressable>
-                    <Text style={styles.teamInvite}>Invite captain</Text>
-                  </Pressable>
-                )}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-start', gap: 10, alignItems: 'center' }}>
+                  <Image source={{ uri: team.logoPath }} style={styles.teamImage} resizeMode='cover' />
+                  <View>
+                    <Text style={styles.teamName}>{team.name}</Text>
+                    <Text style={styles.teamCaptain}>{team.captain.name}</Text>
+                  </View>
+                </View>
               </View>
               <Pressable onPress={() => handleDeleteTeamHandler(team.id)}>
                 <Icon name="delete" size={24} color="black" />
@@ -746,10 +791,57 @@ export const Teams = ({ id }) => {
             </View>
           ))
         )}
-      </View>
+      </ScrollView>
       {loading.value !== true && teams?.length == 0 && (
         <Text style={styles.addTournamentWarning}>Add teams to the tournament</Text>
       )}
+      {loading.value === true && <ActivityIndicator size="large" color="white" />}
+      <TouchableOpacity style={styles.addButton} onPress={openModal}>
+        <Text style={styles.addButtonText}>Add Team</Text>
+      </TouchableOpacity>
+
+      {/* Modal for adding a team */}
+      <Modal visible={modalVisible} transparent animationType="none">
+        <TouchableOpacity onPress={closeModal}>
+          <View style={styles.modalOverlay}>
+            <Animated.View style={[styles.teamModalContent, { transform: [{ translateY: slideAnim }] }]}>
+              <View style={styles.searchBox}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search team..."
+                  value={enteredTeamName}
+                  onChangeText={(value) => handleInputChange(value)}
+                />
+                <AntDesign name="search1" size={20} color="gray" style={styles.searchIcon} />
+              </View>
+              {loading.value ? (
+                <ActivityIndicator size="large" color="#000" />
+              ) : (
+                <FlatList
+                  data={dropdownOptions}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      style={styles.teamOptions}
+                      onPress={() => {
+                        setEnteredTeamName(item.name);
+                        setTeamId(item.id);
+                        addNewTeam(item.id, item.name);
+                        setShowDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownOption}>{item.name}</Text>
+                    </Pressable>
+                  )}
+                />
+              )}
+              <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };

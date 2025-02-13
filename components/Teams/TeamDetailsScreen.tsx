@@ -24,7 +24,7 @@ const TeamDetailsScreen = ({ route }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const slideAnim = useRef(new Animated.Value(500)).current; 
+  const slideAnim = useRef(new Animated.Value(500)).current;
 
   useEffect(() => {
     if (modalVisible) {
@@ -45,7 +45,7 @@ const TeamDetailsScreen = ({ route }) => {
   const fetchPlayers = async (query) => {
     if (!query.trim()) return; // Prevent empty search
     setLoading(true);
-  
+
     try {
       const token = await AsyncStorage.getItem("jwtToken");
 
@@ -57,15 +57,15 @@ const TeamDetailsScreen = ({ route }) => {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
-  
+
       const [nameResponse, phoneResponse] = responses;
-  
+
 
       setSearchResults([
         ...nameResponse.data.data,
         ...phoneResponse.data.data,
       ]);
-  
+
     } catch (err) {
       console.error("Error fetching players:", err);
       Alert.alert("Error", "Failed to fetch players.");
@@ -73,7 +73,7 @@ const TeamDetailsScreen = ({ route }) => {
       setLoading(false);
     }
   };
-  
+
   const addPlayer = async (player) => {
     try {
       const token = await AsyncStorage.getItem("jwtToken");
@@ -131,22 +131,22 @@ const TeamDetailsScreen = ({ route }) => {
                 <ActivityIndicator size="large" color="#000" />
               ) : (
                 <FlatList
-  data={searchResults}
-  keyExtractor={(item) => item.id}
-  renderItem={({ item }) => (
-    <TouchableOpacity style={styles.searchResultItem} onPress={() => addPlayer(item)}>
-      <Image
-        source={
-          item.profilePic
-            ? { uri: item.profilePic }
-            : require("../../assets/user_profile.png") 
-        }
-        style={styles.searchProfilePic}
-      />
-      <Text style={styles.playerName}>{item.name}</Text>
-    </TouchableOpacity>
-  )}
-/>
+                  data={searchResults}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.searchResultItem} onPress={() => addPlayer(item)}>
+                      <Image
+                        source={
+                          item.profilePic
+                            ? { uri: item.profilePic }
+                            : require("../../assets/user_profile.png")
+                        }
+                        style={styles.searchProfilePic}
+                      />
+                      <Text style={styles.playerName}>{item.name}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
 
               )}
               <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
@@ -180,11 +180,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    marginRight: 10, 
+    marginRight: 10,
   },
-  
-  
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)"
+  },
   modalContent: {
     backgroundColor: "#fff",
     width: "100%",
