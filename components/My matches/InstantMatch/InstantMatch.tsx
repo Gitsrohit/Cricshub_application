@@ -1,4 +1,4 @@
-import { ActivityIndicator, Animated, FlatList, ImageBackground, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, FlatList, ImageBackground, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import stadiumBG from '../../../assets/images/stadiumBG.jpg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -85,22 +85,59 @@ const InstantMatch = () => {
       setTeam2Name(team.name);
       setTeam2Id(team.id);
     }
+    setTeamResults(null);
     setTeamModalVisible(false);
+    setSearchQuery("");
   };
 
-  const handleNextButtonClick = () => {
-    if (overs === '' || venue === '' || team1Id === null || team2Id === null) return;
+  const handleNextButtonClick = async () => {
+    if (!overs || !venue || !team1Id || !team2Id) {
+      Alert.alert('Error', 'Please fill all details');
+      return;
+    }
+
     const matchDetails = {
-      overs,
+      overs: parseInt(overs, 10), // Ensure overs is a number
       venue,
       team1Id,
       team1Name,
       team2Id,
       team2Name,
     };
-    console.log(matchDetails);
-    navigation.navigate('SelectPlayingII', { matchDetails });
-  }
+
+    try {
+      const token = await AsyncStorage.getItem("jwtToken");
+      if (!token) throw new Error("Please login again");
+      setLoading(true);
+      const matchDate = new Date().toISOString().split("T")[0];
+      const now = new Date();
+      const matchTime = now.toTimeString().slice(0, 5);
+      const requestBody = {
+        tournamentName: null,
+        team1Id,
+        team2Id,
+        overs: matchDetails.overs,
+        matchDate,
+        matchTime,
+        venue,
+      };
+
+      const response = await axios.post(
+        `https://score360-7.onrender.com/api/v1/matches/schedule`,
+        requestBody,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const matchId = response.data.id;
+      Alert.alert("Success", "Match scheduled successfully!");
+      navigation.navigate("SelectPlayingII", { matchDetails, matchId });
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Failed to schedule match.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <>
@@ -196,7 +233,7 @@ const styles = StyleSheet.create({
   background: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   gradient: { flex: 1 },
   instantMatchContainer: { flex: 1 },
-  instantMatchForm: { width: '90%', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 8 },
+  instantMatchForm: { width: '90%', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 8, overflow: 'hidden' },
   title: { textAlign: 'center', fontSize: 20, marginVertical: 16, color: 'white' },
   teamSelectionContainer: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' },
   teamButton: { alignItems: 'center', borderColor: 'white', borderRadius: 6, padding: 4, borderWidth: 1, width: 100 },
