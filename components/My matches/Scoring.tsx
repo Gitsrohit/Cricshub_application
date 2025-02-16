@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableHighlight,
   View,
 } from 'react-native';
 import axios from 'axios';
@@ -21,7 +20,16 @@ import { Picker } from '@react-native-picker/picker';
 const ScoringScreen = ({ route, navigation }) => {
   const { matchId, striker, nonStriker, bowler } = route.params;
 
-  const [score, setScore] = useState({ runs: 0, wickets: 0, overs: '0.0' });
+  const [score, setScore] = useState({
+    runs: 0,
+    wickets: 0,
+    overs: '0.0',
+    striker: striker,
+    nonStriker: nonStriker,
+    bowler: bowler,
+    oversDetails: [],
+  });
+  const [battingTeam, setBattingTeam] = useState(null);
   const [selectedRun, setSelectedRun] = useState(null);
   const [wideExtra, setWideExtra] = useState('');
   const [byeExtra, setByeExtra] = useState('');
@@ -36,12 +44,23 @@ const ScoringScreen = ({ route, navigation }) => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
       const eventSource = new EventSource(
-        `https://score360-7.onrender.com/api/v1/matches/${matchId}/subscribe`, { headers: { Authorization: `Bearer ${token}` } }
+        `https://score360-7.onrender.com/api/v1/matches/${matchId}/subscribe`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      eventSource.addEventListener('scoreUpdate', (event) => {
+      eventSource.addEventListener('ball-update', (event) => {
         const data = JSON.parse(event.data);
-        setScore(data);
+        setScore((prevScore) => ({
+          ...prevScore,
+          runs: data.team1.score,
+          wickets: data.team1.wickets,
+          overs: `${data.completedOvers}.${data.currentOver.length}`,
+          striker: data.currentStriker.name,
+          nonStriker: data.currentNonStriker.name,
+          bowler: data.currentBowler.name,
+          oversDetails: [...prevScore.oversDetails, data.currentOver[data.currentOver.length - 1]],
+        }));
+        setBattingTeam(data.battingTeam.name)
       });
 
       eventSource.onerror = (error) => {
@@ -55,7 +74,7 @@ const ScoringScreen = ({ route, navigation }) => {
     } catch (err) {
       console.log(err);
     }
-  }
+  };
 
   useEffect(() => {
     SSEhandler();
@@ -150,7 +169,7 @@ const ScoringScreen = ({ route, navigation }) => {
       <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
         <ImageBackground source={bg} resizeMode="cover" style={styles.background} imageStyle={styles.backgroundImage}>
           <View style={styles.scoreContainer}>
-            <Text style={styles.teamName}>Team Name</Text>
+            <Text style={styles.teamName}>{battingTeam}</Text>
             <Text style={styles.scoreText}>
               {score.runs}/{score.wickets} ({score.overs})
             </Text>
