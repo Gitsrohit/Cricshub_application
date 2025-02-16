@@ -18,6 +18,7 @@ import InstantMatch from './components/My matches/InstantMatch/InstantMatch';
 import SelectPlayingII from './components/My matches/SelectPlayingII';
 import Toss from './components/My matches/Toss';
 import Scoring from './components/My matches/Scoring';
+import SelectRoles from './components/My matches/SelectRoles';
 
 const Stack = createStackNavigator();
 
@@ -60,6 +61,7 @@ const MainScreens = () => {
           <Stack.Screen name="SelectPlayingII" component={SelectPlayingII} />
           <Stack.Screen name="Toss" component={Toss} />
           <Stack.Screen name="Scoring" component={Scoring} />
+          <Stack.Screen name="SelectRoles" component={SelectRoles} />
         </Stack.Navigator>
         <Footer style={styles.footer} />
       </SafeAreaView>

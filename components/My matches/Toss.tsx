@@ -6,11 +6,15 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { BlurView } from 'expo-blur';
+import { useNavigation } from '@react-navigation/native';
 
 const Toss = ({ route }) => {
   const [matchDetails, setMatchDetails] = useState(null);
   const [tossWinner, setTossWinner] = useState('');
   const [choice, setChoice] = useState('');
+
+  const { matchId } = route.params;
+  const navigation = useNavigation();
 
   useEffect(() => {
     setMatchDetails(route.params.matchDetails);
@@ -31,8 +35,7 @@ const Toss = ({ route }) => {
         { tossWinner, choice },
         { headers: { authorization: `Bearer ${token}` } }
       );
-
-      Alert.alert('Success', 'Toss decision submitted successfully!');
+      navigation.navigate('SelectRoles', { matchId });
     } catch (error) {
       Alert.alert('Error', 'Failed to submit toss decision. Please try again.');
     }

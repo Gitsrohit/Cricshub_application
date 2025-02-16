@@ -144,7 +144,7 @@ const InstantMatch = () => {
       <StatusBar />
       <View style={styles.instantMatchContainer}>
         <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
-          <ImageBackground source={stadiumBG} resizeMode='cover' style={styles.background}>
+          <ImageBackground source={stadiumBG} resizeMode='cover' style={styles.background} imageStyle={styles.backgroundImage}>
             <BlurView style={styles.instantMatchForm} intensity={50}>
               <Text style={styles.title}>Match Details</Text>
               <View style={styles.teamSelectionContainer}>
@@ -231,6 +231,10 @@ export default InstantMatch;
 
 const styles = StyleSheet.create({
   background: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  backgroundImage: {
+    resizeMode: 'cover',
+    opacity: 0.8,
+  },
   gradient: { flex: 1 },
   instantMatchContainer: { flex: 1 },
   instantMatchForm: { width: '90%', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 8, overflow: 'hidden' },
