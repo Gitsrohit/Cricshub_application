@@ -12,9 +12,12 @@ const SelectRoles = ({ route, navigation }) => {
   const [battingII, setBattingII] = useState([]);
   const [bowlingII, setBowlingII] = useState([]);
 
-  const [striker, setStriker] = useState(null);
-  const [nonStriker, setNonStriker] = useState(null);
+  const [strikerId, setStrikerId] = useState(null);
+  const [strikerName, setStrikerName] = useState(null);
+  const [nonStrikerId, setNonStrikerId] = useState(null);
+  const [nonStrikerName, setNonStrikerName] = useState(null);
   const [bowler, setBowler] = useState(null);
+  const [bowlerName, setBowlerName] = useState(null);
   const [step, setStep] = useState(1); // Step 1: Select Batsmen, Step 2: Select Bowler
 
   useEffect(() => {
@@ -40,28 +43,34 @@ const SelectRoles = ({ route, navigation }) => {
     }
   };
 
-  const handleSelectBatsman = (playerId) => {
-    if (striker === playerId) {
-      setStriker(null);
-    } else if (nonStriker === playerId) {
-      setNonStriker(null);
-    } else if (!striker) {
-      setStriker(playerId);
-    } else if (!nonStriker) {
-      setNonStriker(playerId);
+  const handleSelectBatsman = ({ playerId, name }) => {
+    if (strikerId === playerId) {
+      setStrikerId(null);
+      setStrikerName(null);
+    } else if (nonStrikerId === playerId) {
+      setNonStrikerId(null);
+      setNonStrikerName(null);
+    } else if (!strikerId) {
+      setStrikerId(playerId);
+      setStrikerName(name);
+    } else if (!nonStrikerId) {
+      setNonStrikerId(playerId);
+      setNonStrikerName(name);
     }
   };
 
-  const handleSelectBowler = (playerId) => {
+  const handleSelectBowler = ({ playerId, name }) => {
     if (bowler === playerId) {
       setBowler(null);
+      setBowlerName(null);
     } else {
       setBowler(playerId);
+      setBowlerName(name);
     }
   };
 
   const handleSubmit = async () => {
-    if (!striker || !nonStriker || !bowler) {
+    if (!strikerId || !nonStrikerId || !bowler) {
       Alert.alert('Error', 'Please select a striker, non-striker, and bowler');
       return;
     }
@@ -72,12 +81,12 @@ const SelectRoles = ({ route, navigation }) => {
 
       await axios.post(
         `https://score360-7.onrender.com/api/v1/matches/${matchId}/players/update`,
-        { striker, nonStriker, bowler },
+        { striker: strikerId, nonStriker: nonStrikerId, bowler },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       Alert.alert('Success', 'Players updated successfully!');
-      navigation.navigate(`Scoring`, { matchId, striker, nonStriker, bowler });
+      navigation.navigate(`Scoring`, { matchId, strikerId, nonStrikerId, bowler, strikerName, nonStrikerName, bowlerName });
     } catch (err) {
       Alert.alert('Error', 'Failed to update players');
     }
@@ -98,16 +107,16 @@ const SelectRoles = ({ route, navigation }) => {
                   keyExtractor={(item) => item.playerId}
                   renderItem={({ item }) => (
                     <Pressable
-                      style={[styles.playerCard, striker === item.playerId || nonStriker === item.playerId ? styles.selected : {}]}
-                      onPress={() => handleSelectBatsman(item.playerId)}
+                      style={[styles.playerCard, strikerId === item.playerId || nonStrikerId === item.playerId ? styles.selected : {}]}
+                      onPress={() => handleSelectBatsman({ playerId: item.playerId, name: item.name })}
                     >
                       <Text style={styles.playerText}>{item.name}</Text>
-                      {striker === item.playerId && <Text style={styles.roleText}>Striker</Text>}
-                      {nonStriker === item.playerId && <Text style={styles.roleText}>Non-Striker</Text>}
+                      {strikerId === item.playerId && <Text style={styles.roleText}>Striker</Text>}
+                      {nonStrikerId === item.playerId && <Text style={styles.roleText}>Non-Striker</Text>}
                     </Pressable>
                   )}
                 />
-                {striker && nonStriker && (
+                {strikerId && nonStrikerId && (
                   <Pressable style={styles.nextButton} onPress={() => setStep(2)}>
                     <Text style={styles.submitText}>Next</Text>
                   </Pressable>
@@ -122,7 +131,7 @@ const SelectRoles = ({ route, navigation }) => {
                   renderItem={({ item }) => (
                     <Pressable
                       style={[styles.playerCard, bowler === item.playerId ? styles.selected : {}]}
-                      onPress={() => handleSelectBowler(item.playerId)}
+                      onPress={() => handleSelectBowler({ playerId: item.playerId, name: item.name })}
                     >
                       <Text style={styles.playerText}>{item.name}</Text>
                       {bowler === item.playerId && <Text style={styles.roleText}>Bowler</Text>}

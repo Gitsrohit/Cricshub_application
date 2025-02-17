@@ -18,18 +18,11 @@ import bg from '../../assets/images/bg.png';
 import { Picker } from '@react-native-picker/picker';
 
 const ScoringScreen = ({ route, navigation }) => {
-  const { matchId, striker, nonStriker, bowler } = route.params;
+  const { matchId, strikerId, nonStrikerId, bowler } = route.params;
+  const selectedStrikerName = route.params.strikerName;
+  const selectedNonStrikerName = route.params.nonStrikerName;
+  const selectedBowlerName = route.params.bowlerName;
 
-  const [score, setScore] = useState({
-    runs: 0,
-    wickets: 0,
-    overs: '0.0',
-    striker: striker,
-    nonStriker: nonStriker,
-    bowler: bowler,
-    oversDetails: [],
-  });
-  const [battingTeam, setBattingTeam] = useState(null);
   const [selectedRun, setSelectedRun] = useState(null);
   const [wideExtra, setWideExtra] = useState('');
   const [byeExtra, setByeExtra] = useState('');
@@ -39,6 +32,22 @@ const ScoringScreen = ({ route, navigation }) => {
     wide: false,
     wicket: false,
   });
+  const [battingTeamName, setBattingTeamName] = useState('');
+  const [score, setScore] = useState(0);
+  const [extras, setExtras] = useState(0);
+  const [bowlingTeamName, setBowlingTeamName] = useState('');
+  const [wicket, setWicket] = useState(0);
+  const [battingTeamII, setBattingTeamII] = useState([]);
+  const [bowlingTeamII, setBowlingTeamII] = useState([]);
+  const [completedOvers, setCompletedOvers] = useState(0);
+  const [currentBowlerName, setCurrentBowlerName] = useState(selectedBowlerName);
+  const [strikerName, setStrikerName] = useState(selectedStrikerName);
+  const [nonStrikerName, setNonStrikerName] = useState(selectedNonStrikerName);
+  const [currentOver, setCurrentOver] = useState([]);
+  const [nonStrikerStats, setNonStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
+  const [strikerStats, setStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
+  const [bowlerStats, setBowlerStats] = useState({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
+  const [overDetails, setOverDetails] = useState(null);
 
   const SSEhandler = async () => {
     try {
@@ -50,17 +59,56 @@ const ScoringScreen = ({ route, navigation }) => {
 
       eventSource.addEventListener('ball-update', (event) => {
         const data = JSON.parse(event.data);
-        setScore((prevScore) => ({
-          ...prevScore,
-          runs: data.team1.score,
-          wickets: data.team1.wickets,
-          overs: `${data.completedOvers}.${data.currentOver.length}`,
-          striker: data.currentStriker.name,
-          nonStriker: data.currentNonStriker.name,
-          bowler: data.currentBowler.name,
-          oversDetails: [...prevScore.oversDetails, data.currentOver[data.currentOver.length - 1]],
-        }));
-        setBattingTeam(data.battingTeam.name)
+        console.log(data);
+        setBattingTeamName(data.battingTeam.name);
+        setBowlingTeamName(data.bowlingTeam.name);
+        setScore(data.battingTeam.score);
+        setExtras(data.battingTeam.extras);
+        setWicket(data.battingTeam.wickets);
+        setBattingTeamII(data.battingTeamPlayingXI);
+        setBowlingTeamII(data.bowlingTeamPlayingXI);
+        setCompletedOvers(data.completedOvers);
+        setCurrentBowlerName(data.currentBowler.name);
+        setStrikerName(data.currentStriker.name);
+        setNonStrikerName(data.currentNonStriker.name);
+        setCurrentOver(data.currentOver);
+        // Extract striker details
+        const strikerStats = data.battingTeamPlayingXI.find(
+          (player) => player.name === data.currentStriker.name
+        );
+
+        // Extract non-striker details
+        const nonStrikerStats = data.battingTeamPlayingXI.find(
+          (player) => player.name === data.currentNonStriker.name
+        );
+
+        // Extract bowler details
+        const bowlerStats = data.bowlingTeamPlayingXI.find(
+          (player) => player.name === data.currentBowler.name
+        );
+
+        // Format over details
+        const formattedOverDetails = data.currentOver.map((ball) => {
+          let event = ball.runs.toString(); // Store runs (even if 0)
+
+          if (ball.wicket) event += 'W';
+          if (ball.noBall) event += 'NB';
+          if (ball.wide) event += 'Wd';
+          if (ball.bye) event += 'B';
+          if (ball.legBye) event += 'LB';
+
+          return event;
+        });
+
+        setOverDetails(formattedOverDetails);
+
+        setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
+        setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
+        setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
+        console.log(strikerStats);
+        console.log(nonStrikerStats);
+        console.log(bowlerStats);
+
       });
 
       eventSource.onerror = (error) => {
@@ -141,7 +189,7 @@ const ScoringScreen = ({ route, navigation }) => {
         {
           matchId,
           tournamentId: null,
-          strikerId: striker,
+          strikerId: strikerId,
           bowlerId: bowler,
           wicketType: data.wicketType || '',
           shotType: '',
@@ -168,15 +216,36 @@ const ScoringScreen = ({ route, navigation }) => {
     <View style={styles.container}>
       <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
         <ImageBackground source={bg} resizeMode="cover" style={styles.background} imageStyle={styles.backgroundImage}>
-          <View style={styles.scoreContainer}>
-            <Text style={styles.teamName}>{battingTeam}</Text>
-            <Text style={styles.scoreText}>
-              {score.runs}/{score.wickets} ({score.overs})
-            </Text>
+          <View style={styles.scoreCard}>
+            <View style={styles.scoreContainer}>
+              <Text style={styles.teamName}>{battingTeamName}</Text>
+              <Text style={styles.scoreText}>
+                {score}/{wicket} ({completedOvers}.{currentOver.length})
+              </Text>
+            </View>
+            {/* <View style={styles.playerInfo}>
+              <View style={styles.oversContainer}>
+                <Text style={styles.heading}>Overs:</Text>
+                {currentOver.map((eachBall, index) => (
+                  <Text key={index} style={styles.overText}>
+                  </Text>
+                ))}
+              </View>
+            </View> */}
           </View>
         </ImageBackground>
       </LinearGradient>
       <View style={styles.scoringOptions}>
+        <View style={styles.scoringCard}>
+          <View>
+            <Text style={styles.playerText}>{strikerName}*-<Text>{strikerStats.runs}({strikerStats.ballsFaced})</Text></Text>
+            <Text style={styles.playerText}>{nonStrikerName}-<Text>{nonStrikerStats.runs}({nonStrikerStats.ballsFaced})</Text></Text>
+          </View>
+          <View>
+            <Text style={styles.playerText}>Over: {overDetails.join(" ")}</Text>
+            <Text style={styles.playerText}>{currentBowlerName}-{bowlerStats.wicketsTaken}/{bowlerStats.runsConceded}</Text>
+          </View>
+        </View>
         <FlatList
           data={scoringOptions}
           numColumns={3}
@@ -326,9 +395,14 @@ const styles = StyleSheet.create({
   },
   scoringOptions: {
     width: '100%',
-    height: '30%',
+    height: '40%',
     flexDirection: 'column',
     backgroundColor: '#002233',
+  },
+  scoringCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
   runButton: {
     flex: 1,
@@ -369,5 +443,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: 'white',
     fontWeight: 'bold'
+  },
+  playerText: {
+    fontSize: 14,
+    color: 'white',
+  },
+  oversContainer: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#002233',
+    borderRadius: 10,
+    flexDirection: 'row',
+  },
+  heading: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  overText: {
+    fontSize: 12,
+    color: 'white',
+    flexDirection: 'row'
+  },
+  scoreCard: {
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    width: '100%',
+  },
+  playerInfo: {
+    width: '100%',
+    flexDirection: 'row'
   },
 });
