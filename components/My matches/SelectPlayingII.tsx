@@ -105,7 +105,7 @@ const SelectPlayingXI = ({ route }) => {
   return (
     <View style={styles.container}>
       <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
-        <ImageBackground source={stadiumBG} resizeMode='cover' style={styles.background}>
+        <ImageBackground source={stadiumBG} resizeMode='cover' style={styles.background} imageStyle={styles.backgroundImage}>
           <ScrollView style={{ width: '100%' }}>
             <Text style={styles.heading}>Select Playing XI</Text>
 
@@ -155,6 +155,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  backgroundImage: {
+    resizeMode: 'cover',
+    opacity: 0.8,
   },
   gradient: {
     flex: 1,
