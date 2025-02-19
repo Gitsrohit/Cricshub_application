@@ -18,10 +18,13 @@ import bg from '../../assets/images/bg.png';
 import { Picker } from '@react-native-picker/picker';
 
 const ScoringScreen = ({ route, navigation }) => {
-  const { matchId, strikerId, nonStrikerId, bowler } = route.params;
-  const selectedStrikerName = route.params.strikerName;
-  const selectedNonStrikerName = route.params.nonStrikerName;
-  const selectedBowlerName = route.params.bowlerName;
+  const [matchId, setMatchId] = useState(route.params.matchId);
+  const [strikerId, setStrikerId] = useState(route.params.strikerId);
+  const [nonStrikerId, setNonStrikerId] = useState(route.params.nonStrikerId);
+  const [bowler, setBowler] = useState(route.params.bowler);
+  const [selectedStrikerName, setSelectedStrikerName] = useState(route.params.strikerName);
+  const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(route.params.nonStrikerName);
+  const [selectedBowlerName, setSelectedBowlerName] = useState(route.params.bowlerName);
 
   const [selectedRun, setSelectedRun] = useState(null);
   const [wideExtra, setWideExtra] = useState('');
@@ -31,6 +34,8 @@ const ScoringScreen = ({ route, navigation }) => {
     bye: false,
     wide: false,
     wicket: false,
+    nextBatsman: false,
+    nextBowler: false
   });
   const [battingTeamName, setBattingTeamName] = useState('');
   const [score, setScore] = useState(0);
@@ -48,6 +53,8 @@ const ScoringScreen = ({ route, navigation }) => {
   const [strikerStats, setStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
   const [bowlerStats, setBowlerStats] = useState({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
   const [overDetails, setOverDetails] = useState(null);
+  const [availableBatsmen, setAvailableBatsmen] = useState([]);
+  const [selectedBatsman, setSelectedBatsman] = useState({ playerId: null, name: null });
 
   const SSEhandler = async () => {
     try {
@@ -60,17 +67,17 @@ const ScoringScreen = ({ route, navigation }) => {
       eventSource.addEventListener('ball-update', (event) => {
         const data = JSON.parse(event.data);
         console.log(data);
-        setBattingTeamName(data.battingTeam.name);
-        setBowlingTeamName(data.bowlingTeam.name);
+        setBattingTeamName(data.battingTeam?.name);
+        setBowlingTeamName(data.bowlingTeam?.name);
         setScore(data.battingTeam.score);
         setExtras(data.battingTeam.extras);
         setWicket(data.battingTeam.wickets);
         setBattingTeamII(data.battingTeamPlayingXI);
         setBowlingTeamII(data.bowlingTeamPlayingXI);
         setCompletedOvers(data.completedOvers);
-        setCurrentBowlerName(data.currentBowler.name);
-        setStrikerName(data.currentStriker.name);
-        setNonStrikerName(data.currentNonStriker.name);
+        setCurrentBowlerName(data.currentBowler?.name);
+        setStrikerName(data.currentStriker?.name);
+        setNonStrikerName(data.currentNonStriker?.name);
         setCurrentOver(data.currentOver);
         // Extract striker details
         const strikerStats = data.battingTeamPlayingXI.find(
@@ -105,9 +112,6 @@ const ScoringScreen = ({ route, navigation }) => {
         setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
         setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
         setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
-        console.log(strikerStats);
-        console.log(nonStrikerStats);
-        console.log(bowlerStats);
 
       });
 
@@ -173,11 +177,39 @@ const ScoringScreen = ({ route, navigation }) => {
       setModals({ ...modals, bye: true });
     } else if (value === 'Wicket') {
       setModals({ ...modals, wicket: true });
+
+      // Fetch available batsmen
+      const available = battingTeamII.filter(
+        (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
+      ).map(({ playerId, name }) => ({ playerId, name }));
+
+      setAvailableBatsmen(available);
     } else {
       setSelectedRun(value);
       submitScore({ runs: parseInt(value), wide: false, noBall: false, bye: false, legBye: false, wicket: false });
     }
-  }
+  };
+
+  const handleNextBatsmanSelection = async () => {
+    if (!selectedBatsman) {
+      Alert.alert('Error', 'Please select a batsman first');
+      return;
+    }
+
+    setStrikerId(selectedBatsman.playerId);
+    setStrikerName(selectedBatsman?.name);
+    setModals({ ...modals, nextBatsman: false });
+    submitScore({
+      runs: 0,
+      wicket: true,
+      wicketType: wicketType,
+    });
+  };
+
+  const wicketHandler = (value) => {
+    setWicketType(value);
+    setModals({ ...modals, wicket: false, nextBatsman: true }); // Open next batsman modal instead of submitting
+  };
 
   const submitScore = async (data) => {
     try {
@@ -223,15 +255,6 @@ const ScoringScreen = ({ route, navigation }) => {
                 {score}/{wicket} ({completedOvers}.{currentOver.length})
               </Text>
             </View>
-            {/* <View style={styles.playerInfo}>
-              <View style={styles.oversContainer}>
-                <Text style={styles.heading}>Overs:</Text>
-                {currentOver.map((eachBall, index) => (
-                  <Text key={index} style={styles.overText}>
-                  </Text>
-                ))}
-              </View>
-            </View> */}
           </View>
         </ImageBackground>
       </LinearGradient>
@@ -242,7 +265,7 @@ const ScoringScreen = ({ route, navigation }) => {
             <Text style={styles.playerText}>{nonStrikerName}-<Text>{nonStrikerStats.runs}({nonStrikerStats.ballsFaced})</Text></Text>
           </View>
           <View>
-            <Text style={styles.playerText}>Over: {overDetails.join(" ")}</Text>
+            <Text style={styles.playerText}>Over: {overDetails?.join(" ")}</Text>
             <Text style={styles.playerText}>{currentBowlerName}-{bowlerStats.wicketsTaken}/{bowlerStats.runsConceded}</Text>
           </View>
         </View>
@@ -283,7 +306,7 @@ const ScoringScreen = ({ route, navigation }) => {
               style={styles.submitButton}
               onPress={() => {
                 setModals({ ...modals, wide: false });
-                submitScore({ runs: 1 + parseInt(wideExtra || 0), wide: true });
+                submitScore({ runs: parseInt(wideExtra || 0), wide: true });
               }}
             >
               <Text style={styles.submitText}>Submit</Text>
@@ -324,7 +347,7 @@ const ScoringScreen = ({ route, navigation }) => {
 
             <Picker
               selectedValue={wicketType}
-              onValueChange={(itemValue) => setWicketType(itemValue)}
+              onValueChange={(itemValue) => wicketHandler(itemValue)}
               style={styles.picker}
             >
               <Picker.Item label="Select Wicket Type" value="" />
@@ -342,8 +365,15 @@ const ScoringScreen = ({ route, navigation }) => {
                   Alert.alert('Error', 'Please select a wicket type.');
                   return;
                 }
-                setModals({ ...modals, wicket: false });
-                submitScore({ runs: 0, wicket: true, wicketType });
+
+                setModals({ ...modals, wicket: false, nextBatsman: true }); // Open Next Batsman Modal
+
+                // Fetch available batsmen
+                const available = battingTeamII.filter(
+                  (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
+                ).map(({ playerId, name }) => ({ playerId, name }));
+
+                setAvailableBatsmen(available);
               }}
             >
               <Text style={styles.submitText}>Submit</Text>
@@ -351,6 +381,50 @@ const ScoringScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* New batsman selection modal */}
+      <Modal visible={modals.nextBatsman} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Next Batsman</Text>
+
+            <Picker
+              selectedValue={selectedBatsman?.playerId}
+              onValueChange={(itemValue) => {
+                const selectedPlayer = availableBatsmen.find(player => player.playerId === itemValue);
+                setSelectedBatsman(selectedPlayer);
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Select Batsman" value="" />
+              {availableBatsmen.map((batsman) => (
+                <Picker.Item key={batsman.playerId} label={batsman?.name} value={batsman?.playerId} />
+              ))}
+            </Picker>
+
+            <Pressable
+              style={styles.submitButton}
+              onPress={async () => {
+                if (!selectedBatsman) {
+                  Alert.alert('Error', 'Please select a batsman.');
+                  return;
+                }
+
+                setStrikerId(selectedBatsman.playerId);
+                setStrikerName(selectedBatsman?.name);
+                setModals({ ...modals, nextBatsman: false });
+
+                // API call after batsman selection
+                await submitScore({ runs: 0, wicket: true, wicketType });
+              }}
+            >
+              <Text style={styles.submitText}>Confirm Batsman</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+
     </View>
   );
 };
@@ -428,6 +502,35 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: 'white',
     borderRadius: 10
+  },
+  batsmanOption: {
+    width: '100%',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    marginVertical: 5,
+    backgroundColor: '#f2f2f2',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  selectedBatsman: {
+    backgroundColor: '#4CAF50', // Green for selected batsman
+  },
+  batsmanText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  selectButton: {
+    marginTop: 15,
+    backgroundColor: '#007bff',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  selectButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   input: {
     backgroundColor: '#e7e7e7',
