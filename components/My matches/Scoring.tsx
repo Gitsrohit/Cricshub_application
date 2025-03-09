@@ -25,7 +25,6 @@ const ScoringScreen = ({ route, navigation }) => {
   const [selectedStrikerName, setSelectedStrikerName] = useState(route.params.strikerName);
   const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(route.params.nonStrikerName);
   const [selectedBowlerName, setSelectedBowlerName] = useState(route.params.bowlerName);
-
   const [selectedRun, setSelectedRun] = useState(null);
   const [wideExtra, setWideExtra] = useState('');
   const [byeExtra, setByeExtra] = useState('');
@@ -53,7 +52,9 @@ const ScoringScreen = ({ route, navigation }) => {
   const [strikerStats, setStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
   const [bowlerStats, setBowlerStats] = useState({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
   const [overDetails, setOverDetails] = useState(null);
-  const [availableBatsmen, setAvailableBatsmen] = useState([]);
+  const [availableBatsmen, setAvailableBatsmen] = useState(battingTeamII?.filter(
+    (player) => player?.ballsFaced === 0 && player?.playerId !== strikerId && player?.playerId !== nonStrikerId
+  ).map(({ playerId, name }) => ({ playerId, name })));
   const [selectedBatsman, setSelectedBatsman] = useState({ playerId: null, name: null });
 
   const SSEhandler = async () => {
@@ -79,19 +80,26 @@ const ScoringScreen = ({ route, navigation }) => {
         setStrikerName(data.currentStriker?.name);
         setNonStrikerName(data.currentNonStriker?.name);
         setCurrentOver(data.currentOver);
+        // Fetch available batsmen
+        const available = data.battingTeamPlayingXI.filter(
+          (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
+        ).map(({ playerId, name }) => ({ playerId, name }));
+        setAvailableBatsmen(available);
+        console.log(available);
+
         // Extract striker details
         const strikerStats = data.battingTeamPlayingXI.find(
-          (player) => player.name === data.currentStriker.name
+          (player) => player?.name === data.currentStriker?.name
         );
 
         // Extract non-striker details
         const nonStrikerStats = data.battingTeamPlayingXI.find(
-          (player) => player.name === data.currentNonStriker.name
+          (player) => player?.name === data.currentNonStriker?.name
         );
 
         // Extract bowler details
         const bowlerStats = data.bowlingTeamPlayingXI.find(
-          (player) => player.name === data.currentBowler.name
+          (player) => player?.name === data.currentBowler?.name
         );
 
         // Format over details
@@ -131,6 +139,10 @@ const ScoringScreen = ({ route, navigation }) => {
   useEffect(() => {
     SSEhandler();
   }, [matchId]);
+
+  useEffect(() => {
+    SSEhandler();
+  }, []);
 
   const scoringOptions = ['0', '1', '2', '3', '4', '6'];
 
@@ -173,41 +185,63 @@ const ScoringScreen = ({ route, navigation }) => {
   const handleExtrasWicketSelection = (value) => {
     if (value === 'Wide') {
       setModals({ ...modals, wide: true });
+      submitScore({ wide: true });
     } else if (value === 'Bye' || value === 'Leg Bye') {
       setModals({ ...modals, bye: true });
+      submitScore({ bye: true });
     } else if (value === 'Wicket') {
       setModals({ ...modals, wicket: true });
-
-      // Fetch available batsmen
-      const available = battingTeamII.filter(
-        (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
-      ).map(({ playerId, name }) => ({ playerId, name }));
-
-      setAvailableBatsmen(available);
     } else {
       setSelectedRun(value);
       submitScore({ runs: parseInt(value), wide: false, noBall: false, bye: false, legBye: false, wicket: false });
     }
   };
 
-  const handleNextBatsmanSelection = async () => {
-    if (!selectedBatsman) {
+  const handleNextBatsmanSelection = async (selectedPlayer) => {
+    if (!selectedPlayer) {
       Alert.alert('Error', 'Please select a batsman first');
       return;
     }
 
-    setStrikerId(selectedBatsman.playerId);
-    setStrikerName(selectedBatsman?.name);
+    console.log("Selected Player:", selectedPlayer); // Debugging
+
+    setStrikerId(selectedPlayer.playerId);
+    setStrikerName(selectedPlayer.name);
     setModals({ ...modals, nextBatsman: false });
-    submitScore({
-      runs: 0,
-      wicket: true,
-      wicketType: wicketType,
-    });
+
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) throw new Error('Please login again');
+
+      const response = await axios.post(
+        `https://score360-7.onrender.com/api/v1/matches/${matchId}/next-batsman/${selectedPlayer.playerId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log("API Response:", response.data); // Debugging
+
+    } catch (error) {
+      console.error("Error updating next batsman:", error);
+      Alert.alert("Error", "Failed to update next batsman.");
+    }
   };
 
   const wicketHandler = (value) => {
     setWicketType(value);
+    submitScore({
+      runs: 0,
+      wicket: true,
+      wicketType: value,
+    });
+    // Fetch available batsmen
+    console.log(battingTeamII);
+    const available = battingTeamII.filter(
+      (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
+    ).map(({ playerId, name }) => ({ playerId, name }));
+    setAvailableBatsmen(available);
+    console.log(available);
+
     setModals({ ...modals, wicket: false, nextBatsman: true }); // Open next batsman modal instead of submitting
   };
 
@@ -393,6 +427,7 @@ const ScoringScreen = ({ route, navigation }) => {
               onValueChange={(itemValue) => {
                 const selectedPlayer = availableBatsmen.find(player => player.playerId === itemValue);
                 setSelectedBatsman(selectedPlayer);
+                handleNextBatsmanSelection(selectedPlayer); // Pass selected player directly
               }}
               style={styles.picker}
             >
@@ -413,9 +448,6 @@ const ScoringScreen = ({ route, navigation }) => {
                 setStrikerId(selectedBatsman.playerId);
                 setStrikerName(selectedBatsman?.name);
                 setModals({ ...modals, nextBatsman: false });
-
-                // API call after batsman selection
-                await submitScore({ runs: 0, wicket: true, wicketType });
               }}
             >
               <Text style={styles.submitText}>Confirm Batsman</Text>
@@ -423,7 +455,6 @@ const ScoringScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-
 
     </View>
   );
