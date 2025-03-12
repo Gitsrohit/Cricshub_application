@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, Animated, FlatList, ImageBackground, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, FlatList, Image, ImageBackground, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import stadiumBG from '../../../assets/images/stadiumBG.jpg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -210,8 +210,12 @@ const InstantMatch = () => {
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                   <Pressable onPress={() => selectTeam(item)}>
-                    <View style={styles.teamOptions}>
-                      <Text style={styles.dropdownOption}>{item.name}</Text>
+                    <View style={styles.teamCard}>
+                      <Image source={{ uri: item.logoPath }} resizeMode='cover' style={styles.teamLogo} />
+                      <View style={styles.teamOptions}>
+                        <Text style={styles.dropdownOptionName}>{item.name}</Text>
+                        <Text style={styles.dropdownOptionCaptain}>{item.captain.name}</Text>
+                      </View>
                     </View>
                   </Pressable>
                 )}
@@ -245,7 +249,23 @@ const styles = StyleSheet.create({
   modalOverlay: { height: '100%', justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
   teamModalContent: { backgroundColor: "#fff", width: "100%", padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, minHeight: 250, maxHeight: 400, alignItems: "center" },
   searchInput: { backgroundColor: "#f0f0f0", borderRadius: 10, padding: 10, width: "90%", marginBottom: 20 },
-  dropdownOption: { color: 'black', marginBottom: 10, textAlign: 'left' },
+  dropdownOptionName: { color: 'black', marginBottom: 4, textAlign: 'left' },
+  dropdownOptionCaptain: { color: 'grey', marginBottom: 10, textAlign: 'left', fontSize: 12 },
   closeButtonText: { color: 'white', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 6, backgroundColor: '#d9534f' },
-  teamOptions: { padding: 8, width: '100%', borderRadius: 4 }
+  teamOptions: { padding: 8, width: '100%', borderRadius: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' },
+  teamLogo: {
+    overflow: 'hidden',
+    borderRadius: 50,
+    justifyContent: 'flex-end',
+    height: 50,
+    width: 50,
+  },
+  teamCard: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    borderBottomColor: 'grey',
+    borderBottomWidth: 1
+  }
 });

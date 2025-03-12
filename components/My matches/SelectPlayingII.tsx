@@ -1,10 +1,9 @@
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, ImageBackground, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, ImageBackground, ScrollView, Pressable, Modal } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import stadiumBG from '../../assets/images/stadiumBG.jpg';
-import { BlurView } from 'expo-blur';
 import { useNavigation } from '@react-navigation/native';
 
 const SelectPlayingXI = ({ route }) => {
@@ -20,6 +19,9 @@ const SelectPlayingXI = ({ route }) => {
   const [selectedTeam1, setSelectedTeam1] = useState([]);
   const [selectedTeam2, setSelectedTeam2] = useState([]);
 
+  const [team1ModalVisible, setTeam1ModalVisible] = useState(true);
+  const [team2ModalVisible, setTeam2ModalVisible] = useState(false);
+
   const fetchTeamsDetails = async () => {
     const token = await AsyncStorage.getItem('jwtToken');
     if (!token) {
@@ -31,7 +33,6 @@ const SelectPlayingXI = ({ route }) => {
       const response1 = await axios.get(`https://score360-7.onrender.com/api/v1/teams/${matchDetails.team1Id}`, {
         headers: { authorization: `Bearer ${token}` }
       });
-
       const response2 = await axios.get(`https://score360-7.onrender.com/api/v1/teams/${matchDetails.team2Id}`, {
         headers: { authorization: `Bearer ${token}` }
       });
@@ -52,40 +53,30 @@ const SelectPlayingXI = ({ route }) => {
   const togglePlayerSelection = (team, playerId) => {
     if (team === 1) {
       setSelectedTeam1((prev) =>
-        prev.includes(playerId)
-          ? prev.filter((id) => id !== playerId) // Deselect if already selected
-          : prev.length < 11
-            ? [...prev, playerId] // Add player if less than 11 selected
-            : prev
+        prev.includes(playerId) ? prev.filter((id) => id !== playerId) : prev.length < 11 ? [...prev, playerId] : prev
       );
     } else {
       setSelectedTeam2((prev) =>
-        prev.includes(playerId)
-          ? prev.filter((id) => id !== playerId)
-          : prev.length < 11
-            ? [...prev, playerId]
-            : prev
+        prev.includes(playerId) ? prev.filter((id) => id !== playerId) : prev.length < 11 ? [...prev, playerId] : prev
       );
     }
   };
 
   const renderPlayer = ({ item, team }) => (
     <TouchableOpacity
-      style={[
-        styles.playerButton,
-        (team === 1 ? selectedTeam1 : selectedTeam2).includes(item.id) && styles.selectedPlayer
-      ]}
+      style={[styles.playerButton, (team === 1 ? selectedTeam1 : selectedTeam2).includes(item.id) && styles.selectedPlayer]}
       onPress={() => togglePlayerSelection(team, item.id)}
     >
       <Text style={styles.playerText}>{item.name}</Text>
     </TouchableOpacity>
   );
 
-  const handleNextButtonClick = async () => {
+  const handleStartMatch = async () => {
     try {
       const token = await AsyncStorage.getItem("jwtToken");
       if (!token) throw new Error("Please login again");
-      const response = await axios.post(`https://score360-7.onrender.com/api/v1/matches/${matchId}/start`,
+      await axios.post(
+        `https://score360-7.onrender.com/api/v1/matches/${matchId}/start`,
         {
           tournamentId: null,
           team1PlayingXIIds: selectedTeam1,
@@ -97,7 +88,7 @@ const SelectPlayingXI = ({ route }) => {
     } catch (err) {
       console.log(err);
     }
-  }
+  };
 
   if (isLoading) return <Text>Loading...</Text>;
   if (error) return <Text>{error}</Text>;
@@ -106,35 +97,33 @@ const SelectPlayingXI = ({ route }) => {
     <View style={styles.container}>
       <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
         <ImageBackground source={stadiumBG} resizeMode='cover' style={styles.background} imageStyle={styles.backgroundImage}>
-          <ScrollView style={{ width: '100%' }}>
-            <Text style={styles.heading}>Select Playing XI</Text>
+          <Modal visible={team1ModalVisible} transparent>
+            <ScrollView style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>{team1Details?.name} - Select Playing XI</Text>
+                <FlatList data={team1Details?.players} keyExtractor={(item) => item.id} renderItem={({ item }) => renderPlayer({ item, team: 1 })} />
+                {selectedTeam1.length === 11 && (
+                  <Pressable onPress={() => { setTeam1ModalVisible(false); setTeam2ModalVisible(true); }}>
+                    <Text style={styles.nextButton}>Next</Text>
+                  </Pressable>
+                )}
+              </View>
+            </ScrollView>
+          </Modal>
 
-            {/* Team 1 Players */}
-            <BlurView style={styles.teamSelect} intensity={50}>
-              <Text style={styles.teamTitle}>{team1Details?.name} Players</Text>
-              <FlatList
-                data={team1Details?.players}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => renderPlayer({ item, team: 1 })}
-                numColumns={2}
-              />
-            </BlurView>
-
-            {/* Team 2 Players */}
-            <BlurView style={styles.teamSelect} intensity={50}>
-              <Text style={styles.teamTitle}>{team2Details?.name} Players</Text>
-              <FlatList
-                data={team2Details?.players}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => renderPlayer({ item, team: 2 })}
-                numColumns={2}
-              />
-            </BlurView>
-
-            <Pressable onPress={handleNextButtonClick}>
-              <Text style={styles.nextButton}>{selectedTeam1.length === 11 && selectedTeam2.length === 11 ? `Next` : 'Select 11'}</Text>
-            </Pressable>
-          </ScrollView>
+          <Modal visible={team2ModalVisible} transparent>
+            <ScrollView style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>{team2Details?.name} - Select Playing XI</Text>
+                <FlatList data={team2Details?.players} keyExtractor={(item) => item.id} renderItem={({ item }) => renderPlayer({ item, team: 2 })} />
+                {selectedTeam2.length === 11 && (
+                  <Pressable onPress={handleStartMatch}>
+                    <Text style={styles.nextButton}>Next</Text>
+                  </Pressable>
+                )}
+              </View>
+            </ScrollView>
+          </Modal>
         </ImageBackground>
       </LinearGradient>
     </View>
@@ -147,66 +136,60 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#fff'
   },
   background: {
     flex: 1,
     // width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 20
   },
   backgroundImage: {
     resizeMode: 'cover',
-    opacity: 0.8,
+    opacity: 0.8
   },
   gradient: {
     flex: 1,
-    width: '100%',
+    width: '100%'
   },
-  heading: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-    color: 'white',
+  modalContainer: {
+    height: '80%',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: '10%',
   },
-  teamTitle: {
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10
+  },
+  modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginVertical: 10,
-    color: 'white',
+    textAlign: 'center',
+    marginBottom: 10
   },
   playerButton: {
-    flex: 1,
     padding: 10,
-    margin: 5,
+    marginVertical: 5,
     backgroundColor: '#ddd',
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   selectedPlayer: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#4CAF50'
   },
   playerText: {
-    fontSize: 16,
-  },
-  teamSelect: {
-    width: '100%',
-    borderRadius: 10,
-    overflow: 'hidden',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    marginTop: 10,
+    fontSize: 16
   },
   nextButton: {
-    color: 'white',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    backgroundColor: '#d9534f',
     textAlign: 'center',
-    marginVertical: 10,
-    fontSize: 18,
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#d9534f',
+    color: 'white',
+    marginTop: 10,
+    fontSize: 18
   },
 });
