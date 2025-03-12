@@ -84,6 +84,7 @@ const SelectPlayingXI = ({ route }) => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      setTeam2ModalVisible(false);
       navigation.navigate('Toss', { matchDetails, matchId });
     } catch (err) {
       console.log(err);
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
     padding: '10%',
   },
   modalContent: {
-    width: '80%',
+    width: '100%',
     backgroundColor: 'white',
     padding: 20,
     borderRadius: 10
