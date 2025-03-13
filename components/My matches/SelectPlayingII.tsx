@@ -91,7 +91,7 @@ const SelectPlayingXI = ({ route }) => {
           team1PlayingXIIds: selectedTeam1,
           team2PlayingXIIds: selectedTeam2,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}`} }
       );
       navigation.navigate('Toss', { matchDetails, matchId });
     } catch (err) {
