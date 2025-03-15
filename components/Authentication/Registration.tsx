@@ -1,8 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, StatusBar } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur'; // Import BlurView for glassmorphism
-const logo = require('../../assets/images/SCORE360.png');
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Alert,
+  StatusBar,
+  ImageBackground,
+} from 'react-native';
+import { BlurView } from 'expo-blur';
+
+const logo = require('../../assets/images/cricshub.png');
+const background = require('../../assets/images/cricsLogo.png'); // Import your background image
 
 const Registration = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -106,96 +117,109 @@ const Registration = ({ navigation }) => {
   return (
     <>
       <StatusBar />
-      <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.container}>
-        <View style={styles.logoContainer}>
-          <Image source={logo} style={styles.logo} />
-        </View>
+      <ImageBackground source={background} style={styles.backgroundImage} resizeMode="cover">
+        {/* Overlay to make the background less dark */}
+        <View style={styles.overlay}>
+          <View style={styles.container}>
+            <View style={styles.logoContainer}>
+              <Image source={logo} style={styles.logo} />
+            </View>
 
-        {/* Glassmorphism Form Section */}
-        <BlurView intensity={50} tint="light" style={styles.formContainer}>
-          <View style={styles.innerContainer}>
-            <Text style={styles.title}>REGISTRATION</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Name"
-              placeholderTextColor="#666"
-              value={formData.name}
-              onChangeText={(value) => handleInputChange('name', value)}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#666"
-              keyboardType="email-address"
-              value={formData.email}
-              onChangeText={(value) => handleInputChange('email', value)}
-            />
+            {/* Glassmorphism Form Section */}
+            <BlurView intensity={50} tint="light" style={styles.formContainer}>
+              <View style={styles.innerContainer}>
+                <Text style={styles.title}>REGISTRATION</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Name"
+                  placeholderTextColor="#666"
+                  value={formData.name}
+                  onChangeText={(value) => handleInputChange('name', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor="#666"
+                  keyboardType="email-address"
+                  value={formData.email}
+                  onChangeText={(value) => handleInputChange('email', value)}
+                />
 
-            {/* Verify Email Button */}
-            <TouchableOpacity style={styles.verifyEmailButton} onPress={handleVerifyEmail}>
-              <Text style={styles.verifyEmailButtonText}>Verify Email</Text>
-            </TouchableOpacity>
+                {/* Verify Email Button */}
+                <TouchableOpacity style={styles.verifyEmailButton} onPress={handleVerifyEmail}>
+                  <Text style={styles.verifyEmailButtonText}>Verify Email</Text>
+                </TouchableOpacity>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Mobile No"
-              placeholderTextColor="#666"
-              keyboardType="phone-pad"
-              value={formData.mobile}
-              onChangeText={(value) => handleInputChange('mobile', value)}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Set Password"
-              placeholderTextColor="#666"
-              secureTextEntry
-              value={formData.password}
-              onChangeText={(value) => handleInputChange('password', value)}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm Password"
-              placeholderTextColor="#666"
-              secureTextEntry
-              value={formData.confirmPassword}
-              onChangeText={(value) => handleInputChange('confirmPassword', value)}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="OTP"
-              placeholderTextColor="#666"
-              keyboardType="numeric"
-              value={formData.otp}
-              onChangeText={(value) => handleInputChange('otp', value)}
-            />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Mobile No"
+                  placeholderTextColor="#666"
+                  keyboardType="phone-pad"
+                  value={formData.mobile}
+                  onChangeText={(value) => handleInputChange('mobile', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Set Password"
+                  placeholderTextColor="#666"
+                  secureTextEntry
+                  value={formData.password}
+                  onChangeText={(value) => handleInputChange('password', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm Password"
+                  placeholderTextColor="#666"
+                  secureTextEntry
+                  value={formData.confirmPassword}
+                  onChangeText={(value) => handleInputChange('confirmPassword', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="OTP"
+                  placeholderTextColor="#666"
+                  keyboardType="numeric"
+                  value={formData.otp}
+                  onChangeText={(value) => handleInputChange('otp', value)}
+                />
 
-            {/* Sign Up Button */}
-            <TouchableOpacity style={styles.signUpButton} onPress={handleSubmit}>
-              <Text style={styles.signUpButtonText}>Sign Up</Text>
-            </TouchableOpacity>
+                {/* Sign Up Button */}
+                <TouchableOpacity style={styles.signUpButton} onPress={handleSubmit}>
+                  <Text style={styles.signUpButtonText}>Sign Up</Text>
+                </TouchableOpacity>
 
-            {/* Login Link */}
-            <Text style={styles.loginText}>
-              Already have an account?{' '}
-              <Text style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
-                Login
-              </Text>
-            </Text>
+                {/* Login Link */}
+                <Text style={styles.loginText}>
+                  Already have an account?{' '}
+                  <Text style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
+                    Login
+                  </Text>
+                </Text>
+              </View>
+            </BlurView>
           </View>
-        </BlurView>
-      </LinearGradient>
+        </View>
+      </ImageBackground>
     </>
   );
 };
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Adjust the opacity here (0.4 = 40% dark)
+  },
   container: {
     flex: 1,
+    justifyContent: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 50,
-    marginBottom: 5,
+    marginBottom: 20,
   },
   logo: {
     width: 100,
@@ -204,9 +228,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     borderRadius: 15,
-    marginTop: 20,
-    width: '90%',
-    alignSelf: 'center',
+    marginHorizontal: 20,
     overflow: 'hidden',
   },
   innerContainer: {
@@ -219,7 +241,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 20,
-    color: '#FFF',
+    color: '#004466',
     textAlign: 'center',
   },
   input: {
@@ -259,7 +281,7 @@ const styles = StyleSheet.create({
   loginText: {
     marginTop: 20,
     fontSize: 14,
-    color: '#FFF',
+    color: '#004466',
     textAlign: 'center',
   },
   loginLink: {

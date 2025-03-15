@@ -9,6 +9,7 @@ import {
   ImageBackground,
   Image,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
@@ -16,7 +17,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 
-const background = require('../../assets/images/bg.png');
+const background = require('../../assets/images/cricsLogo.png');
 
 const CreateTournament = () => {
   const [tournamentName, setTournamentName] = useState('');
@@ -63,17 +64,17 @@ const CreateTournament = () => {
           startDate: startDate.toISOString().split('T')[0],
           endDate: endDate.toISOString().split('T')[0],
           format: format,
-          type: overs, // You need to specify the type
+          type: overs,
           ballType: ballType,
           matchesPerDay: 1,
           matchesPerTeam: 1,
           venues: ["Default Venue"],
         },
-        banner: "Default Banner", // Default if no banner is provided
+        banner: "Default Banner",
       };
 
       const formData = new FormData();
-      formData.append("request", JSON.stringify(requestPayload.request)); // Send the request object as JSON
+      formData.append("request", JSON.stringify(requestPayload.request));
 
       if (banner) {
         const fileName = banner.split('/').pop();
@@ -144,42 +145,39 @@ const CreateTournament = () => {
 
   return (
     <ScrollView style={styles.background}>
-      <ImageBackground source={background} style={styles.logo} resizeMode="contain">
+      <ImageBackground source={background} style={styles.backgroundImage} resizeMode="cover">
         <View style={styles.container}>
+         
           <View style={styles.card}>
-            {/* Banner Upload Field */}
             <TouchableOpacity onPress={pickImage} style={styles.bannerUploadContainer}>
               {banner ? (
                 <Image source={{ uri: banner }} style={styles.bannerImage} />
               ) : (
-                <Text style={styles.bannerUploadText}>Upload Banner</Text>
+                <View style={styles.bannerPlaceholder}>
+                  <MaterialCommunityIcons name="image-plus" size={40} color="#fff" />
+                  <Text style={styles.bannerUploadText}>Upload Banner</Text>
+                </View>
               )}
             </TouchableOpacity>
 
+            {/* Tournament Name Input */}
             <TextInput
               style={styles.input}
-              placeholder="Tournament name"
-              placeholderTextColor="#fff"
+              placeholder="Tournament Name"
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
               value={tournamentName}
               onChangeText={setTournamentName}
             />
 
-            <View style={styles.dateInputContainer}>
-              <TouchableOpacity
-                style={styles.input}
-                onPress={() => setShowStartDatePicker(true)}
-              >
-                <Text style={styles.placeholderText}>
-                  {startDate ? startDate.toDateString() : 'Start Date'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.iconContainer}
-                onPress={() => setShowStartDatePicker(true)}
-              >
-                <MaterialCommunityIcons name="calendar" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
+            {/* Start Date Input */}
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Text style={styles.placeholderText}>
+                {startDate ? startDate.toDateString() : 'Start Date'}
+              </Text>
+            </TouchableOpacity>
 
             {showStartDatePicker && (
               <DateTimePicker
@@ -193,22 +191,15 @@ const CreateTournament = () => {
               />
             )}
 
-            <View style={styles.dateInputContainer}>
-              <TouchableOpacity
-                style={styles.input}
-                onPress={() => setShowEndDatePicker(true)}
-              >
-                <Text style={styles.placeholderText}>
-                  {endDate ? endDate.toDateString() : 'End Date'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.iconContainer}
-                onPress={() => setShowEndDatePicker(true)}
-              >
-                <MaterialCommunityIcons name="calendar" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
+            {/* End Date Input */}
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowEndDatePicker(true)}
+            >
+              <Text style={styles.placeholderText}>
+                {endDate ? endDate.toDateString() : 'End Date'}
+              </Text>
+            </TouchableOpacity>
 
             {showEndDatePicker && (
               <DateTimePicker
@@ -228,6 +219,7 @@ const CreateTournament = () => {
                 selectedValue={format}
                 onValueChange={(itemValue) => setFormat(itemValue)}
                 style={styles.picker}
+                dropdownIconColor="#fff"
               >
                 <Picker.Item label="Select Format" value="" />
                 <Picker.Item label="Double Round Robin" value="DOUBLE_ROUND_ROBIN" />
@@ -235,10 +227,11 @@ const CreateTournament = () => {
               </Picker>
             </View>
 
+            {/* Number of Overs Input */}
             <TextInput
               style={styles.input}
-              placeholder="Enter no. of overs"
-              placeholderTextColor="#aaa"
+              placeholder="Number of Overs"
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
               value={overs}
               onChangeText={setOvers}
               keyboardType="numeric"
@@ -250,6 +243,7 @@ const CreateTournament = () => {
                 selectedValue={ballType}
                 onValueChange={(itemValue) => setBallType(itemValue)}
                 style={styles.picker}
+                dropdownIconColor="#fff"
               >
                 <Picker.Item label="Select Ball Type" value="" />
                 <Picker.Item label="Tennis Ball" value="Tennis Ball" />
@@ -262,9 +256,14 @@ const CreateTournament = () => {
               onPress={handleCreateTournament}
               disabled={loading}
             >
-              <Text style={styles.buttonText}>{loading ? 'Creating' : `Create Tournament`}</Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Create Tournament</Text>
+              )}
             </TouchableOpacity>
           </View>
+          
         </View>
       </ImageBackground>
     </ScrollView>
@@ -274,23 +273,28 @@ const CreateTournament = () => {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    backgroundColor: '#003d99',
+    backgroundColor: '#002B3D',
   },
-  logo: {
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Adjust the opacity here (0.4 = 40% dark)
+  },
+  backgroundImage: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
   },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   card: {
-    width: '90%',
+    width: '100%',
     padding: 20,
     borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderColor: 'rgba(255, 255, 255, 0.3)',
     borderWidth: 1,
     shadowColor: '#000',
@@ -300,31 +304,20 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 5,
-    padding: 10,
+    borderRadius: 10,
+    padding: 15,
     color: '#fff',
     marginBottom: 15,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  button: {
-    backgroundColor: '#0066cc',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
   placeholderText: {
-    color: '#aaa',
+    color: 'rgba(255, 255, 255, 0.5)',
     fontSize: 16,
   },
   pickerContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 5,
+    borderRadius: 10,
     marginBottom: 15,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
@@ -332,17 +325,18 @@ const styles = StyleSheet.create({
   picker: {
     color: '#fff',
     height: 50,
-    paddingHorizontal: 10,
   },
-  dateInputContainer: {
-    flexDirection: 'row',
+  button: {
+    backgroundColor: '#000000',
+    padding: 15,
+    borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 15,
+    marginTop: 10,
   },
-  iconContainer: {
-    position: 'absolute',
-    right: 10,
-    zIndex: 1,
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   bannerUploadContainer: {
     height: 150,
@@ -351,6 +345,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   bannerImage: {
     width: '100%',
@@ -358,9 +354,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     resizeMode: 'cover',
   },
+  bannerPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   bannerUploadText: {
     color: '#fff',
     fontSize: 16,
+    marginTop: 10,
   },
 });
 
