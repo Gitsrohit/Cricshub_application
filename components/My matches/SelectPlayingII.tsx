@@ -53,9 +53,9 @@ const SelectPlayingXI = ({ route }) => {
     if (team === 1) {
       setSelectedTeam1((prev) =>
         prev.includes(playerId)
-          ? prev.filter((id) => id !== playerId) // Deselect if already selected
+          ? prev.filter((id) => id !== playerId) 
           : prev.length < 11
-            ? [...prev, playerId] // Add player if less than 11 selected
+            ? [...prev, playerId]
             : prev
       );
     } else {
