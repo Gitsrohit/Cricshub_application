@@ -238,45 +238,46 @@ const InstantMatch = () => {
             </Animated.View>
           </View>
         </Modal>
-      </>
-      );
+      </ImageBackground>
+    </>
+  );
 };
 
-      export default InstantMatch;
+export default InstantMatch;
 
-      const styles = StyleSheet.create({
-        backgroundImage: {
-        flex: 1,
-      width: '100%',
-      height: '100%',
+const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
-      gradient: {flex: 1 },
-      instantMatchContainer: {flex: 1 },
-      instantMatchForm: {width: '90%', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 8, overflow: 'hidden' },
-      title: {textAlign: 'center', fontSize: 20, marginVertical: 16, color: 'white' },
-      teamSelectionContainer: {flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' },
-      teamButton: {alignItems: 'center', borderColor: 'white', borderRadius: 6, padding: 4, borderWidth: 1, width: 100 },
-      teamText: {color: 'white', textAlign: 'center' },
-      modalOverlay: {height: '100%', justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
-      teamModalContent: {backgroundColor: "#fff", width: "100%", padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, minHeight: 250, maxHeight: 400, alignItems: "center" },
-      searchInput: {backgroundColor: "#f0f0f0", borderRadius: 10, padding: 10, width: "90%", marginBottom: 20 },
-      dropdownOptionName: {color: 'black', marginBottom: 4, textAlign: 'left' },
-      dropdownOptionCaptain: {color: 'grey', marginBottom: 10, textAlign: 'left', fontSize: 12 },
-      closeButtonText: {color: 'white', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 6, backgroundColor: '#d9534f' },
-      teamOptions: {padding: 8, width: '100%', borderRadius: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' },
-      teamLogo: {
-        overflow: 'hidden',
-      borderRadius: 50,
-      justifyContent: 'flex-end',
-      height: 50,
-      width: 50,
+  gradient: { flex: 1 },
+  instantMatchContainer: { flex: 1 },
+  instantMatchForm: { width: '90%', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 8, overflow: 'hidden' },
+  title: { textAlign: 'center', fontSize: 20, marginVertical: 16, color: 'white' },
+  teamSelectionContainer: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' },
+  teamButton: { alignItems: 'center', borderColor: 'white', borderRadius: 6, padding: 4, borderWidth: 1, width: 100 },
+  teamText: { color: 'white', textAlign: 'center' },
+  modalOverlay: { height: '100%', justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
+  teamModalContent: { backgroundColor: "#fff", width: "100%", padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, minHeight: 250, maxHeight: 400, alignItems: "center" },
+  searchInput: { backgroundColor: "#f0f0f0", borderRadius: 10, padding: 10, width: "90%", marginBottom: 20 },
+  dropdownOptionName: { color: 'black', marginBottom: 4, textAlign: 'left' },
+  dropdownOptionCaptain: { color: 'grey', marginBottom: 10, textAlign: 'left', fontSize: 12 },
+  closeButtonText: { color: 'white', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 6, backgroundColor: '#d9534f' },
+  teamOptions: { padding: 8, width: '100%', borderRadius: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' },
+  teamLogo: {
+    overflow: 'hidden',
+    borderRadius: 50,
+    justifyContent: 'flex-end',
+    height: 50,
+    width: 50,
   },
-      teamCard: {
-        display: 'flex',
-      flexDirection: 'row',
-      justifyContent: 'flex-start',
-      alignItems: 'center',
-      borderBottomColor: 'grey',
-      borderBottomWidth: 1
+  teamCard: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    borderBottomColor: 'grey',
+    borderBottomWidth: 1
   }
 });

@@ -3,13 +3,14 @@ import { View, TouchableOpacity, Text, StyleSheet, Animated } from 'react-native
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient'; // For gradient backgrounds
+import { MaterialIcons } from '@expo/vector-icons';
 
 const Footer = () => {
-  const [activeTab, setActiveTab] = useState('HOME'); 
+  const [activeTab, setActiveTab] = useState('HOME');
   const navigation = useNavigation(); // Navigation context
 
   const footerTabs = [
-    { key: 'MATCHES', icon: 'home', label: 'My Matches', route: 'Main', nestedRoute: 'MyMatches' },
+    { key: 'MATCHES', icon: 'sports-cricket', label: 'My Matches', route: 'Main', nestedRoute: 'MyMatches' },
     { key: 'TOURNAMENTS', icon: 'trophy', label: 'Tournaments', route: 'Main', nestedRoute: 'Tournaments' },
     { key: 'HOME', icon: 'home', label: 'Home', route: 'Main', nestedRoute: 'Home' },
     { key: 'TEAMS', icon: 'users', label: 'Teams', route: 'Main', nestedRoute: 'Teams' },
@@ -66,11 +67,25 @@ const Footer = () => {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Icon name={tab.icon} size={28} color="#FFFFFF" />
+                {tab.key !== 'MATCHES' ?
+                  <Icon name={tab.icon} size={28} color="#FFFFFF" />
+                  :
+                  <MaterialIcons
+                    name={tab.icon}
+                    size={28}
+                    color="#FFFFFF"
+                  />}
               </LinearGradient>
             ) : (
               <>
-                <Icon name={tab.icon} size={24} color="#333" /> {/* Dark gray icon for inactive tabs */}
+                {tab.key !== 'MATCHES' ?
+                  <Icon name={tab.icon} size={28} color="#333" />
+                  :
+                  <MaterialIcons
+                    name={tab.icon}
+                    size={28}
+                    color="#333"
+                  />}
                 <Text style={styles.footerButtonText}>{tab.label}</Text>
               </>
             )}
@@ -104,7 +119,7 @@ const styles = StyleSheet.create({
   },
   footerButtonText: {
     color: '#333', // Dark gray text for inactive tabs
-    fontSize: 12,
+    fontSize: 10,
     marginTop: 5,
     fontWeight: '500', // Slightly bold text
   },
