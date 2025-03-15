@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, StatusBar, StyleSheet } from 'react-native';
+import { SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Login from './components/Authentication/Login';
@@ -44,9 +44,9 @@ const App = () => {
 
 const MainScreens = () => {
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <StatusBar />
-      <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="MyMatches" component={CricketAppScreen} />
@@ -63,9 +63,9 @@ const MainScreens = () => {
           <Stack.Screen name="Scoring" component={Scoring} />
           <Stack.Screen name="SelectRoles" component={SelectRoles} />
         </Stack.Navigator>
-        <Footer style={styles.footer} />
-      </SafeAreaView>
-    </>
+      </View>
+      <Footer style={styles.footer} />
+    </View>
   );
 };
 
@@ -74,7 +74,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#002233', // Footer background color
+    zIndex: 1, // Ensure footer is above other components
   },
 });
 
