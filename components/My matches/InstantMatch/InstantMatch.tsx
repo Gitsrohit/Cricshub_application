@@ -1,6 +1,5 @@
 import { ActivityIndicator, Alert, Animated, FlatList, Image, ImageBackground, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import stadiumBG from '../../../assets/images/stadiumBG.jpg';
-import { ActivityIndicator, Alert, Animated, FlatList, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, ImageBackground } from 'react-native'; // Add ImageBackground
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -228,36 +227,6 @@ const InstantMatch = () => {
                           <Text style={styles.dropdownOptionName}>{item.name}</Text>
                           <Text style={styles.dropdownOptionCaptain}>{item.captain.name}</Text>
                         </View>
-                      </View>
-                    </Pressable>
-                  )}
-                />
-              )}
-              <TouchableOpacity onPress={() => setTeamModalVisible(false)}>
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-        </Modal>
-        <Modal visible={teamModalVisible} transparent animationType="none">
-          <View style={styles.modalOverlay}>
-            <Animated.View style={[styles.teamModalContent, { transform: [{ translateY: slideAnim }] }]}>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search team..."
-                value={searchQuery}
-                onChangeText={handleSearch}
-              />
-              {loading ? (
-                <ActivityIndicator size="large" color="#4A90E2" />
-              ) : (
-                <FlatList
-                  data={teamResults}
-                  keyExtractor={(item) => item.id.toString()}
-                  renderItem={({ item }) => (
-                    <Pressable onPress={() => selectTeam(item)}>
-                      <View style={styles.teamOptions}>
-                        <Text style={styles.dropdownOption}>{item.name}</Text>
                       </View>
                     </Pressable>
                   )}

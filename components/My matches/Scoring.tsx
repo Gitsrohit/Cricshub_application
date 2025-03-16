@@ -27,6 +27,7 @@ const ScoringScreen = ({ route, navigation }) => {
   const [selectedBowlerName, setSelectedBowlerName] = useState(route.params.bowlerName);
   const [selectedRun, setSelectedRun] = useState(null);
   const [wideExtra, setWideExtra] = useState('');
+  const [noBallExtra, setNoBallExtra] = useState('');
   const [byeExtra, setByeExtra] = useState('');
   const [wicketType, setWicketType] = useState('');
   const [modals, setModals] = useState({
@@ -34,7 +35,8 @@ const ScoringScreen = ({ route, navigation }) => {
     wide: false,
     wicket: false,
     nextBatsman: false,
-    nextBowler: false
+    nextBowler: false,
+    noBall: false,
   });
   const [battingTeamName, setBattingTeamName] = useState('');
   const [score, setScore] = useState(0);
@@ -56,6 +58,12 @@ const ScoringScreen = ({ route, navigation }) => {
     (player) => player?.ballsFaced === 0 && player?.playerId !== strikerId && player?.playerId !== nonStrikerId
   ).map(({ playerId, name }) => ({ playerId, name })));
   const [selectedBatsman, setSelectedBatsman] = useState({ playerId: null, name: null });
+  const [legalDeliveries, setLegalDeliveries] = useState(0);
+  const [availableBowlers, setAvailableBowlers] = useState([]);
+  const [selectedBowler, setSelectedBowler] = useState({
+    playerId: '',
+    name: ''
+  });
 
   const SSEhandler = async () => {
     try {
@@ -80,12 +88,16 @@ const ScoringScreen = ({ route, navigation }) => {
         setStrikerName(data.currentStriker?.name);
         setNonStrikerName(data.currentNonStriker?.name);
         setCurrentOver(data.currentOver);
+
+        // Fetch available bowlers
+        const filteredBowlers = data.bowlingTeamPlayingXI.filter((player) => player.playerId !== bowler).map(({ playerId, name }) => ({ playerId, name }));
+        setAvailableBowlers(filteredBowlers);
+
         // Fetch available batsmen
         const available = data.battingTeamPlayingXI.filter(
           (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
         ).map(({ playerId, name }) => ({ playerId, name }));
         setAvailableBatsmen(available);
-        console.log(available);
 
         // Extract striker details
         const strikerStats = data.battingTeamPlayingXI.find(
@@ -116,6 +128,22 @@ const ScoringScreen = ({ route, navigation }) => {
         });
 
         setOverDetails(formattedOverDetails);
+
+        // Count legal deliveries
+        const deliveryCount = data.currentOver.reduce((count, ball) => {
+          return count + (ball.noBall || ball.wide ? 0 : 1);
+        }, 0);
+        setLegalDeliveries(deliveryCount);
+
+        // Open modal for next bowler only when an over is completed (excluding the first over)
+        if (deliveryCount === 0) {
+          setModals((prev) => ({ ...prev, nextBowler: true }));
+        }
+
+        if (battingTeamName !== data.battingTeam.name) {
+          if (data.firstInnings === true)
+            navigation.navigate(`SelectRoles2ndInnings`, { matchId, battingTeamII, bowlingTeamII });
+        }
 
         setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
         setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
@@ -185,10 +213,10 @@ const ScoringScreen = ({ route, navigation }) => {
   const handleExtrasWicketSelection = (value) => {
     if (value === 'Wide') {
       setModals({ ...modals, wide: true });
-      submitScore({ wide: true });
     } else if (value === 'Bye' || value === 'Leg Bye') {
       setModals({ ...modals, bye: true });
-      submitScore({ bye: true });
+    } else if (value === 'No Ball' || value === 'No Ball') {
+      setModals({ ...modals, noBall: true });
     } else if (value === 'Wicket') {
       setModals({ ...modals, wicket: true });
     } else {
@@ -202,8 +230,6 @@ const ScoringScreen = ({ route, navigation }) => {
       Alert.alert('Error', 'Please select a batsman first');
       return;
     }
-
-    console.log("Selected Player:", selectedPlayer); // Debugging
 
     setStrikerId(selectedPlayer.playerId);
     setStrikerName(selectedPlayer.name);
@@ -219,11 +245,26 @@ const ScoringScreen = ({ route, navigation }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("API Response:", response.data); // Debugging
-
     } catch (error) {
       console.error("Error updating next batsman:", error);
       Alert.alert("Error", "Failed to update next batsman.");
+    }
+  };
+
+  const selectNextBowler = async (playerId, playerName) => {
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) throw new Error('Please login again');
+      const resposne = await axios.post(`https://score360-7.onrender.com/api/v1/matches/${matchId}/next-bowler/${playerId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setBowler(playerId);
+      setCurrentBowlerName(playerName);
+      setLegalDeliveries(0);
+      setModals((prev) => ({ ...prev, nextBowler: false }));
+    } catch (error) {
+      console.error("Error selecting next bowler:", error);
     }
   };
 
@@ -234,13 +275,10 @@ const ScoringScreen = ({ route, navigation }) => {
       wicket: true,
       wicketType: value,
     });
-    // Fetch available batsmen
-    console.log(battingTeamII);
     const available = battingTeamII.filter(
       (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
     ).map(({ playerId, name }) => ({ playerId, name }));
     setAvailableBatsmen(available);
-    console.log(available);
 
     setModals({ ...modals, wicket: false, nextBatsman: true }); // Open next batsman modal instead of submitting
   };
@@ -249,7 +287,6 @@ const ScoringScreen = ({ route, navigation }) => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error('Please login again');
-
       await axios.post(
         `https://score360-7.onrender.com/api/v1/matches/${matchId}/ball`,
         {
@@ -271,7 +308,6 @@ const ScoringScreen = ({ route, navigation }) => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       Alert.alert('Success', 'Score updated successfully!');
     } catch (err) {
       Alert.alert('Error', 'Failed to update score');
@@ -286,7 +322,7 @@ const ScoringScreen = ({ route, navigation }) => {
             <View style={styles.scoreContainer}>
               <Text style={styles.teamName}>{battingTeamName}</Text>
               <Text style={styles.scoreText}>
-                {score}/{wicket} ({completedOvers}.{currentOver.length})
+                {score}/{wicket} ({completedOvers}.{legalDeliveries})
               </Text>
             </View>
           </View>
@@ -340,7 +376,33 @@ const ScoringScreen = ({ route, navigation }) => {
               style={styles.submitButton}
               onPress={() => {
                 setModals({ ...modals, wide: false });
-                submitScore({ runs: parseInt(wideExtra || 0), wide: true });
+                submitScore({ runs: parseInt(wideExtra || '0'), wide: true });
+                setWideExtra('0');
+              }}
+            >
+              <Text style={styles.submitText}>Submit</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* No-ball Modal */}
+      <Modal visible={modals.noBall} transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text>No ball runs:</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={noBallExtra}
+              onChangeText={setNoBallExtra}
+            />
+            <Pressable
+              style={styles.submitButton}
+              onPress={() => {
+                setModals({ ...modals, noBall: false });
+                submitScore({ runs: parseInt(noBallExtra || '0'), noBallExtra: true });
+                setNoBallExtra('0');
               }}
             >
               <Text style={styles.submitText}>Submit</Text>
@@ -364,7 +426,7 @@ const ScoringScreen = ({ route, navigation }) => {
               style={styles.submitButton}
               onPress={() => {
                 setModals({ ...modals, bye: false });
-                submitScore({ runs: parseInt(byeExtra || 0), bye: true });
+                submitScore({ runs: parseInt(byeExtra || '0'), bye: true });
               }}
             >
               <Text style={styles.submitText}>Submit</Text>
@@ -452,6 +514,43 @@ const ScoringScreen = ({ route, navigation }) => {
             >
               <Text style={styles.submitText}>Confirm Batsman</Text>
             </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Next bowler */}
+      <Modal visible={modals.nextBowler} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Next Bowler</Text>
+
+            <Picker
+              selectedValue={selectedBowler?.playerId}
+              onValueChange={(itemValue) => {
+                const selectedPlayer = availableBowlers.find(player => player.playerId === itemValue);
+                setSelectedBowler(selectedPlayer);
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Select Bowler" value="" />
+              {availableBowlers.map((bowler) => (
+                <Picker.Item key={bowler.playerId} label={bowler?.name} value={bowler?.playerId} />
+              ))}
+            </Picker>
+
+            <Pressable
+              style={styles.submitButton}
+              onPress={() => {
+                if (!selectedBowler?.playerId) {
+                  Alert.alert('Error', 'Please select a bowler.');
+                  return;
+                }
+                selectNextBowler(selectedBowler.playerId, selectedBowler.name);
+              }}
+            >
+              <Text style={styles.submitText}>Confirm Bowler</Text>
+            </Pressable>
+
           </View>
         </View>
       </Modal>

@@ -71,16 +71,17 @@ const Home = () => {
   };
 
   return (
-    <ImageBackground
-      source={require('../../assets/images/cricsLogo.png')}
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-        <View style={styles.topBar}>
-          <MaterialIcons name="menu" size={30} color="#333" />
-          {/* <View style={styles.searchBar}>
+    <View style={{ flex: 1 }}>
+      <StatusBar />
+      <ImageBackground
+        source={require('../../assets/images/cricsLogo.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.topBar}>
+            <MaterialIcons name="menu" size={30} color="#333" />
+            {/* <View style={styles.searchBar}>
             <TextInput
               placeholder="Search for matches..."
               placeholderTextColor="#888"
@@ -88,23 +89,59 @@ const Home = () => {
             />
             <FontAwesome name="search" size={20} color="#888" />
           </View> */}
-          <FontAwesome name="filter" size={24} color="#333" />
-        </View>
+            <FontAwesome name="filter" size={24} color="#333" />
+          </View>
 
-        {/* Content */}
-        <View style={styles.content}>
-          <FlatList
-            data={sections}
-            numColumns={2}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item, index }) => {
-              if (item.isFullWidth) {
-                return (
-                  <View style={styles.fullWidthCardContainer}>
+          {/* Content */}
+          <View style={styles.content}>
+            <FlatList
+              data={sections}
+              numColumns={2}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item, index }) => {
+                if (item.isFullWidth) {
+                  return (
+                    <View style={styles.fullWidthCardContainer}>
+                      <Animated.View
+                        style={[
+                          styles.card,
+                          styles.fullWidthCard,
+                          {
+                            transform: [{ scale: animatedValues[index] }],
+                          },
+                        ]}
+                      >
+                        <LinearGradient
+                          colors={['#0866AA', '#6BB9F0']}
+                          style={styles.cardBackground}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        >
+                          <MaterialIcons
+                            name={item.icon}
+                            size={40}
+                            color="#FFF"
+                            style={styles.cardIcon}
+                          />
+                          <Text style={styles.cardTitle}>{item.title}</Text>
+                          <TouchableOpacity
+                            style={styles.cardButton}
+                            onPressIn={() => handlePressIn(index)}
+                            onPressOut={() => handlePressOut(index)}
+                            onPress={() => navigation.navigate(item.navigateTo)}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={styles.cardButtonText}>{item.buttonText}</Text>
+                          </TouchableOpacity>
+                        </LinearGradient>
+                      </Animated.View>
+                    </View>
+                  );
+                } else {
+                  return (
                     <Animated.View
                       style={[
                         styles.card,
-                        styles.fullWidthCard,
                         {
                           transform: [{ scale: animatedValues[index] }],
                         },
@@ -134,49 +171,14 @@ const Home = () => {
                         </TouchableOpacity>
                       </LinearGradient>
                     </Animated.View>
-                  </View>
-                );
-              } else {
-                return (
-                  <Animated.View
-                    style={[
-                      styles.card,
-                      {
-                        transform: [{ scale: animatedValues[index] }],
-                      },
-                    ]}
-                  >
-                    <LinearGradient
-                      colors={['#0866AA', '#6BB9F0']}
-                      style={styles.cardBackground}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <MaterialIcons
-                        name={item.icon}
-                        size={40}
-                        color="#FFF"
-                        style={styles.cardIcon}
-                      />
-                      <Text style={styles.cardTitle}>{item.title}</Text>
-                      <TouchableOpacity
-                        style={styles.cardButton}
-                        onPressIn={() => handlePressIn(index)}
-                        onPressOut={() => handlePressOut(index)}
-                        onPress={() => navigation.navigate(item.navigateTo)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.cardButtonText}>{item.buttonText}</Text>
-                      </TouchableOpacity>
-                    </LinearGradient>
-                  </Animated.View>
-                );
-              }
-            }}
-          />
-        </View>
-      </SafeAreaView>
-    </ImageBackground>
+                  );
+                }
+              }}
+            />
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
+    </View>
   );
 };
 
@@ -196,7 +198,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 15,
     paddingVertical: 10,
-    paddingTop: 40,
+    paddingTop: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
