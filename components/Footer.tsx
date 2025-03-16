@@ -13,7 +13,7 @@ const Footer = () => {
     { key: 'TOURNAMENTS', icon: 'trophy', label: 'Tournaments', route: 'Main', nestedRoute: 'Tournaments' },
     { key: 'HOME', icon: 'home', label: 'Home', route: 'Main', nestedRoute: 'Home' },
     { key: 'TEAMS', icon: 'users', label: 'Teams', route: 'Main', nestedRoute: 'Teams' },
-    { key: 'SETTINGS', icon: 'cogs', label: 'Settings', route: 'Main', nestedRoute: 'Settings' },
+    // { key: 'SETTINGS', icon: 'cogs', label: 'Settings', route: 'Main', nestedRoute: 'Settings' },
   ];
 
   // Animation values for interactivity

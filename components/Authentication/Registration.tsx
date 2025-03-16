@@ -13,7 +13,7 @@ import {
 import { BlurView } from 'expo-blur';
 
 const logo = require('../../assets/images/cricshub.png');
-const background = require('../../assets/images/cricsLogo.png'); // Import your background image
+const background = require('../../assets/images/cricsLogo.png'); 
 
 const Registration = ({ navigation }) => {
   const [formData, setFormData] = useState({

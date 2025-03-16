@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import bgImage from "../../assets/images/bg.png";
+import bgImage from "../../assets/images/cricsLogo.png";
 import { LinearGradient } from "expo-linear-gradient";
 import IconSet from "react-native-vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
