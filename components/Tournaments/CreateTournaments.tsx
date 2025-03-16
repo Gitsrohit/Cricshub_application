@@ -10,14 +10,19 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
+  Dimensions, // Add Dimensions to get screen height
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const background = require('../../assets/images/cricsLogo.png');
+
+// Get screen height
+const { height } = Dimensions.get('window');
 
 const CreateTournament = () => {
   const [tournamentName, setTournamentName] = useState('');
@@ -108,7 +113,7 @@ const CreateTournament = () => {
         Alert.alert('Success', 'Tournament created successfully!');
       } else {
         const errorData = await response.json();
-        Alert.alert('Error', `Failed to create the tournament. ${errorData.message}`);
+        Alert.alert('Error', `Failed to create the tournament. ${errorData.status},${errorData.message}`);
       }
     } catch (error) {
       console.error(error);
@@ -144,140 +149,151 @@ const CreateTournament = () => {
   };
 
   return (
-    <ScrollView style={styles.background}>
-      <ImageBackground source={background} style={styles.backgroundImage} resizeMode="cover">
-        <View style={styles.container}>
-         
-          <View style={styles.card}>
-            <TouchableOpacity onPress={pickImage} style={styles.bannerUploadContainer}>
-              {banner ? (
-                <Image source={{ uri: banner }} style={styles.bannerImage} />
-              ) : (
-                <View style={styles.bannerPlaceholder}>
-                  <MaterialCommunityIcons name="image-plus" size={40} color="#fff" />
-                  <Text style={styles.bannerUploadText}>Upload Banner</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            {/* Tournament Name Input */}
-            <TextInput
-              style={styles.input}
-              placeholder="Tournament Name"
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
-              value={tournamentName}
-              onChangeText={setTournamentName}
-            />
-
-            {/* Start Date Input */}
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowStartDatePicker(true)}
+    <ScrollView contentContainerStyle={styles.scrollViewContent}>
+      <LinearGradient
+        colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']}
+        style={styles.gradient}
+      >
+        <ImageBackground source={background} style={styles.backgroundImage} resizeMode="cover">
+          <View style={styles.container}>
+            <LinearGradient
+              colors={['#4A90E2', '#6BB9F0']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientCard}
             >
-              <Text style={styles.placeholderText}>
-                {startDate ? startDate.toDateString() : 'Start Date'}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity onPress={pickImage} style={styles.bannerUploadContainer}>
+                {banner ? (
+                  <Image source={{ uri: banner }} style={styles.bannerImage} />
+                ) : (
+                  <View style={styles.bannerPlaceholder}>
+                    <MaterialCommunityIcons name="image-plus" size={40} color="#fff" />
+                    <Text style={styles.bannerUploadText}>Upload Banner</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
 
-            {showStartDatePicker && (
-              <DateTimePicker
-                value={startDate}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowStartDatePicker(false);
-                  if (selectedDate) setStartDate(selectedDate);
-                }}
+              {/* Tournament Name Input */}
+              <TextInput
+                style={styles.input}
+                placeholder="Tournament Name"
+                placeholderTextColor="#ccc"
+                value={tournamentName}
+                onChangeText={setTournamentName}
               />
-            )}
 
-            {/* End Date Input */}
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowEndDatePicker(true)}
-            >
-              <Text style={styles.placeholderText}>
-                {endDate ? endDate.toDateString() : 'End Date'}
-              </Text>
-            </TouchableOpacity>
-
-            {showEndDatePicker && (
-              <DateTimePicker
-                value={endDate}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowEndDatePicker(false);
-                  if (selectedDate) setEndDate(selectedDate);
-                }}
-              />
-            )}
-
-            {/* Format Picker */}
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={format}
-                onValueChange={(itemValue) => setFormat(itemValue)}
-                style={styles.picker}
-                dropdownIconColor="#fff"
+              {/* Start Date Input */}
+              <TouchableOpacity
+                style={styles.input}
+                onPress={() => setShowStartDatePicker(true)}
               >
-                <Picker.Item label="Select Format" value="" />
-                <Picker.Item label="Double Round Robin" value="DOUBLE_ROUND_ROBIN" />
-                <Picker.Item label="Single Round Robin" value="SINGLE_ROUND_ROBIN" />
-              </Picker>
-            </View>
+                <Text style={styles.placeholderText}>
+                  {startDate ? startDate.toDateString() : 'Start Date'}
+                </Text>
+              </TouchableOpacity>
 
-            {/* Number of Overs Input */}
-            <TextInput
-              style={styles.input}
-              placeholder="Number of Overs"
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
-              value={overs}
-              onChangeText={setOvers}
-              keyboardType="numeric"
-            />
-
-            {/* Ball Type Picker */}
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={ballType}
-                onValueChange={(itemValue) => setBallType(itemValue)}
-                style={styles.picker}
-                dropdownIconColor="#fff"
-              >
-                <Picker.Item label="Select Ball Type" value="" />
-                <Picker.Item label="Tennis Ball" value="Tennis Ball" />
-                <Picker.Item label="Season Ball" value="Season Ball" />
-              </Picker>
-            </View>
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleCreateTournament}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Create Tournament</Text>
+              {showStartDatePicker && (
+                <DateTimePicker
+                  value={startDate}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowStartDatePicker(false);
+                    if (selectedDate) setStartDate(selectedDate);
+                  }}
+                />
               )}
-            </TouchableOpacity>
+
+              {/* End Date Input */}
+              <TouchableOpacity
+                style={styles.input}
+                onPress={() => setShowEndDatePicker(true)}
+              >
+                <Text style={styles.placeholderText}>
+                  {endDate ? endDate.toDateString() : 'End Date'}
+                </Text>
+              </TouchableOpacity>
+
+              {showEndDatePicker && (
+                <DateTimePicker
+                  value={endDate}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowEndDatePicker(false);
+                    if (selectedDate) setEndDate(selectedDate);
+                  }}
+                />
+              )}
+
+              {/* Format Picker */}
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={format}
+                  onValueChange={(itemValue) => setFormat(itemValue)}
+                  style={styles.picker}
+                  dropdownIconColor="#fff"
+                >
+                  <Picker.Item label="Select Format" value="" />
+                  <Picker.Item label="Double Round Robin" value="DOUBLE_ROUND_ROBIN" />
+                  <Picker.Item label="Single Round Robin" value="SINGLE_ROUND_ROBIN" />
+                </Picker>
+              </View>
+
+              {/* Number of Overs Input */}
+              <TextInput
+                style={styles.input}
+                placeholder="Number of Overs"
+                placeholderTextColor="#ccc"
+                value={overs}
+                onChangeText={setOvers}
+                keyboardType="numeric"
+              />
+
+              {/* Ball Type Picker */}
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={ballType}
+                  onValueChange={(itemValue) => setBallType(itemValue)}
+                  style={styles.picker}
+                  dropdownIconColor="#fff"
+                >
+                  <Picker.Item label="Select Ball Type" value="" />
+                  <Picker.Item label="Tennis Ball" value="Tennis Ball" />
+                  <Picker.Item label="Season Ball" value="Season Ball" />
+                </Picker>
+              </View>
+
+              <TouchableOpacity
+                style={styles.button}
+                onPress={handleCreateTournament}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Create Tournament</Text>
+                )}
+              </TouchableOpacity>
+            </LinearGradient>
           </View>
-          
-        </View>
-      </ImageBackground>
+        </ImageBackground>
+      </LinearGradient>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollViewContent: {
+    flexGrow: 1, // Ensures ScrollView takes full height
+    minHeight: height, // Ensures minimum height is screen height
+  },
   background: {
     flex: 1,
     backgroundColor: '#002B3D',
   },
-  overlay: {
+  gradient: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Adjust the opacity here (0.4 = 40% dark)
   },
   backgroundImage: {
     flex: 1,
@@ -289,64 +305,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  card: {
+  gradientCard: {
     width: '100%',
+    borderRadius: 20,
     padding: 20,
-    borderRadius: 15,
-    
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 10,
-    padding: 15,
-    color: '#fff',
-    marginBottom: 15,
+    borderColor: '#fff',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 10,
+    color: '#fff',
+    borderRadius: 5,
+    marginBottom: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   placeholderText: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: '#ccc',
     fontSize: 16,
   },
   pickerContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 10,
-    marginBottom: 15,
+    borderColor: '#fff',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 5,
+    marginBottom: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   picker: {
     color: '#fff',
     height: 50,
   },
   button: {
-    backgroundColor: '#000000',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
   },
   buttonText: {
     color: '#fff',
-    fontWeight: 'bold',
     fontSize: 16,
   },
   bannerUploadContainer: {
     height: 150,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: '#fff',
   },
   bannerImage: {
     width: '100%',
