@@ -1,5 +1,6 @@
 import { ActivityIndicator, Alert, Animated, FlatList, Image, ImageBackground, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import stadiumBG from '../../../assets/images/stadiumBG.jpg';
+import { ActivityIndicator, Alert, Animated, FlatList, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, ImageBackground } from 'react-native'; // Add ImageBackground
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -21,7 +22,6 @@ const InstantMatch = () => {
   const [team1Id, setTeam1Id] = useState(null);
   const [team2Name, setTeam2Name] = useState("");
   const [team2Id, setTeam2Id] = useState(null);
-
 
   const slideAnim = useRef(new Animated.Value(500)).current;
   const navigation = useNavigation();
@@ -138,95 +138,138 @@ const InstantMatch = () => {
     }
   };
 
+  const cardGradientColors = ['#4A90E2', '#6BB9F0'];
 
   return (
     <>
-      <StatusBar />
-      <View style={styles.instantMatchContainer}>
-        <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
-          <ImageBackground source={stadiumBG} resizeMode='cover' style={styles.background} imageStyle={styles.backgroundImage}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <ImageBackground
+        source={require('../../../assets/images/cricsLogo.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <View style={styles.instantMatchContainer}>
+          <View style={styles.centerContainer}>
             <BlurView style={styles.instantMatchForm} intensity={50}>
               <Text style={styles.title}>Match Details</Text>
               <View style={styles.teamSelectionContainer}>
                 <TouchableOpacity onPress={() => { setSelectedTeam('team1'); setTeamModalVisible(true); }}>
-                  <View style={styles.teamButton}>
-                    <Icon name="groups" size={40} color="white" />
+                  <LinearGradient colors={cardGradientColors} style={styles.teamButton}>
+                    <Icon name="groups" size={40} color="#fff" />
                     <Text style={styles.teamText}>{team1Name || "Select Team 1"}</Text>
-                  </View>
+                  </LinearGradient>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => { setSelectedTeam('team2'); setTeamModalVisible(true); }}>
-                  <View style={styles.teamButton}>
-                    <Icon name="groups" size={40} color="white" />
+                  <LinearGradient colors={cardGradientColors} style={styles.teamButton}>
+                    <Icon name="groups" size={40} color="#fff" />
                     <Text style={styles.teamText}>{team2Name || "Select Team 2"}</Text>
-                  </View>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
               {/* Match Details */}
-              <View style={{ width: '100%', flexDirection: 'column', alignItems: 'center' }}>
-                <View style={{ marginTop: 8, width: '100%' }}>
-                  <Text style={{ color: 'white', fontSize: 16, marginTop: 4 }}>Overs</Text>
-                  <TextInput
-                    inputMode='numeric'
-                    value={overs}
-                    onChangeText={setOvers}
-                    placeholder='20'
-                    placeholderTextColor='#e5e5e5'
-                    style={{ width: '100%', color: 'black', backgroundColor: 'white', borderRadius: 4 }}
-                  />
+              <View style={styles.inputContainer}>
+                <View style={styles.inputField}>
+                  <Text style={styles.inputLabel}>Overs</Text>
+                  <View style={styles.inputWrapper}>
+                    <Icon name="timer" size={24} color="#888" style={styles.inputIcon} />
+                    <TextInput
+                      inputMode='numeric'
+                      value={overs}
+                      onChangeText={setOvers}
+                      placeholder='20'
+                      placeholderTextColor='#888'
+                      style={styles.input}
+                    />
+                  </View>
                 </View>
-                <View style={{ marginTop: 8, width: '100%' }}>
-                  <Text style={{ color: 'white', fontSize: 16, marginTop: 4 }}>Venue</Text>
-                  <TextInput
-                    value={venue}
-                    onChangeText={setVenue}
-                    placeholder='Eden Gardens'
-                    placeholderTextColor='#e5e5e5'
-                    style={{ width: '100%', color: 'black', backgroundColor: 'white', borderRadius: 4 }}
-                  />
+                <View style={styles.inputField}>
+                  <Text style={styles.inputLabel}>Venue</Text>
+                  <View style={styles.inputWrapper}>
+                    <Icon name="place" size={24} color="#888" style={styles.inputIcon} />
+                    <TextInput
+                      value={venue}
+                      onChangeText={setVenue}
+                      placeholder='Eden Gardens'
+                      placeholderTextColor='#888'
+                      style={styles.input}
+                    />
+                  </View>
                 </View>
               </View>
-              <View style={{ alignItems: 'center', marginVertical: 10 }}>
-                <Text style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, backgroundColor: '#0c2d3d', color: 'white', fontSize: 16 }} onPress={handleNextButtonClick}>Next</Text>
-              </View>
+              <TouchableOpacity style={styles.nextButton} onPress={handleNextButtonClick}>
+                <LinearGradient colors={cardGradientColors} style={styles.nextButtonGradient}>
+                  <Text style={styles.nextButtonText}>Next</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </BlurView>
-          </ImageBackground>
-        </LinearGradient>
-      </View>
-
-      <Modal visible={teamModalVisible} transparent animationType="none">
-        <View style={styles.modalOverlay}>
-          <Animated.View style={[styles.teamModalContent, { transform: [{ translateY: slideAnim }] }]}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search team..."
-              value={searchQuery}
-              onChangeText={handleSearch}
-            />
-            {loading ? (
-              <ActivityIndicator size="large" color="#000" />
-            ) : (
-              <FlatList
-                data={teamResults}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                  <Pressable onPress={() => selectTeam(item)}>
-                    <View style={styles.teamCard}>
-                      <Image source={{ uri: item.logoPath }} resizeMode='cover' style={styles.teamLogo} />
-                      <View style={styles.teamOptions}>
-                        <Text style={styles.dropdownOptionName}>{item.name}</Text>
-                        <Text style={styles.dropdownOptionCaptain}>{item.captain.name}</Text>
-                      </View>
-                    </View>
-                  </Pressable>
-                )}
-              />
-            )}
-            <TouchableOpacity onPress={() => setTeamModalVisible(false)}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </Animated.View>
+          </View>
         </View>
-      </Modal>
+
+        <Modal visible={teamModalVisible} transparent animationType="none">
+          <View style={styles.modalOverlay}>
+            <Animated.View style={[styles.teamModalContent, { transform: [{ translateY: slideAnim }] }]}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search team..."
+                value={searchQuery}
+                onChangeText={handleSearch}
+              />
+              {loading ? (
+                <ActivityIndicator size="large" color="#000" />
+              ) : (
+                <FlatList
+                  data={teamResults}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={({ item }) => (
+                    <Pressable onPress={() => selectTeam(item)}>
+                      <View style={styles.teamCard}>
+                        <Image source={{ uri: item.logoPath }} resizeMode='cover' style={styles.teamLogo} />
+                        <View style={styles.teamOptions}>
+                          <Text style={styles.dropdownOptionName}>{item.name}</Text>
+                          <Text style={styles.dropdownOptionCaptain}>{item.captain.name}</Text>
+                        </View>
+                      </View>
+                    </Pressable>
+                  )}
+                />
+              )}
+              <TouchableOpacity onPress={() => setTeamModalVisible(false)}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </Modal>
+        <Modal visible={teamModalVisible} transparent animationType="none">
+          <View style={styles.modalOverlay}>
+            <Animated.View style={[styles.teamModalContent, { transform: [{ translateY: slideAnim }] }]}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search team..."
+                value={searchQuery}
+                onChangeText={handleSearch}
+              />
+              {loading ? (
+                <ActivityIndicator size="large" color="#4A90E2" />
+              ) : (
+                <FlatList
+                  data={teamResults}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={({ item }) => (
+                    <Pressable onPress={() => selectTeam(item)}>
+                      <View style={styles.teamOptions}>
+                        <Text style={styles.dropdownOption}>{item.name}</Text>
+                      </View>
+                    </Pressable>
+                  )}
+                />
+              )}
+              <TouchableOpacity onPress={() => setTeamModalVisible(false)}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </Modal>
+      </ImageBackground>
     </>
   );
 };
@@ -234,25 +277,154 @@ const InstantMatch = () => {
 export default InstantMatch;
 
 const styles = StyleSheet.create({
-  background: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backgroundImage: {
-    resizeMode: 'cover',
-    opacity: 0.8,
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
-  gradient: { flex: 1 },
-  instantMatchContainer: { flex: 1 },
-  instantMatchForm: { width: '90%', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 8, overflow: 'hidden' },
-  title: { textAlign: 'center', fontSize: 20, marginVertical: 16, color: 'white' },
-  teamSelectionContainer: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' },
-  teamButton: { alignItems: 'center', borderColor: 'white', borderRadius: 6, padding: 4, borderWidth: 1, width: 100 },
-  teamText: { color: 'white', textAlign: 'center' },
-  modalOverlay: { height: '100%', justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
-  teamModalContent: { backgroundColor: "#fff", width: "100%", padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, minHeight: 250, maxHeight: 400, alignItems: "center" },
-  searchInput: { backgroundColor: "#f0f0f0", borderRadius: 10, padding: 10, width: "90%", marginBottom: 20 },
-  dropdownOptionName: { color: 'black', marginBottom: 4, textAlign: 'left' },
-  dropdownOptionCaptain: { color: 'grey', marginBottom: 10, textAlign: 'left', fontSize: 12 },
-  closeButtonText: { color: 'white', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 6, backgroundColor: '#d9534f' },
-  teamOptions: { padding: 8, width: '100%', borderRadius: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' },
+  instantMatchContainer: {
+    flex: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  instantMatchForm: {
+    width: '90%',
+    borderRadius: 15,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  title: {
+    textAlign: 'center',
+    fontSize: 24,
+    marginVertical: 16,
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  teamSelectionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  teamButton: {
+    alignItems: 'center',
+    borderRadius: 10,
+    padding: 10,
+    width: 120,
+    justifyContent: 'center',
+    shadowColor: '#4A90E2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  teamText: {
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 5,
+    fontSize: 16,
+  },
+  inputContainer: {
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  inputField: {
+    width: '100%',
+    marginTop: 10,
+  },
+  inputLabel: {
+    color: '#333',
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F4F8',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    color: '#333',
+    fontSize: 16,
+    paddingVertical: 10,
+  },
+  nextButton: {
+    marginTop: 20,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  nextButtonGradient: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  nextButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    height: '100%',
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
+  },
+  teamModalContent: {
+    backgroundColor: '#FFFFFF', // White background
+    width: '100%',
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    minHeight: 250,
+    maxHeight: 400,
+    alignItems: 'center',
+  },
+  searchInput: {
+    backgroundColor: '#F0F4F8', // Light gray background
+    borderRadius: 10,
+    padding: 10,
+    width: '90%',
+    marginBottom: 20,
+    color: '#333',
+  },
+  dropdownOption: {
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'left',
+    fontSize: 16,
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: '#4A90E2',
+    fontSize: 16,
+  },
+  teamOptions: {
+    padding: 8,
+    width: '100%',
+    borderRadius: 4,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start'
+  },
   teamLogo: {
     overflow: 'hidden',
     borderRadius: 50,

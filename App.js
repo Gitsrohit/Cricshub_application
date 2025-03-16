@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, StatusBar, StyleSheet } from 'react-native';
+import { SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Login from './components/Authentication/Login';
@@ -19,6 +19,7 @@ import SelectPlayingII from './components/My matches/SelectPlayingII';
 import Toss from './components/My matches/Toss';
 import Scoring from './components/My matches/Scoring';
 import SelectRoles from './components/My matches/SelectRoles';
+import AddPlayersToTeam from './components/Teams/AddPlayersToTeam';
 
 const Stack = createStackNavigator();
 
@@ -44,9 +45,9 @@ const App = () => {
 
 const MainScreens = () => {
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <StatusBar />
-      <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="MyMatches" component={CricketAppScreen} />
@@ -62,10 +63,11 @@ const MainScreens = () => {
           <Stack.Screen name="Toss" component={Toss} />
           <Stack.Screen name="Scoring" component={Scoring} />
           <Stack.Screen name="SelectRoles" component={SelectRoles} />
+          <Stack.Screen name="AddPlayersToTeam" component={AddPlayersToTeam} />
         </Stack.Navigator>
-        <Footer style={styles.footer} />
-      </SafeAreaView>
-    </>
+      </View>
+      <Footer style={styles.footer} />
+    </View>
   );
 };
 
@@ -74,7 +76,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#002233', // Footer background color
+    zIndex: 1, // Ensure footer is above other components
   },
 });
 

@@ -14,8 +14,8 @@ import { BlurView } from 'expo-blur';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const logo = require('../../assets/images/SCORE360.png');
-const background = require('../../assets/images/bg.png');
+const logo = require('../../assets/images/cricshub.png');
+const background = require('../../assets/images/cricsLogo.png');
 
 const saveToken = async (token) => {
   try {
@@ -91,7 +91,7 @@ const Login = ({ navigation }) => {
         await saveToken(token);
         await AsyncStorage.setItem('userUUID', userId);
 
-        alert(`Welcome, ${formData.email}!`);
+        // alert(`Welcome, ${formData.email}!`);
         navigation.replace('Main');
       } else {
         alert('Invalid credentials, please try again!');
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 20,
-    color: '#FFF',
+    color: '#004466',
   },
   input: {
     width: '100%',
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   signupText: {
     marginTop: 20,
     fontSize: 14,
-    color: '#FFF',
+    color: '#004466',
   },
   signupLink: {
     color: '#FFD700',
