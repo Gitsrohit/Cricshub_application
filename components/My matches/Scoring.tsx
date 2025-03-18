@@ -140,15 +140,23 @@ const ScoringScreen = ({ route, navigation }) => {
           setModals((prev) => ({ ...prev, nextBowler: true }));
         }
 
-        if (battingTeamName !== data.battingTeam.name) {
-          if (data.firstInnings === true)
-            navigation.navigate(`SelectRoles2ndInnings`, { matchId, battingTeamII, bowlingTeamII });
-        }
+        // if (battingTeamName !== data.battingTeam.name) {
+        //   if (data.firstInnings === true)
+        //     navigation.navigate('SelectRoles2ndInnings', {
+        //       matchId,
+        //       battingTeamII: data.bowlingTeamPlayingXI,
+        //       bowlingTeamII: data.battingTeamPlayingXI
+        //     });
+        // }
 
         setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
         setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
         setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
 
+      });
+
+      eventSource.addEventListener('innings-complete', (event) => {
+        console.log(event.data);
       });
 
       eventSource.onerror = (error) => {
