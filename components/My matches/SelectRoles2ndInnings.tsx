@@ -5,12 +5,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import stadiumBG from '../../assets/images/stadiumBG.jpg';
 import { BlurView } from 'expo-blur';
+import { useNavigation } from '@react-navigation/native';
 
-const SelectRoles2ndInnings = ({ route, navigation }) => {
-  const { matchId, battingTeamII, bowlingTeamII } = route.params;
-
-  const [battingII, setBattingII] = useState(bowlingTeamII);
-  const [bowlingII, setBowlingII] = useState(battingTeamII);
+const SelectRoles2ndInnings = ({ route }) => {
+  const { battingTeamII, bowlingTeamII, matchId } = route.params;
+  const navigation = useNavigation();
+  const [battingII, setBattingII] = useState(battingTeamII);
+  const [bowlingII, setBowlingII] = useState(bowlingTeamII);
 
   const [strikerId, setStrikerId] = useState(null);
   const [strikerName, setStrikerName] = useState(null);

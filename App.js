@@ -21,6 +21,7 @@ import Scoring from './components/My matches/Scoring';
 import SelectRoles from './components/My matches/SelectRoles';
 import AddPlayersToTeam from './components/Teams/AddPlayersToTeam';
 import SelectRoles2ndInnings from './components/My matches/SelectRoles2ndInnings';
+import AllMatches from './components/My matches/AllMatches/AllMatches';
 
 const Stack = createStackNavigator();
 
@@ -51,7 +52,7 @@ const MainScreens = () => {
       <View style={{ flex: 1 }}>
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
           <Stack.Screen name="Home" component={Home} />
-          <Stack.Screen name="MyMatches" component={CricketAppScreen} />
+          <Stack.Screen name="MyMatches" component={AllMatches} />
           <Stack.Screen name="Tournaments" component={Tournaments} />
           <Stack.Screen name="Teams" component={Teams} />
           <Stack.Screen name="Settings" component={Settings} />
