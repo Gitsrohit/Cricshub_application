@@ -1,26 +1,43 @@
-import { ActivityIndicator, Alert, Animated, FlatList, Image, ImageBackground, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  FlatList,
+  Image,
+  ImageBackground,
+  Modal,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import stadiumBG from '../../../assets/images/stadiumBG.jpg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 
 const InstantMatch = () => {
   const [overs, setOvers] = useState('');
-  const [venue, setVenue] = useState("");
+  const [venue, setVenue] = useState('');
   const [teamModalVisible, setTeamModalVisible] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [teamResults, setTeamResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [team1Name, setTeam1Name] = useState("");
+  const [team1Name, setTeam1Name] = useState('');
   const [team1Id, setTeam1Id] = useState(null);
-  const [team2Name, setTeam2Name] = useState("");
+  const [team1Logo, setTeam1Logo] = useState(null); // Add team1Logo state
+  const [team2Name, setTeam2Name] = useState('');
   const [team2Id, setTeam2Id] = useState(null);
+  const [team2Logo, setTeam2Logo] = useState(null); // Add team2Logo state
 
   const slideAnim = useRef(new Animated.Value(500)).current;
   const navigation = useNavigation();
@@ -37,8 +54,8 @@ const InstantMatch = () => {
 
   const searchTeamsByName = async (name) => {
     try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Please login again");
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) throw new Error('Please login again');
       setLoading(true);
       const response = await axios.get(
         `https://score360-7.onrender.com/api/v1/teams/search/name`,
@@ -49,7 +66,7 @@ const InstantMatch = () => {
       );
       setTeamResults(response.data.data);
     } catch (err) {
-      console.error("Failed to search for teams", err);
+      console.error('Failed to search for teams', err);
       setTeamResults([]);
     } finally {
       setLoading(false);
@@ -80,13 +97,15 @@ const InstantMatch = () => {
     if (selectedTeam === 'team1') {
       setTeam1Name(team.name);
       setTeam1Id(team.id);
+      setTeam1Logo(team.logoPath); // Store team1 logo URL
     } else {
       setTeam2Name(team.name);
       setTeam2Id(team.id);
+      setTeam2Logo(team.logoPath); // Store team2 logo URL
     }
-    setTeamResults(null);
+    setTeamResults([]);
     setTeamModalVisible(false);
-    setSearchQuery("");
+    setSearchQuery('');
   };
 
   const handleNextButtonClick = async () => {
@@ -96,19 +115,21 @@ const InstantMatch = () => {
     }
 
     const matchDetails = {
-      overs: parseInt(overs, 10), // Ensure overs is a number
+      overs: parseInt(overs, 10),
       venue,
       team1Id,
       team1Name,
+      team1Logo, // Include team1 logo in match details
       team2Id,
       team2Name,
+      team2Logo, // Include team2 logo in match details
     };
 
     try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Please login again");
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) throw new Error('Please login again');
       setLoading(true);
-      const matchDate = new Date().toISOString().split("T")[0];
+      const matchDate = new Date().toISOString().split('T')[0];
       const now = new Date();
       const matchTime = now.toTimeString().slice(0, 5);
       const requestBody = {
@@ -127,11 +148,10 @@ const InstantMatch = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const matchId = response.data.id;
-      Alert.alert("Success", "Match scheduled successfully!");
-      navigation.navigate("SelectPlayingII", { matchDetails, matchId });
+      navigation.navigate('SelectPlayingII', { matchDetails, matchId });
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Failed to schedule match.");
+      Alert.alert('Error', 'Failed to schedule match.');
     } finally {
       setLoading(false);
     }
@@ -152,31 +172,48 @@ const InstantMatch = () => {
             <BlurView style={styles.instantMatchForm} intensity={50}>
               <Text style={styles.title}>Match Details</Text>
               <View style={styles.teamSelectionContainer}>
-                <TouchableOpacity onPress={() => { setSelectedTeam('team1'); setTeamModalVisible(true); }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedTeam('team1');
+                    setTeamModalVisible(true);
+                  }}
+                >
                   <LinearGradient colors={cardGradientColors} style={styles.teamButton}>
-                    <Icon name="groups" size={40} color="#fff" />
-                    <Text style={styles.teamText}>{team1Name || "Select Team 1"}</Text>
+                    {team1Logo ? (
+                      <Image source={{ uri: team1Logo }} style={styles.teamLogo} />
+                    ) : (
+                      <Icon name="groups" size={40} color="#fff" />
+                    )}
+                    <Text style={styles.teamText}>{team1Name || 'Select Team 1'}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setSelectedTeam('team2'); setTeamModalVisible(true); }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedTeam('team2');
+                    setTeamModalVisible(true);
+                  }}
+                >
                   <LinearGradient colors={cardGradientColors} style={styles.teamButton}>
-                    <Icon name="groups" size={40} color="#fff" />
-                    <Text style={styles.teamText}>{team2Name || "Select Team 2"}</Text>
+                    {team2Logo ? (
+                      <Image source={{ uri: team2Logo }} style={styles.teamLogo} />
+                    ) : (
+                      <Icon name="groups" size={40} color="#fff" />
+                    )}
+                    <Text style={styles.teamText}>{team2Name || 'Select Team 2'}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
-              {/* Match Details */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputField}>
                   <Text style={styles.inputLabel}>Overs</Text>
                   <View style={styles.inputWrapper}>
                     <Icon name="timer" size={24} color="#888" style={styles.inputIcon} />
                     <TextInput
-                      inputMode='numeric'
+                      inputMode="numeric"
                       value={overs}
                       onChangeText={setOvers}
-                      placeholder='20'
-                      placeholderTextColor='#888'
+                      placeholder="20"
+                      placeholderTextColor="#888"
                       style={styles.input}
                     />
                   </View>
@@ -188,8 +225,8 @@ const InstantMatch = () => {
                     <TextInput
                       value={venue}
                       onChangeText={setVenue}
-                      placeholder='Eden Gardens'
-                      placeholderTextColor='#888'
+                      placeholder="Eden Gardens"
+                      placeholderTextColor="#888"
                       style={styles.input}
                     />
                   </View>
@@ -222,17 +259,17 @@ const InstantMatch = () => {
                   renderItem={({ item }) => (
                     <Pressable onPress={() => selectTeam(item)}>
                       <View style={styles.teamCard}>
-                        <Image source={{ uri: item.logoPath }} resizeMode='cover' style={styles.teamLogo} />
-                        <View style={styles.teamOptions}>
-                          <Text style={styles.dropdownOptionName}>{item.name}</Text>
-                          <Text style={styles.dropdownOptionCaptain}>{item.captain.name}</Text>
+                        <Image source={{ uri: item.logoPath }} resizeMode="cover" style={styles.teamLogo} />
+                        <View style={styles.teamDetails}>
+                          <Text style={styles.teamName}>{item.name}</Text>
+                          <Text style={styles.teamCaptain}>Captain: {item.captain.name}</Text>
                         </View>
                       </View>
                     </Pressable>
                   )}
                 />
               )}
-              <TouchableOpacity onPress={() => setTeamModalVisible(false)}>
+              <TouchableOpacity style={styles.closeButton} onPress={() => setTeamModalVisible(false)}>
                 <Text style={styles.closeButtonText}>Close</Text>
               </TouchableOpacity>
             </Animated.View>
@@ -297,6 +334,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 6,
   },
+  teamLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginBottom: 5,
+  },
   teamText: {
     color: '#fff',
     textAlign: 'center',
@@ -349,64 +392,60 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   modalOverlay: {
-    height: '100%',
+    flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   teamModalContent: {
-    backgroundColor: '#FFFFFF', // White background
-    width: '100%',
-    padding: 20,
+    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    minHeight: 250,
-    maxHeight: 400,
-    alignItems: 'center',
+    padding: 20,
+    maxHeight: '70%',
   },
   searchInput: {
-    backgroundColor: '#F0F4F8', // Light gray background
+    backgroundColor: '#F0F4F8',
     borderRadius: 10,
     padding: 10,
-    width: '90%',
+    fontSize: 16,
     marginBottom: 20,
-    color: '#333',
-  },
-  dropdownOption: {
-    color: '#333',
-    marginBottom: 10,
-    textAlign: 'left',
-    fontSize: 16,
-  },
-  closeButtonText: {
-    color: '#FFFFFF',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    backgroundColor: '#4A90E2',
-    fontSize: 16,
-  },
-  teamOptions: {
-    padding: 8,
-    width: '100%',
-    borderRadius: 4,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start'
-  },
-  teamLogo: {
-    overflow: 'hidden',
-    borderRadius: 50,
-    justifyContent: 'flex-end',
-    height: 50,
-    width: 50,
   },
   teamCard: {
-    display: 'flex',
     flexDirection: 'row',
-    justifyContent: 'flex-start',
     alignItems: 'center',
-    borderBottomColor: 'grey',
-    borderBottomWidth: 1
-  }
+    padding: 10,
+    marginBottom: 10,
+    backgroundColor: '#F0F4F8',
+    borderRadius: 10,
+  },
+  teamLogo: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,
+  },
+  teamDetails: {
+    flex: 1,
+  },
+  teamName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  teamCaptain: {
+    fontSize: 14,
+    color: '#666',
+  },
+  closeButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 10,
+    padding: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
