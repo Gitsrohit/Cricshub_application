@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    height: 80, // Increased height for better spacing
+    height: 60, // Increased height for better spacing
     paddingHorizontal: 10,
     backgroundColor: '#FFFFFF', // Light background for footer
     borderTopWidth: 1,
