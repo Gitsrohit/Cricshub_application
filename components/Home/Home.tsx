@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -10,13 +9,39 @@ import {
   Animated,
   FlatList,
   ImageBackground,
+  Dimensions,
+  Image,
+  TouchableWithoutFeedback,
 } from 'react-native';
-import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const { width, height } = Dimensions.get('window');
 
 const Home = () => {
   const navigation = useNavigation();
+  const sidebarAnim = useRef(new Animated.Value(-width)).current; // Initial position off-screen
+  const overlayAnim = useRef(new Animated.Value(0)).current; // Initial opacity for overlay
+  const [isSidebarVisible, setIsSidebarVisible] = React.useState(false);
+  const [userName, setUserName] = useState('Player Name'); // State to store the user's name
+
+  // Fetch the user's name from AsyncStorage when the component mounts
+  useEffect(() => {
+    const fetchUserName = async () => {
+      try {
+        const name = await AsyncStorage.getItem('userName'); // Replace 'userName' with your key
+        if (name) {
+          setUserName(name);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user name:', error);
+      }
+    };
+
+    fetchUserName();
+  }, []);
 
   const sections = [
     {
@@ -70,6 +95,45 @@ const Home = () => {
     }).start();
   };
 
+  const toggleSidebar = () => {
+    if (isSidebarVisible) {
+      // Hide sidebar and overlay
+      Animated.parallel([
+        Animated.timing(sidebarAnim, {
+          toValue: -width,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => setIsSidebarVisible(false));
+    } else {
+      // Show sidebar and overlay
+      setIsSidebarVisible(true);
+      Animated.parallel([
+        Animated.timing(sidebarAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  };
+
+  const closeSidebar = () => {
+    if (isSidebarVisible) {
+      toggleSidebar();
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <StatusBar />
@@ -79,33 +143,169 @@ const Home = () => {
         resizeMode="cover"
       >
         <SafeAreaView style={styles.container}>
-          <View style={styles.topBar}>
-            <MaterialIcons name="menu" size={30} color="#333" />
-            {/* <View style={styles.searchBar}>
-            <TextInput
-              placeholder="Search for matches..."
-              placeholderTextColor="#888"
-              style={styles.searchInput}
-            />
-            <FontAwesome name="search" size={20} color="#888" />
-          </View> */}
-            <FontAwesome name="filter" size={24} color="#333" />
-          </View>
+          {/* Overlay */}
+          {isSidebarVisible && (
+            <TouchableWithoutFeedback onPress={closeSidebar}>
+              <Animated.View
+                style={[
+                  styles.overlay,
+                  {
+                    opacity: overlayAnim,
+                  },
+                ]}
+              />
+            </TouchableWithoutFeedback>
+          )}
 
-          {/* Content */}
-          <View style={styles.content}>
-            <FlatList
-              data={sections}
-              numColumns={2}
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={({ item, index }) => {
-                if (item.isFullWidth) {
-                  return (
-                    <View style={styles.fullWidthCardContainer}>
+          {/* Sidebar */}
+          <Animated.View
+            style={[
+              styles.sidebar,
+              {
+                transform: [{ translateX: sidebarAnim }],
+              },
+            ]}
+          >
+            <View style={styles.sidebarHeader}>
+              <Image
+                source={require('../../assets/user_profile.png')} 
+                style={styles.userImage}
+              />
+              <Text style={styles.sidebarTitle}>{userName}</Text> {/* Dynamic user name */}
+            </View>
+
+            {/* Sidebar Items */}
+            <TouchableOpacity
+              style={styles.sidebarItem}
+              onPress={() => {
+                navigation.navigate('Profile');
+                closeSidebar();
+              }}
+            >
+              <Ionicons name="person-outline" size={24} color="#333" />
+              <Text style={styles.sidebarItemText}>Profile</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sidebarItem}
+              onPress={() => {
+                navigation.navigate('Performance');
+                closeSidebar();
+              }}
+            >
+              <Ionicons name="stats-chart-outline" size={24} color="#333" />
+              <Text style={styles.sidebarItemText}>Performance</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sidebarItem}
+              onPress={() => {
+                navigation.navigate('Support');
+                closeSidebar();
+              }}
+            >
+              <Ionicons name="help-circle-outline" size={24} color="#333" />
+              <Text style={styles.sidebarItemText}>Support & Help</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sidebarItem}
+              onPress={() => {
+                navigation.navigate('RateUs');
+                closeSidebar();
+              }}
+            >
+              <Ionicons name="star-outline" size={24} color="#333" />
+              <Text style={styles.sidebarItemText}>Rate Us</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sidebarItem}
+              onPress={() => {
+                navigation.navigate('Settings');
+                closeSidebar();
+              }}
+            >
+              <Ionicons name="settings-outline" size={24} color="#333" />
+              <Text style={styles.sidebarItemText}>Settings</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sidebarItem}
+              onPress={() => {
+                navigation.navigate('Logout');
+                closeSidebar();
+              }}
+            >
+              <Ionicons name="log-out-outline" size={24} color="#333" />
+              <Text style={styles.sidebarItemText}>Logout</Text>
+            </TouchableOpacity>
+
+            {/* Footer */}
+            <View style={styles.sidebarFooter}>
+              <Text style={styles.footerText}>cricshub @2025</Text>
+            </View>
+          </Animated.View>
+
+          {/* Main Content */}
+          <View style={styles.mainContent}>
+            <View style={styles.topBar}>
+              <TouchableOpacity onPress={toggleSidebar}>
+                <MaterialIcons name="menu" size={30} color="#333" />
+              </TouchableOpacity>
+              <FontAwesome name="filter" size={24} color="#333" />
+            </View>
+
+            {/* Content */}
+            <View style={styles.content}>
+              <FlatList
+                data={sections}
+                numColumns={2}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item, index }) => {
+                  if (item.isFullWidth) {
+                    return (
+                      <View style={styles.fullWidthCardContainer}>
+                        <Animated.View
+                          style={[
+                            styles.card,
+                            styles.fullWidthCard,
+                            {
+                              transform: [{ scale: animatedValues[index] }],
+                            },
+                          ]}
+                        >
+                          <LinearGradient
+                            colors={['#0866AA', '#6BB9F0']}
+                            style={styles.cardBackground}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                          >
+                            <MaterialIcons
+                              name={item.icon}
+                              size={40}
+                              color="#FFF"
+                              style={styles.cardIcon}
+                            />
+                            <Text style={styles.cardTitle}>{item.title}</Text>
+                            <TouchableOpacity
+                              style={styles.cardButton}
+                              onPressIn={() => handlePressIn(index)}
+                              onPressOut={() => handlePressOut(index)}
+                              onPress={() => navigation.navigate(item.navigateTo)}
+                              activeOpacity={0.8}
+                            >
+                              <Text style={styles.cardButtonText}>{item.buttonText}</Text>
+                            </TouchableOpacity>
+                          </LinearGradient>
+                        </Animated.View>
+                      </View>
+                    );
+                  } else {
+                    return (
                       <Animated.View
                         style={[
                           styles.card,
-                          styles.fullWidthCard,
                           {
                             transform: [{ scale: animatedValues[index] }],
                           },
@@ -135,46 +335,11 @@ const Home = () => {
                           </TouchableOpacity>
                         </LinearGradient>
                       </Animated.View>
-                    </View>
-                  );
-                } else {
-                  return (
-                    <Animated.View
-                      style={[
-                        styles.card,
-                        {
-                          transform: [{ scale: animatedValues[index] }],
-                        },
-                      ]}
-                    >
-                      <LinearGradient
-                        colors={['#0866AA', '#6BB9F0']}
-                        style={styles.cardBackground}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                      >
-                        <MaterialIcons
-                          name={item.icon}
-                          size={40}
-                          color="#FFF"
-                          style={styles.cardIcon}
-                        />
-                        <Text style={styles.cardTitle}>{item.title}</Text>
-                        <TouchableOpacity
-                          style={styles.cardButton}
-                          onPressIn={() => handlePressIn(index)}
-                          onPressOut={() => handlePressOut(index)}
-                          onPress={() => navigation.navigate(item.navigateTo)}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={styles.cardButtonText}>{item.buttonText}</Text>
-                        </TouchableOpacity>
-                      </LinearGradient>
-                    </Animated.View>
-                  );
-                }
-              }}
-            />
+                    );
+                  }
+                }}
+              />
+            </View>
           </View>
         </SafeAreaView>
       </ImageBackground>
@@ -192,6 +357,73 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 99,
+  },
+  sidebar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: width * 0.7, // 70% of screen width
+    height: '100%',
+    backgroundColor: '#FFF',
+    zIndex: 100,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  sidebarHeader: {
+    alignItems: 'center',
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  userImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 10,
+  },
+  sidebarTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  sidebarItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  sidebarItemText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 10,
+  },
+  sidebarFooter: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#888',
+  },
+  mainContent: {
+    flex: 1,
+  },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -202,22 +434,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(240, 244, 248, 0.8)',
-    paddingHorizontal: 15,
-    flex: 1,
-    marginHorizontal: 20,
-    borderRadius: 10,
-    height: 40,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#333',
-    paddingVertical: 5,
-    marginRight: 10,
   },
   content: {
     flex: 1,

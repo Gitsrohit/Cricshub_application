@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, ImageBackground, ScrollView, Pressable, Modal } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, ImageBackground, ScrollView, Pressable, Modal, TextInput } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,6 +22,11 @@ const SelectPlayingXI = ({ route }) => {
   const [team1ModalVisible, setTeam1ModalVisible] = useState(true);
   const [team2ModalVisible, setTeam2ModalVisible] = useState(false);
 
+  // State for search functionality
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredTeam1Players, setFilteredTeam1Players] = useState([]);
+  const [filteredTeam2Players, setFilteredTeam2Players] = useState([]);
+
   const fetchTeamsDetails = async () => {
     const token = await AsyncStorage.getItem('jwtToken');
     if (!token) {
@@ -39,6 +44,8 @@ const SelectPlayingXI = ({ route }) => {
 
       setTeam1Details(response1.data.data);
       setTeam2Details(response2.data.data);
+      setFilteredTeam1Players(response1.data.data.players); // Initialize filtered players
+      setFilteredTeam2Players(response2.data.data.players); // Initialize filtered players
     } catch (err) {
       setError('Sorry, unable to fetch team details');
     } finally {
@@ -49,6 +56,22 @@ const SelectPlayingXI = ({ route }) => {
   useEffect(() => {
     fetchTeamsDetails();
   }, []);
+
+  // Function to handle search
+  const handleSearch = (query, team) => {
+    setSearchQuery(query);
+    if (team === 1) {
+      const filtered = team1Details.players.filter(player =>
+        player.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredTeam1Players(filtered);
+    } else {
+      const filtered = team2Details.players.filter(player =>
+        player.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredTeam2Players(filtered);
+    }
+  };
 
   const togglePlayerSelection = (team, playerId) => {
     if (team === 1) {
@@ -105,8 +128,15 @@ const SelectPlayingXI = ({ route }) => {
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
                 <Text style={styles.modalTitle}>{team1Details?.name} - Select Playing XI</Text>
+                {/* Search Bar for Team 1 */}
+                <TextInput
+                  style={styles.searchBar}
+                  placeholder="Search players..."
+                  value={searchQuery}
+                  onChangeText={(query) => handleSearch(query, 1)}
+                />
                 <FlatList
-                  data={team1Details?.players}
+                  data={filteredTeam1Players}
                   keyExtractor={(item) => item.id}
                   renderItem={({ item }) => renderPlayer({ item, team: 1 })}
                   contentContainerStyle={styles.playerList}
@@ -126,8 +156,15 @@ const SelectPlayingXI = ({ route }) => {
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
                 <Text style={styles.modalTitle}>{team2Details?.name} - Select Playing XI</Text>
+                {/* Search Bar for Team 2 */}
+                <TextInput
+                  style={styles.searchBar}
+                  placeholder="Search players..."
+                  value={searchQuery}
+                  onChangeText={(query) => handleSearch(query, 2)}
+                />
                 <FlatList
-                  data={team2Details?.players}
+                  data={filteredTeam2Players}
                   keyExtractor={(item) => item.id}
                   renderItem={({ item }) => renderPlayer({ item, team: 2 })}
                   contentContainerStyle={styles.playerList}
@@ -190,9 +227,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: '#333',
   },
+  searchBar: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+  },
   playerList: {
     flexGrow: 1,
-    paddingBottom: 80, // Add padding to avoid overlap with the "Next" button
+    paddingBottom: 80,
   },
   playerButton: {
     padding: 15,
@@ -202,7 +245,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   selectedPlayer: {
-    backgroundColor: '#4CAF50',
+    fontSize: 16,
+    backgroundColor: '#2DD0F8',
+    color:"#f0f0f0",
   },
   playerText: {
     fontSize: 16,
@@ -214,11 +259,11 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 20,
     right: 20,
-    backgroundColor: '#d9534f',
+    backgroundColor: '#2E83D1',
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',
-    zIndex: 1, // Ensure the button is above other components
+    zIndex: 1,
   },
   disabledButton: {
     backgroundColor: '#ccc',

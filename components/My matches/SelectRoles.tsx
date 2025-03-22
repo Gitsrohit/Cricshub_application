@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import stadiumBG from '../../assets/images/cricsLogo.png';
 import { BlurView } from 'expo-blur';
-import { MaterialIcons } from '@expo/vector-icons'; // For emoji/icon
+import { MaterialIcons } from '@expo/vector-icons';
 
 const SelectRoles = ({ route, navigation }) => {
   const { matchId } = route.params;
@@ -19,36 +19,34 @@ const SelectRoles = ({ route, navigation }) => {
   const [nonStrikerName, setNonStrikerName] = useState(null);
   const [bowler, setBowler] = useState(null);
   const [bowlerName, setBowlerName] = useState(null);
-  const [step, setStep] = useState(1); // Step 1: Select Batsmen, Step 2: Select Bowler
+  const [step, setStep] = useState(1); 
 
-  // For pop-up notification
+  
   const [showNotification, setShowNotification] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current; // Initial opacity for animation
+  const fadeAnim = useRef(new Animated.Value(0)).current; 
 
   useEffect(() => {
     fetchPlayingII();
   }, []);
 
-  // Show notification with faster animation
   const showPopupNotification = () => {
     setShowNotification(true);
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 300, // Reduced duration for faster animation
+      duration: 300, 
       useNativeDriver: true,
     }).start(() => {
-      // Hide notification after 2 seconds
       setTimeout(() => {
         hidePopupNotification();
-      }, 2000); // Reduced delay to 2 seconds
+      }, 2000);
     });
   };
 
-  // Hide notification with faster animation
+ 
   const hidePopupNotification = () => {
     Animated.timing(fadeAnim, {
       toValue: 0,
-      duration: 300, // Reduced duration for faster animation
+      duration: 200, 
       useNativeDriver: true,
     }).start(() => {
       setShowNotification(false);
@@ -142,6 +140,7 @@ const SelectRoles = ({ route, navigation }) => {
                   <Text style={styles.subHeading}>Select Striker & Non-Striker</Text>
                   <FlatList
                     data={battingII}
+
                     keyExtractor={(item) => item.playerId}
                     renderItem={({ item }) => (
                       <Pressable
