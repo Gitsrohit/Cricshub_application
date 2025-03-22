@@ -9,6 +9,8 @@ import {
   StatusBar,
   Image,
   Pressable,
+  ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import backgroundImage from '../../../assets/images/cricsLogo.png';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -117,10 +119,10 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    marginTop: 10,
+    marginTop: 5,
   },
   toggleButton: {
-    paddingVertical: 10,
+    paddingVertical: 5,
     paddingHorizontal: 20,
     marginHorizontal: 5,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -136,6 +138,7 @@ const styles = StyleSheet.create({
   toggleText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 12
   },
   activeToggleText: {
     color: '#FFF',
@@ -206,12 +209,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
+  winnerText: {
+    color: '#007BFF',
+    fontSize: 16,
+    fontWeight: 600,
+  },
 })
 
 const MyMatch = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [matches, setMatches] = useState([]);
+  const [matches, setMatches] = useState(null);
 
   useEffect(() => {
     getMyMatches();
@@ -220,14 +228,12 @@ const MyMatch = () => {
   const getMyMatches = async () => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      const userUUID = await AsyncStorage.getItem('userUUID');
       if (!token)
         throw new Error('Please Login Again');
       setLoading(true);
-      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/${userUUID}`,
+      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log(response);
       setMatches(response.data);
 
     } catch (err) {
@@ -252,42 +258,53 @@ const MyMatch = () => {
     }
   };
 
+  const renderMatchItem = ({ item }) => {
+    const matchDate = item.matchDate ? `${item.matchDate[2]}-${item.matchDate[1]}-${item.matchDate[0]}` : 'N/A';
+
+    return (
+      <Pressable key={item.id} style={styles.card}>
+        <View style={liveMatchStyles.teamRow}>
+          <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+          <View>
+            <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+          </View>
+          <Text style={liveMatchStyles.vs}>VS</Text>
+          <View>
+            <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+          </View>
+          <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+        </View>
+
+        <View style={{ borderWidth: 0.5, borderColor: '#34B8FF' }}></View>
+
+        <View style={{ marginTop: 5 }}>
+          <Text style={styles.tournamentContent}><Icon name="calendar-month" size={18} color="#555" /> Date: {matchDate}</Text>
+          <Text style={styles.tournamentContent}><Icon name="flag" size={18} color="#555" /> Venue: {item.venue}</Text>
+        </View>
+
+        <View style={{ alignItems: 'center', marginTop: 10 }}>
+          <Text style={styles.winnerText}>{item.winner ? `Winner: ${item.winner}` : 'Match Result Pending'}</Text>
+        </View>
+      </Pressable>
+    );
+  };
+
   return (
-    <>
-      <ScrollView contentContainerStyle={styles.cardContainer}>
-        {matches.map((match) => {
-          const sanitizedBannerUrl = match.banner.replace(
-            'https://score360-7.onrender.com/api/v1/files/http:/',
-            'https://'
-          );
-          return (
-            <Pressable key={match.id} style={styles.card}
-            // onPress={() => manageTournamentHandler(match.id, match)}
-            >
-              <View style={styles.tournamentDetails}>
-                <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='cover' />
-                <View style={styles.cardContent}>
-                  <Text style={styles.tournamentName}>{match.name}</Text>
-                  <Icon name="delete" size={24} color="#555"
-                  // onPress={() => deleteTournamentHandler(match.id)}
-                  />
-                </View>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-                <Text style={styles.tournamentContent}><Icon name="calendar-month" color="#555" size={20} /> From:  {match.startDate[2]}-{match.startDate[1]}-{match.startDate[0]}</Text>
-                <Text style={styles.tournamentContent}>Overs:  {match.type}</Text>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={styles.tournamentContent}><Icon name="calendar-month" color="#555" size={20} /> To: {match.endDate[2]}-{match.endDate[1]}-{match.endDate[0]}</Text>
-                <Text style={styles.tournamentContent}><Icon name="sports-baseball" color="#555" size={20} />: {match.ballType}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-        {matches.length === 0 && <Text style={styles.errorText}>No matches</Text>}
-      </ScrollView>
-    </>
-  )
+    <View style={{ flex: 1 }}>
+      {loading && <ActivityIndicator size="large" color="#0000ff" />}
+      {error && <Text style={styles.errorText}>{error}</Text>}
+      {!loading && matches?.length === 0 && <Text style={styles.noMatchText}>No matches found</Text>}
+
+      <FlatList
+        data={matches}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMatchItem}
+        contentContainerStyle={styles.cardContainer}
+      />
+    </View>
+  );
 };
 
 const LiveMatch = () => {
@@ -301,11 +318,10 @@ const LiveMatch = () => {
       if (!token)
         throw new Error('Please Login Again');
       setLoading(true);
-      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/status=LIVE`, {
-        // params: { status: 'LIVE' },
+      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/status`, {
+        params: { status: 'Live' },
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log(response);
       setMatches(response.data);
 
     } catch (err) {
@@ -319,53 +335,232 @@ const LiveMatch = () => {
     getLiveMatches();
   }, []);
 
+  const renderMatchItem = ({ item }) => (
+    <View style={liveMatchStyles.card}>
+      <View style={liveMatchStyles.teamRow}>
+        <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+        <View>
+          <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
+          <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+        </View>
+        <Text style={liveMatchStyles.vs}>VS</Text>
+        <View>
+          <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
+          <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+        </View>
+        <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+      </View>
+      <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
+      <Text style={liveMatchStyles.date}>
+        Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
+      </Text>
+      <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
+    </View>
+  );
+
   return (
-    <>
-      <ScrollView contentContainerStyle={styles.cardContainer}>
-        {matches.map((match) => {
-          const sanitizedBannerUrl = match.banner.replace(
-            'https://score360-7.onrender.com/api/v1/files/http:/',
-            'https://'
-          );
-          return (
-            <Pressable key={match.id} style={styles.card}
-            // onPress={() => manageTournamentHandler(match.id, match)}
-            >
-              <View style={styles.tournamentDetails}>
-                <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='cover' />
-                <View style={styles.cardContent}>
-                  <Text style={styles.tournamentName}>{match.name}</Text>
-                </View>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-                <Text style={styles.tournamentContent}><Icon name="calendar-month" color="#555" size={20} /> From:  {match.startDate[2]}-{match.startDate[1]}-{match.startDate[0]}</Text>
-                <Text style={styles.tournamentContent}>Overs:  {match.type}</Text>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={styles.tournamentContent}><Icon name="calendar-month" color="#555" size={20} /> To: {match.endDate[2]}-{match.endDate[1]}-{match.endDate[0]}</Text>
-                <Text style={styles.tournamentContent}><Icon name="sports-baseball" color="#555" size={20} />: {match.ballType}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-        {matches.length === 0 && <Text style={styles.errorText}>No matches</Text>}
-      </ScrollView>
-    </>
+    <View style={{ flex: 1 }}>
+      {loading && <ActivityIndicator size="large" color="#0000ff" />}
+      {error && <Text style={liveMatchStyles.errorText}>{error}</Text>}
+      {!loading && matches.length === 0 && <Text style={liveMatchStyles.errorText}>No matches</Text>}
+
+      <FlatList
+        data={matches}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMatchItem}
+        contentContainerStyle={styles.cardContainer}
+      />
+    </View>
   )
 };
 
+const liveMatchStyles = StyleSheet.create({
+  cardContainer: {
+    padding: 10,
+    alignItems: 'center'
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 3,
+    marginBottom: 10,
+  },
+  teamRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20
+  },
+  teamName: {
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  vs: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ff0000'
+  },
+  venue: {
+    fontSize: 14,
+    color: '#555'
+  },
+  date: {
+    fontSize: 14,
+    color: '#555'
+  },
+  winner: {
+    fontSize: 14,
+    color: '#007BFF',
+    fontWeight: 'bold'
+  },
+})
+
 const UpcomingMatch = () => {
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [matches, setMatches] = useState([]);
+
+  const getUpcomingMatches = async () => {
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token)
+        throw new Error('Please Login Again');
+      setLoading(true);
+      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/status`, {
+        params: { status: 'Upcoming' },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMatches(response.data);
+
+    } catch (err) {
+      setError('Failed to load live matches');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    getUpcomingMatches();
+  }, []);
+
+  const renderMatchItem = ({ item }) => (
+    <View style={liveMatchStyles.card}>
+      <View style={liveMatchStyles.teamRow}>
+        <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+        <View>
+          <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
+          <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+        </View>
+        <Text style={liveMatchStyles.vs}>VS</Text>
+        <View>
+          <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
+          <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+        </View>
+        <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+      </View>
+      <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
+      <Text style={liveMatchStyles.date}>
+        Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
+      </Text>
+      <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
+    </View>
+  );
+
   return (
-    <>
-      <Text style={{ color: 'black', marginTop: 40 }}>Upcoming match</Text>
-    </>
+    <View style={{ flex: 1 }}>
+      {loading && <ActivityIndicator size="large" color="#0000ff" />}
+      {error && <Text style={liveMatchStyles.errorText}>{error}</Text>}
+      {!loading && matches.length === 0 && <Text style={liveMatchStyles.errorText}>No matches</Text>}
+
+      <FlatList
+        data={matches}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMatchItem}
+        contentContainerStyle={styles.cardContainer}
+      />
+    </View>
   )
 };
 
 const PastMatch = () => {
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [matches, setMatches] = useState([]);
+
+  const getPastMatches = async () => {
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token)
+        throw new Error('Please Login Again');
+      setLoading(true);
+      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/status`, {
+        params: { status: 'Past' },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMatches(response.data);
+
+    } catch (err) {
+      setError('Failed to load live matches');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    getPastMatches();
+  }, []);
+
+  const renderMatchItem = ({ item }) => (
+    <View style={liveMatchStyles.card}>
+      <View style={liveMatchStyles.teamRow}>
+        <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+        <View>
+          <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
+          <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+        </View>
+        <Text style={liveMatchStyles.vs}>VS</Text>
+        <View>
+          <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
+          <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+        </View>
+        <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+      </View>
+      <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
+      <Text style={liveMatchStyles.date}>
+        Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
+      </Text>
+      <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
+    </View>
+  );
+
   return (
-    <>
-      <Text style={{ color: 'black', marginTop: 60 }}>Past match</Text>
-    </>
-  )
+    <View style={{ flex: 1 }}>
+      {loading && <ActivityIndicator size="large" color="#0000ff" />}
+      {error && <Text style={liveMatchStyles.errorText}>{error}</Text>}
+      {!loading && matches.length === 0 && <Text style={liveMatchStyles.errorText}>No matches</Text>}
+
+      <FlatList
+        data={matches}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMatchItem}
+        contentContainerStyle={styles.cardContainer}
+      />
+    </View>
+  );
 };

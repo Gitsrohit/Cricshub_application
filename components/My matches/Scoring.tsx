@@ -231,7 +231,9 @@ const ScoringScreen = ({ route, navigation }) => {
       });
 
       eventSource.addEventListener('innings-complete', (event) => {
-        console.log(event.data);
+        console.log("Innings over!");
+        console.log(JSON.parse(event.data));
+
       });
 
       eventSource.onerror = (error) => {
