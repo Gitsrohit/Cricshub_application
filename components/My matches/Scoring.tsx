@@ -9,13 +9,28 @@ import {
   Text,
   TextInput,
   View,
+  Image,
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+// import LinearGradient from 'react-native-linear-gradient';
+import * as Animatable from 'react-native-animatable';
+
 import EventSource from 'react-native-event-source';
-import bg from '../../assets/images/bg.png';
+import bg from '../../assets/images/cricsLogo.png';
 import { Picker } from '@react-native-picker/picker';
+import { MaterialIcons } from '@expo/vector-icons';
+const driveImage = require('../../assets/images/DriveShot.png');
+const cutImage = require('../../assets/images/squareShot.png');
+const pullImage = require('../../assets/images/HookShot.png');
+const hookImage = require('../../assets/images/HookShot.png');
+const sweepImage = require('../../assets/images/Sweep.png');
+const reverseSweepImage = require('../../assets/images/Sweep.png');
+const flickImage = require('../../assets/images/FlickShot.png');
+const defensiveImage = require('../../assets/images/Defence.png');
+const loftedImage = require('../../assets/images/LoaftedShot.png');
+
 
 const ScoringScreen = ({ route, navigation }) => {
   const [matchId, setMatchId] = useState(route.params.matchId);
@@ -64,6 +79,74 @@ const ScoringScreen = ({ route, navigation }) => {
     playerId: '',
     name: ''
   });
+  const [directionModalVisible, setDirectionModalVisible] = useState(false);
+  const [selectedDirection, setSelectedDirection] = useState(null);
+  const [selectedShot, setSelectedShot] = useState(null); 
+  const [shotModalVisible, setShotModalVisible] = useState(false);
+  const [selectedRunForShot, setSelectedRunForShot] = useState(null); 
+  const cricketShots = [
+    'Drive',
+    'Cut',
+    'Pull',
+    'Hook',
+    'Sweep',
+    'Reverse Sweep',
+    'Flick',
+    'Defensive',
+    'Lofted',
+  ];
+  const shotImages = {
+    'Drive': driveImage,
+    'Cut': cutImage,
+    'Pull': pullImage,
+    'Hook': hookImage,
+    'Sweep': sweepImage,
+    'Reverse Sweep': reverseSweepImage,
+    'Flick': flickImage,
+    'Defensive': defensiveImage,
+    'Lofted': loftedImage,
+  };
+  const directions = [
+    { name: 'Mid Wicket', angle: 0 }, 
+    { name: 'Mid off', angle: 180 }, 
+    { name: 'Deep on', angle: 45 },
+    { name: 'Cover', angle: 135 }, 
+    { name: 'Square leg', angle: 315 },
+    { name: 'Point', angle: 225 }, 
+    { name: 'Straight', angle: 90 },
+    { name: 'Fine Leg', angle: 270 },
+  ];
+  
+  
+  const radius = 120;
+  const center = 150;
+  
+    const handleRunSelection = (run) => {
+      setSelectedRunForShot(run);
+      setShotModalVisible(true);
+    };
+  
+
+    const handleShotSelection = (shot) => {
+      setSelectedShot(shot); 
+      setShotModalVisible(false);
+      setDirectionModalVisible(true);
+  
+    };
+    const handleDirectionSelection = (direction) => {
+      setSelectedDirection(direction);
+      setDirectionModalVisible(false); 
+      submitScore({
+        runs: parseInt(selectedRunForShot),
+        wide: false,
+        noBall: false,
+        bye: false,
+        legBye: false,
+        wicket: false,
+        shotType: selectedShot,
+        direction: direction, 
+      });
+    };
 
   const SSEhandler = async () => {
     try {
@@ -108,15 +191,11 @@ const ScoringScreen = ({ route, navigation }) => {
         const nonStrikerStats = data.battingTeamPlayingXI.find(
           (player) => player?.name === data.currentNonStriker?.name
         );
-
-        // Extract bowler details
         const bowlerStats = data.bowlingTeamPlayingXI.find(
           (player) => player?.name === data.currentBowler?.name
         );
-
-        // Format over details
         const formattedOverDetails = data.currentOver.map((ball) => {
-          let event = ball.runs.toString(); // Store runs (even if 0)
+          let event = ball.runs.toString();
 
           if (ball.wicket) event += 'W';
           if (ball.noBall) event += 'NB';
@@ -128,14 +207,10 @@ const ScoringScreen = ({ route, navigation }) => {
         });
 
         setOverDetails(formattedOverDetails);
-
-        // Count legal deliveries
         const deliveryCount = data.currentOver.reduce((count, ball) => {
           return count + (ball.noBall || ball.wide ? 0 : 1);
         }, 0);
         setLegalDeliveries(deliveryCount);
-
-        // Open modal for next bowler only when an over is completed (excluding the first over)
         if (deliveryCount === 0) {
           setModals((prev) => ({ ...prev, nextBowler: true }));
         }
@@ -205,18 +280,18 @@ const ScoringScreen = ({ route, navigation }) => {
     }
   ];
 
-  const handleRunSelection = (run) => {
-    if (run === 'Wide') {
-      setModals({ ...modals, wide: true });
-    } else if (run === 'Bye' || run === 'Leg Bye') {
-      setModals({ ...modals, bye: true });
-    } else if (run === 'Wicket') {
-      setModals({ ...modals, wicket: true });
-    } else {
-      setSelectedRun(run);
-      submitScore({ runs: parseInt(run), wide: false, noBall: false, bye: false, legBye: false, wicket: false });
-    }
-  };
+  // const handleRunSelection = (run) => {
+  //   if (run === 'Wide') {
+  //     setModals({ ...modals, wide: true });
+  //   } else if (run === 'Bye' || run === 'Leg Bye') {
+  //     setModals({ ...modals, bye: true });
+  //   } else if (run === 'Wicket') {
+  //     setModals({ ...modals, wicket: true });
+  //   } else {
+  //     setSelectedRun(run);
+  //     submitScore({ runs: parseInt(run), wide: false, noBall: false, bye: false, legBye: false, wicket: false });
+  //   }
+  // };
 
   const handleExtrasWicketSelection = (value) => {
     if (value === 'Wide') {
@@ -238,35 +313,40 @@ const ScoringScreen = ({ route, navigation }) => {
       Alert.alert('Error', 'Please select a batsman first');
       return;
     }
-
+    setStrikerStats({ runs: 0, ballsFaced: 0 });
+  
     setStrikerId(selectedPlayer.playerId);
     setStrikerName(selectedPlayer.name);
     setModals({ ...modals, nextBatsman: false });
-
+  
     try {
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error('Please login again');
-
+  
       const response = await axios.post(
         `https://score360-7.onrender.com/api/v1/matches/${matchId}/next-batsman/${selectedPlayer.playerId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
+  
     } catch (error) {
       console.error("Error updating next batsman:", error);
       Alert.alert("Error", "Failed to update next batsman.");
     }
   };
-
+  
   const selectNextBowler = async (playerId, playerName) => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error('Please login again');
-      const resposne = await axios.post(`https://score360-7.onrender.com/api/v1/matches/${matchId}/next-bowler/${playerId}`,
+      const response = await axios.post(`https://score360-7.onrender.com/api/v1/matches/${matchId}/next-bowler/${playerId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
+  
+      // Reset the new bowler's stats
+      setBowlerStats({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
+  
       setBowler(playerId);
       setCurrentBowlerName(playerName);
       setLegalDeliveries(0);
@@ -275,6 +355,8 @@ const ScoringScreen = ({ route, navigation }) => {
       console.error("Error selecting next bowler:", error);
     }
   };
+
+  
 
   const wicketHandler = (value) => {
     setWicketType(value);
@@ -288,7 +370,7 @@ const ScoringScreen = ({ route, navigation }) => {
     ).map(({ playerId, name }) => ({ playerId, name }));
     setAvailableBatsmen(available);
 
-    setModals({ ...modals, wicket: false, nextBatsman: true }); // Open next batsman modal instead of submitting
+    setModals({ ...modals, wicket: false, nextBatsman: true });
   };
 
   const submitScore = async (data) => {
@@ -303,8 +385,8 @@ const ScoringScreen = ({ route, navigation }) => {
           strikerId: strikerId,
           bowlerId: bowler,
           wicketType: data.wicketType || '',
-          shotType: '',
-          direction: '',
+          shotType: data.shotType || '', 
+          direction: data.direction || '',
           runs: data.runs || 0,
           battingFirst: true,
           wide: data.wide || false,
@@ -336,17 +418,19 @@ const ScoringScreen = ({ route, navigation }) => {
           </View>
         </ImageBackground>
       </LinearGradient>
-      <View style={styles.scoringOptions}>
-        <View style={styles.scoringCard}>
-          <View>
-            <Text style={styles.playerText}>{strikerName}*-<Text>{strikerStats.runs}({strikerStats.ballsFaced})</Text></Text>
-            <Text style={styles.playerText}>{nonStrikerName}-<Text>{nonStrikerStats.runs}({nonStrikerStats.ballsFaced})</Text></Text>
-          </View>
-          <View>
-            <Text style={styles.playerText}>Over: {overDetails?.join(" ")}</Text>
-            <Text style={styles.playerText}>{currentBowlerName}-{bowlerStats.wicketsTaken}/{bowlerStats.runsConceded}</Text>
-          </View>
+
+      {/* Player Info Section */}
+      <View style={styles.playerInfoContainer}>
+        <View style={styles.playerInfo}>
+          <Text style={styles.playerText}>{strikerName}* - <Text style={styles.playerStats}>{strikerStats.runs}({strikerStats.ballsFaced})</Text></Text>
+          <Text style={styles.playerText}>{nonStrikerName} - <Text style={styles.playerStats}>{nonStrikerStats.runs}({nonStrikerStats.ballsFaced})</Text></Text>
         </View>
+        <View style={styles.bowlerInfo}>
+          <Text style={styles.playerText}>Over: {overDetails?.join(" ")}</Text>
+          <Text style={styles.playerText}>{currentBowlerName} - {bowlerStats.wicketsTaken}/{bowlerStats.runsConceded}</Text>
+        </View>
+      </View>
+      <View style={styles.scoringOptions}>
         <FlatList
           data={scoringOptions}
           numColumns={3}
@@ -369,7 +453,74 @@ const ScoringScreen = ({ route, navigation }) => {
         />
       </View>
 
-      {/* Wide Modal */}
+      <Modal visible={shotModalVisible} transparent animationType="slide">
+      <Modal visible={shotModalVisible} transparent animationType="slide">
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Select Shot Type</Text>
+      <FlatList
+        data={cricketShots}
+        numColumns={3} 
+        keyExtractor={(item) => item}
+        renderItem={({ item }) => (
+          <Pressable
+            style={styles.shotOption}
+            onPress={() => handleShotSelection(item)}
+          >
+          <Image
+  source={shotImages[item]}
+  style={styles.shotImage}
+  resizeMode="contain"
+/>
+
+            <Text style={styles.shotText}>{item}</Text>
+          </Pressable>
+        )}
+      />
+      <Pressable
+        style={styles.cancelButton}
+        onPress={() => setShotModalVisible(false)}
+      >
+        <Text style={styles.cancelButtonText}>Cancel</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
+</Modal>
+<Modal visible={directionModalVisible} transparent animationType="slide">
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Select Shot Direction</Text>
+      <View style={styles.wagonWheelContainer}>
+        <View style={styles.circleBackground} />
+        {directions.map((direction, index) => {
+          const angleInRadians = (direction.angle * Math.PI) / 180;
+          const x = center + radius * Math.cos(angleInRadians) - 40; 
+          const y = center + radius * Math.sin(angleInRadians) - 20; 
+
+          return (
+            <Pressable
+              key={index}
+              style={[
+                styles.directionButton,
+                { top: y, left: x },
+              ]}
+              onPress={() => handleDirectionSelection(direction.name)}
+            >
+              <Text style={styles.directionText}>{direction.name}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Pressable
+        style={styles.cancelButton}
+        onPress={() => setDirectionModalVisible(false)}
+      >
+        <Text style={styles.cancelButtonText}>Cancel</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
       <Modal visible={modals.wide} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -418,8 +569,6 @@ const ScoringScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-
-      {/* Bye/Leg Bye Modal */}
       <Modal visible={modals.bye} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -442,8 +591,6 @@ const ScoringScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-
-      {/* Wicket Modal */}
       <Modal visible={modals.wicket} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -470,9 +617,7 @@ const ScoringScreen = ({ route, navigation }) => {
                   return;
                 }
 
-                setModals({ ...modals, wicket: false, nextBatsman: true }); // Open Next Batsman Modal
-
-                // Fetch available batsmen
+                setModals({ ...modals, wicket: false, nextBatsman: true }); 
                 const available = battingTeamII.filter(
                   (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
                 ).map(({ playerId, name }) => ({ playerId, name }));
@@ -485,8 +630,6 @@ const ScoringScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-
-      {/* New batsman selection modal */}
       <Modal visible={modals.nextBatsman} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -497,7 +640,7 @@ const ScoringScreen = ({ route, navigation }) => {
               onValueChange={(itemValue) => {
                 const selectedPlayer = availableBatsmen.find(player => player.playerId === itemValue);
                 setSelectedBatsman(selectedPlayer);
-                handleNextBatsmanSelection(selectedPlayer); // Pass selected player directly
+                handleNextBatsmanSelection(selectedPlayer); 
               }}
               style={styles.picker}
             >
@@ -525,8 +668,6 @@ const ScoringScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-
-      {/* Next bowler */}
       <Modal visible={modals.nextBowler} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -571,148 +712,212 @@ export default ScoringScreen;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
+    backgroundColor: '#f0f0f0',
   },
   gradient: {
-    flex: 1
+    flex: 1,
   },
   background: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   backgroundImage: {
     resizeMode: 'cover',
     opacity: 0.8,
   },
-  scoreContainer: {
-    alignItems: 'center',
-    marginBottom: 20
-  },
-  picker: {
-    width: '100%',
-    backgroundColor: '#e9e9e9',
-    marginTop: 10,
-    borderRadius: 5,
-  },
-  teamName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white'
-  },
-  scoreText: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: 'white'
-  },
-  scoringOptions: {
-    width: '100%',
-    height: '40%',
-    flexDirection: 'column',
-    backgroundColor: '#002233',
-  },
-  scoringCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-  },
-  runButton: {
-    flex: 1,
-    margin: 1,
-    backgroundColor: '#e3e3e3',
-    borderRadius: 2,
-    height: 50,
-    justifyContent: 'center'
-  },
-  runText: {
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'black'
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  modalContent: {
-    width: '50%',
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10
-  },
-  batsmanOption: {
-    width: '100%',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    marginVertical: 5,
-    backgroundColor: '#f2f2f2',
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  selectedBatsman: {
-    backgroundColor: '#4CAF50', // Green for selected batsman
-  },
-  batsmanText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  selectButton: {
-    marginTop: 15,
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  selectButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  input: {
-    backgroundColor: '#e7e7e7',
-    borderRadius: 4,
-  },
-  submitButton: {
-    backgroundColor: '#36B0D5',
-    padding: 10,
-    marginTop: 10,
-    borderRadius: 5
-  },
-  submitText: {
-    textAlign: 'center',
-    color: 'white',
-    fontWeight: 'bold'
-  },
-  playerText: {
-    fontSize: 14,
-    color: 'white',
-  },
-  oversContainer: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#002233',
-    borderRadius: 10,
-    flexDirection: 'row',
-  },
-  heading: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  overText: {
-    fontSize: 12,
-    color: 'white',
-    flexDirection: 'row'
-  },
   scoreCard: {
     flexDirection: 'column',
     justifyContent: 'flex-end',
     width: '100%',
+    padding: 20,
+  },
+  scoreContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  teamName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 5,
+  },
+  scoreText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: 'white',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 5,
+  },
+  playerInfoContainer: {
+    backgroundColor: '#002233',
+    padding: 15,
+    borderRadius: 10,
+    margin: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   playerInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  bowlerInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  playerText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+  },
+  playerStats: {
+    fontSize: 14,
+    color: '#FFD700',
+  },
+  scoringOptions: {
+    backgroundColor: '#002233',
+    padding: 10,
+    borderRadius: 10,
+    margin: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  runButton: {
+    flex: 1,
+    margin: 5,
+    backgroundColor: '#36B0D5',
+    borderRadius: 8,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  runText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  
+  input: {
+    backgroundColor: '#e7e7e7',
+    borderRadius: 8,
+    padding: 10,
+    marginVertical: 10,
+  },
+  submitButton: {
+    backgroundColor: '#36B0D5',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  submitText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  picker: {
     width: '100%',
-    flexDirection: 'row'
+    backgroundColor: '#e9e9e9',
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  shotOption: {
+    flex: 1,
+    margin: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+  },
+  shotImage: {
+    width: 60,
+    height: 60,
+    marginBottom: 5,
+    backgroundColor: 'transparent',
+  },
+  shotText: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
+  },
+  cancelButton: {
+    marginTop: 10,
+    padding: 10,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: '#FF4757',
+    fontWeight: 'bold',
+  },
+  wagonWheelContainer: {
+    width: 300,
+    height: 300,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  circleBackground: {
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: '#4CAF50',
+    position: 'absolute',
+  },
+  directionButton: {
+    position: 'absolute',
+    width: 80,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 20,
+  },
+  directionText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

@@ -10,7 +10,7 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
-  Dimensions, // Add Dimensions to get screen height
+  Dimensions,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
@@ -20,8 +20,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const background = require('../../assets/images/cricsLogo.png');
-
-// Get screen height
 const { height } = Dimensions.get('window');
 
 const CreateTournament = () => {

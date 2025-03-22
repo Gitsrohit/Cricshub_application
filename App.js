@@ -8,7 +8,7 @@ import CricketAppScreen from './components/My matches/CricketAppScreen';
 import Tournaments from './components/Tournaments/Tournaments';
 import Home from './components/Home/Home';
 import Teams from './components/Teams/Teams';
-import Settings from './components/Settings/Settings';
+import Profile from './components/Settings/Profile';
 import Footer from './components/Footer'; // Footer component
 import CreateTeam from './components/Teams/CreateTeam';
 import CreateTournaments from './components/Tournaments/CreateTournaments';
@@ -55,7 +55,7 @@ const MainScreens = () => {
           <Stack.Screen name="MyMatches" component={AllMatches} />
           <Stack.Screen name="Tournaments" component={Tournaments} />
           <Stack.Screen name="Teams" component={Teams} />
-          <Stack.Screen name="Settings" component={Settings} />
+          <Stack.Screen name="Profile" component={Profile} />
           <Stack.Screen name="CreateTeam" component={CreateTeam} />
           <Stack.Screen name="CreateTournaments" component={CreateTournaments} />
           <Stack.Screen name="ManageTournaments" component={ManageTournaments} />
