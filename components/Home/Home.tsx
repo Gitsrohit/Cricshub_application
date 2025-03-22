@@ -22,16 +22,14 @@ const { width, height } = Dimensions.get('window');
 
 const Home = () => {
   const navigation = useNavigation();
-  const sidebarAnim = useRef(new Animated.Value(-width)).current; // Initial position off-screen
-  const overlayAnim = useRef(new Animated.Value(0)).current; // Initial opacity for overlay
+  const sidebarAnim = useRef(new Animated.Value(-width)).current; 
+  const overlayAnim = useRef(new Animated.Value(0)).current;
   const [isSidebarVisible, setIsSidebarVisible] = React.useState(false);
-  const [userName, setUserName] = useState('Player Name'); // State to store the user's name
-
-  // Fetch the user's name from AsyncStorage when the component mounts
+  const [userName, setUserName] = useState('Player Name'); 
   useEffect(() => {
     const fetchUserName = async () => {
       try {
-        const name = await AsyncStorage.getItem('userName'); // Replace 'userName' with your key
+        const name = await AsyncStorage.getItem('userName');
         if (name) {
           setUserName(name);
         }
@@ -97,7 +95,6 @@ const Home = () => {
 
   const toggleSidebar = () => {
     if (isSidebarVisible) {
-      // Hide sidebar and overlay
       Animated.parallel([
         Animated.timing(sidebarAnim, {
           toValue: -width,
@@ -111,7 +108,6 @@ const Home = () => {
         }),
       ]).start(() => setIsSidebarVisible(false));
     } else {
-      // Show sidebar and overlay
       setIsSidebarVisible(true);
       Animated.parallel([
         Animated.timing(sidebarAnim, {
@@ -143,7 +139,6 @@ const Home = () => {
         resizeMode="cover"
       >
         <SafeAreaView style={styles.container}>
-          {/* Overlay */}
           {isSidebarVisible && (
             <TouchableWithoutFeedback onPress={closeSidebar}>
               <Animated.View
@@ -156,8 +151,6 @@ const Home = () => {
               />
             </TouchableWithoutFeedback>
           )}
-
-          {/* Sidebar */}
           <Animated.View
             style={[
               styles.sidebar,
@@ -171,7 +164,7 @@ const Home = () => {
                 source={require('../../assets/user_profile.png')} 
                 style={styles.userImage}
               />
-              <Text style={styles.sidebarTitle}>{userName}</Text> {/* Dynamic user name */}
+              <Text style={styles.sidebarTitle}>{userName}</Text> 
             </View>
 
             {/* Sidebar Items */}
@@ -370,7 +363,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    width: width * 0.7, // 70% of screen width
+    width: width * 0.7, 
     height: '100%',
     backgroundColor: '#FFF',
     zIndex: 100,

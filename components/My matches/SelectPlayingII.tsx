@@ -21,8 +21,6 @@ const SelectPlayingXI = ({ route }) => {
 
   const [team1ModalVisible, setTeam1ModalVisible] = useState(true);
   const [team2ModalVisible, setTeam2ModalVisible] = useState(false);
-
-  // State for search functionality
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredTeam1Players, setFilteredTeam1Players] = useState([]);
   const [filteredTeam2Players, setFilteredTeam2Players] = useState([]);
@@ -44,8 +42,8 @@ const SelectPlayingXI = ({ route }) => {
 
       setTeam1Details(response1.data.data);
       setTeam2Details(response2.data.data);
-      setFilteredTeam1Players(response1.data.data.players); // Initialize filtered players
-      setFilteredTeam2Players(response2.data.data.players); // Initialize filtered players
+      setFilteredTeam1Players(response1.data.data.players); 
+      setFilteredTeam2Players(response2.data.data.players); 
     } catch (err) {
       setError('Sorry, unable to fetch team details');
     } finally {
@@ -56,8 +54,6 @@ const SelectPlayingXI = ({ route }) => {
   useEffect(() => {
     fetchTeamsDetails();
   }, []);
-
-  // Function to handle search
   const handleSearch = (query, team) => {
     setSearchQuery(query);
     if (team === 1) {

@@ -313,8 +313,6 @@ const ScoringScreen = ({ route, navigation }) => {
       Alert.alert('Error', 'Please select a batsman first');
       return;
     }
-  
-    // Reset the new batsman's stats
     setStrikerStats({ runs: 0, ballsFaced: 0 });
   
     setStrikerId(selectedPlayer.playerId);
@@ -904,7 +902,7 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     borderRadius: 150,
-    backgroundColor: '#4CAF50', // Green background
+    backgroundColor: '#4CAF50',
     position: 'absolute',
   },
   directionButton: {
@@ -913,7 +911,7 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Semi-transparent white
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 20,
   },
   directionText: {
