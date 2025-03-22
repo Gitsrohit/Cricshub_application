@@ -258,49 +258,53 @@ const MyMatch = () => {
     }
   };
 
+  const renderMatchItem = ({ item }) => {
+    const matchDate = item.matchDate ? `${item.matchDate[2]}-${item.matchDate[1]}-${item.matchDate[0]}` : 'N/A';
+
+    return (
+      <Pressable key={item.id} style={styles.card}>
+        <View style={liveMatchStyles.teamRow}>
+          <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+          <View>
+            <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+          </View>
+          <Text style={liveMatchStyles.vs}>VS</Text>
+          <View>
+            <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+          </View>
+          <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+        </View>
+
+        <View style={{ borderWidth: 0.5, borderColor: '#34B8FF' }}></View>
+
+        <View style={{ marginTop: 5 }}>
+          <Text style={styles.tournamentContent}><Icon name="calendar-month" size={18} color="#555" /> Date: {matchDate}</Text>
+          <Text style={styles.tournamentContent}><Icon name="flag" size={18} color="#555" /> Venue: {item.venue}</Text>
+        </View>
+
+        <View style={{ alignItems: 'center', marginTop: 10 }}>
+          <Text style={styles.winnerText}>{item.winner ? `Winner: ${item.winner}` : 'Match Result Pending'}</Text>
+        </View>
+      </Pressable>
+    );
+  };
+
   return (
-    <>
-      <ScrollView contentContainerStyle={styles.cardContainer}>
-        {loading && <ActivityIndicator size="large" color="#0000ff" />}
-        {error && <Text style={styles.errorText}>{error}</Text>}
+    <View style={{ flex: 1 }}>
+      {loading && <ActivityIndicator size="large" color="#0000ff" />}
+      {error && <Text style={styles.errorText}>{error}</Text>}
+      {!loading && matches?.length === 0 && <Text style={styles.noMatchText}>No matches found</Text>}
 
-        {matches?.length > 0 ? matches?.map((match) => {
-          const matchDate = match.matchDate ? `${match.matchDate[2]}-${match.matchDate[1]}-${match.matchDate[0]}` : 'N/A';
-
-          return (
-            <Pressable key={match.id} style={styles.card}>
-              <View style={liveMatchStyles.teamRow}>
-                <Image source={{ uri: match.team1.logoPath }} style={liveMatchStyles.logo} />
-                <View>
-                  <Text style={liveMatchStyles.teamName}>{match.team1.name}</Text>
-                  <Text style={{ color: '#555', fontSize: 12 }}>{match.team1Score || 'N/A'}</Text>
-                </View>
-                <Text style={liveMatchStyles.vs}>VS</Text>
-                <View>
-                  <Text style={liveMatchStyles.teamName}>{match.team2.name}</Text>
-                  <Text style={{ color: '#555', fontSize: 12 }}>{match.team2Score || 'N/A'}</Text>
-                </View>
-                <Image source={{ uri: match.team2.logoPath }} style={liveMatchStyles.logo} />
-              </View>
-
-              <View style={{ borderWidth: 0.5, borderColor: '#34B8FF' }}></View>
-
-              <View style={{ marginTop: 5 }}>
-                <Text style={styles.tournamentContent}><Icon name="calendar-month" size={18} color="#555" /> Date: {matchDate}</Text>
-                <Text style={styles.tournamentContent}><Icon name="flag" size={18} color="#555" /> Venue: {match.venue}</Text>
-              </View>
-
-              <View style={{ alignItems: 'center', marginTop: 10 }}>
-                <Text style={styles.winnerText}>{match.winner ? `Winner: ${match.winner}` : 'Match Result Pending'}</Text>
-              </View>
-            </Pressable>
-          );
-        }) : (
-          !loading && <Text style={styles.noMatchText}>No matches found</Text>
-        )}
-      </ScrollView>
-    </>
-  )
+      <FlatList
+        data={matches}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMatchItem}
+        contentContainerStyle={styles.cardContainer}
+      />
+    </View>
+  );
 };
 
 const LiveMatch = () => {
