@@ -8,7 +8,7 @@ import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const SelectRoles = ({ route, navigation }) => {
-  const { matchId } = route.params;
+  const { matchId, isFirstInnings } = route.params;
 
   const [battingII, setBattingII] = useState([]);
   const [bowlingII, setBowlingII] = useState([]);
@@ -19,11 +19,11 @@ const SelectRoles = ({ route, navigation }) => {
   const [nonStrikerName, setNonStrikerName] = useState(null);
   const [bowler, setBowler] = useState(null);
   const [bowlerName, setBowlerName] = useState(null);
-  const [step, setStep] = useState(1); 
+  const [step, setStep] = useState(1);
 
-  
+
   const [showNotification, setShowNotification] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current; 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchPlayingII();
@@ -33,7 +33,7 @@ const SelectRoles = ({ route, navigation }) => {
     setShowNotification(true);
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 300, 
+      duration: 300,
       useNativeDriver: true,
     }).start(() => {
       setTimeout(() => {
@@ -42,11 +42,11 @@ const SelectRoles = ({ route, navigation }) => {
     });
   };
 
- 
+
   const hidePopupNotification = () => {
     Animated.timing(fadeAnim, {
       toValue: 0,
-      duration: 200, 
+      duration: 200,
       useNativeDriver: true,
     }).start(() => {
       setShowNotification(false);
@@ -61,11 +61,11 @@ const SelectRoles = ({ route, navigation }) => {
       const responseBatting = await axios.get(`https://score360-7.onrender.com/api/v1/matches/${matchId}/playingXI/batting`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setBattingII(responseBatting.data);
 
       const responseBowling = await axios.get(`https://score360-7.onrender.com/api/v1/matches/${matchId}/playingXI/bowling`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      setBattingII(responseBatting.data);
       setBowlingII(responseBowling.data);
     } catch (err) {
       Alert.alert('Error', 'Failed to fetch playing XI');
@@ -117,7 +117,7 @@ const SelectRoles = ({ route, navigation }) => {
       showPopupNotification();
       setTimeout(() => {
         navigation.navigate(`Scoring`, { matchId, strikerId, nonStrikerId, bowler, strikerName, nonStrikerName, bowlerName });
-      }, 1000); 
+      }, 1000);
     } catch (err) {
       Alert.alert('Error', 'Failed to update players');
     }
