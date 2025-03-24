@@ -1,9 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, StatusBar } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AntDesign } from "@expo/vector-icons";
+import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+const backgroundImage = require('../../assets/images/cricsLogo.png');
 
 export default function ManageTournaments({ route }) {
   const [activeTab, setActiveTab] = useState('INFO');
@@ -46,71 +49,91 @@ export default function ManageTournaments({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {loading ? <View style={[styles.cardImage, { backgroundColor: 'grey' }]}></View> : <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='contain' />}
-      {/* Toggle Buttons */}
-      <ScrollView style={styles.toggleContainer} horizontal={true}>
-        {['INFO', 'TEAMS', 'MATCHES', 'POINTS TABLE'].map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.toggleButton,
-              activeTab === tab && styles.activeToggleButton,
-            ]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                activeTab === tab && styles.activeToggleText,
-              ]}
-            >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-      <View style={{ height: '65%', backgroundColor: '#002B3D' }}>
-        {activeTab === 'INFO' && <Info id={id} isCreator={isCreator} />}
-        {activeTab === 'TEAMS' && <Teams id={id} isCreator={isCreator} />}
-        {activeTab === 'MATCHES' && <Matches id={id} isCreator={isCreator} />}
-      </View>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#34B8FF"
+        translucent={true}
+      />
+      <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradientOverlay}>
+        <ImageBackground source={backgroundImage} style={styles.background} resizeMode="cover">
+          {/* Toggle Buttons */}
+          <View style={{ height: 60 }}>
+            <ScrollView style={styles.toggleContainer} horizontal={true}>
+              {['INFO', 'TEAMS', 'MATCHES', 'POINTS TABLE'].map((tab) => (
+                <TouchableOpacity
+                  key={tab}
+                  style={[
+                    styles.toggleButton,
+                    activeTab === tab && styles.activeToggleButton,
+                  ]}
+                  onPress={() => setActiveTab(tab)}
+                >
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      activeTab === tab && styles.activeToggleText,
+                    ]}
+                  >
+                    {tab}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+          <View style={{ marginVertical: 10, width: '100%', flexDirection: 'row', justifyContent: 'center' }}>
+            {loading ? <View style={[styles.cardImage, { backgroundColor: 'grey' }]}></View> : <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='contain' />
+            }
+          </View>
+          <View style={{ height: '100%' }}>
+            {activeTab === 'INFO' && <Info id={id} isCreator={isCreator} />}
+            {activeTab === 'TEAMS' && <Teams id={id} isCreator={isCreator} />}
+            {activeTab === 'MATCHES' && <Matches id={id} isCreator={isCreator} />}
+          </View>
+        </ImageBackground>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   // ManageTournaments
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    opacity: 0.8
+  },
+  gradientOverlay: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     height: '100%',
-    backgroundColor: '#002B3D',
-    paddingHorizontal: 6,
+    // paddingHorizontal: 6,
+    paddingTop: StatusBar.currentHeight || 0,
   },
   toggleContainer: {
-    marginTop: 10,
+    // marginTop: 10,
     paddingVertical: 6,
-    height: 66,
+    backgroundColor: '#34B8FF',
+    // height: 66,
+    // borderBottomColor: '#0866AA',
+    // borderBottomWidth: 1
   },
   toggleButton: {
-    paddingVertical: 10,
+    paddingVertical: 5,
     paddingHorizontal: 10,
     marginHorizontal: 10,
-    backgroundColor: '#003344',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 10,
-    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   activeToggleButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    marginHorizontal: 10,
-    backgroundColor: '#004E62',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
   },
   toggleText: {
     color: '#fff',
@@ -123,13 +146,16 @@ const styles = StyleSheet.create({
   // Info
 
   cardImage: {
-    width: '100%',
-    justifyContent: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     height: 150,
+    width: 150,
+    borderRadius: 150,
   },
   tournamentDetails: {
     width: '90%',
-    backgroundColor: '#002233',
+    backgroundColor: '#fff',
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 4
@@ -142,10 +168,12 @@ const styles = StyleSheet.create({
   },
   tournamentDetailsRow: {
     flexDirection: 'row',
-    marginTop: 6
+    marginTop: 10,
+    borderBottomWidth: 0.25,
+    borderBottomColor: 'white',
   },
   tournamentDetailsHeading: {
-    color: '#e5e5e5',
+    color: 'white',
     flex: 1,
     fontSize: 16,
   },
@@ -303,16 +331,16 @@ const styles = StyleSheet.create({
     width: 50,
   },
   teamName: {
-    color: 'black',
+    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
   },
   teamCaptain: {
-    color: 'grey',
+    color: 'white',
     fontSize: 14,
   },
   teamInvite: {
-    color: 'grey',
+    color: 'white',
     textDecorationLine: 'underline',
   },
   teamPlayers: {},
@@ -371,9 +399,11 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'white',
+    paddingBottom: 15,
   },
   matchCard: {
-    backgroundColor: 'white',
+    backgroundColor: '#6BB9F0',
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginTop: 15,
@@ -381,23 +411,32 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   matchText: {
-    color: 'grey',
-    fontWeight: 'bold',
+    color: 'white',
+    fontSize: 16
   },
   matchStage: {
     fontSize: 16,
     marginVertical: 6,
-    color: 'grey',
-    fontWeight: 'bold',
+    color: 'white',
   },
   noMatchText: {
     color: 'red',
     fontSize: 20,
     marginTop: 16,
   },
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20
+  },
+  vs: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ff0000'
+  },
   matchTeamName: {
     fontSize: 18,
-    color: 'grey',
+    color: 'white',
     fontWeight: 'bold',
   },
 });
@@ -497,8 +536,12 @@ export const Info = ({ id, isCreator }) => {
     <View style={{ flexDirection: 'column', alignItems: 'center' }}>
       {tournamentDetails ? (
         <>
-          <View style={styles.tournamentDetails}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomColor: 'grey', borderBottomWidth: 1 }}>
+          <LinearGradient
+            colors={['#0866AA', '#6BB9F0']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tournamentDetails}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomColor: 'white', borderBottomWidth: 1 }}>
               <Text style={styles.tournamentName}>{tournamentDetails.name}</Text>
               {isCreator && <Icon name="edit" color="#e3e3e3" size={20} onPress={() => setEditingTournament(true)} />}
             </View>
@@ -515,11 +558,11 @@ export const Info = ({ id, isCreator }) => {
               <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.venues?.map((venue) => venue).join(", ")}</Text>
             </View>
             <View style={styles.tournamentDetailsRow}>
-              <Text style={styles.tournamentDetailsHeading}><Icon name="calendar-month" color="white" size={14} /> Start</Text>
+              <Text style={styles.tournamentDetailsHeading}><Icon name="calendar-month" color="white" size={18} /> Start</Text>
               <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.startDate[2]}-{tournamentDetails.startDate[1]}-{tournamentDetails.startDate[0]}</Text>
             </View>
             <View style={styles.tournamentDetailsRow}>
-              <Text style={styles.tournamentDetailsHeading}><Icon name="calendar-month" color="white" size={14} /> End</Text>
+              <Text style={styles.tournamentDetailsHeading}><Icon name="calendar-month" color="white" size={18} /> End</Text>
               <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.endDate[2]}-{tournamentDetails.endDate[1]}-{tournamentDetails.endDate[0]}</Text>
             </View>
             <View style={styles.tournamentDetailsRow}>
@@ -534,7 +577,7 @@ export const Info = ({ id, isCreator }) => {
               <Text style={styles.tournamentDetailsHeading}>Ball</Text>
               <Text style={styles.tournamentDetailsValue}>: {tournamentDetails.ballType}</Text>
             </View>
-          </View>
+          </LinearGradient>
 
           {/* Modal for Editing Tournament Details */}
           <Modal
@@ -778,7 +821,12 @@ export const Teams = ({ id, isCreator }) => {
       <ScrollView>
         {teams?.length !== 0 && (
           teams?.map((team) => (
-            <View key={team.name} style={styles.teamCard}>
+            <LinearGradient
+              key={team.name}
+              colors={['#0866AA', '#6BB9F0']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.teamCard}>
               <View style={styles.teamHeader}>
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-start', gap: 10, alignItems: 'center' }}>
                   <Image source={{ uri: team.logoPath }} style={styles.teamImage} resizeMode='cover' />
@@ -793,7 +841,7 @@ export const Teams = ({ id, isCreator }) => {
                   <Icon name="delete" size={24} color="black" />
                 </Pressable>
               }
-            </View>
+            </LinearGradient>
           ))
         )}
       </ScrollView>
@@ -948,43 +996,62 @@ export const Matches = ({ id, isCreator }) => {
       {!loading && (
         <>
           {/* Match Details Section */}
-          <View style={styles.matchesContainer}>
-            {matchDetails.length > 0 ? (
-              matchDetails.map((match, index) => (
-                <View key={index} style={styles.matchCard}>
-                  <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline', borderBottomColor: 'grey', borderBottomWidth: 1 }}>
-                    <Text style={styles.matchTeamName}>{match.team1?.name}</Text>
-                    <Text style={{ color: 'black' }}>v/s</Text>
-                    <Text style={styles.matchTeamName}>{match.team2?.name}</Text>
-                  </View>
-                  <Text style={styles.matchStage}>{match.stage}</Text>
-                  <Text style={[styles.matchText, { textTransform: 'uppercase' }]}><Icon name="location-on" color="red" size={16} /> {match.venue}</Text>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={styles.matchText}><Icon name="calendar-today" color="black" size={16} /> {match.matchDate !== null ? `${match.matchDate[2]} - ${match.matchDate[1]} - ${match.matchDate[0]}` : 'Date not decided'}</Text>
-                    <Text style={styles.matchText}><Icon name="emoji-events" color="green" size={16} /> {match.winner || 'N/A'}</Text>
-                  </View>
-                </View>
-              ))
-            ) : (
-              <>
-                <Text style={styles.noMatchText}>No matches scheduled yet.</Text>
-                {/* Schedule Buttons */}
-                {isCreator &&
-                  <>
-                    <Text style={styles.scheduleButtonsHeading}>How would you like to schedule the matches?</Text>
-                    <View style={styles.scheduleButtons}>
-                      <Pressable onPress={aiMatchScheduleHandler} style={styles.button}>
-                        <Text style={styles.buttonText}>USING AI</Text>
-                      </Pressable>
-                      <Pressable style={styles.button}>
-                        <Text style={styles.buttonText}>MANUALLY</Text>
-                      </Pressable>
+          <ScrollView>
+            <View style={styles.matchesContainer}>
+              {matchDetails.length > 0 ? (
+                matchDetails.map((match, index) => (
+                  <LinearGradient
+                    key={index}
+                    colors={['#0866AA', '#6BB9F0']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.matchCard}>
+                    <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'space-between', borderBottomColor: 'white', borderBottomWidth: 1, paddingBottom: 4 }}>
+                      <Image source={{ uri: match.team1.logoPath }} style={styles.logo} />
+                      <Text style={styles.matchTeamName}>{match.team1?.name}</Text>
+                      <Text style={styles.vs}>VS</Text>
+                      <Text style={styles.matchTeamName}>{match.team2?.name}</Text>
+                      <Image source={{ uri: match.team2.logoPath }} style={styles.logo} />
                     </View>
-                  </>
-                }
-              </>
-            )}
-          </View>
+                    <Text style={styles.matchStage}>{match.stage}</Text>
+                    <Text style={[styles.matchText, { textTransform: 'uppercase' }]}>
+                      <Icon name="location-on" color="white" size={18} />
+                      Venue: {match.venue}
+                    </Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                      <Text style={styles.matchText}>
+                        <Icon name="calendar-today" color="white" size={18} />
+                        Date: {match.matchDate !== null ? `${match.matchDate[2]} - ${match.matchDate[1]} - ${match.matchDate[0]}` : 'Date not decided'
+                        }</Text>
+                      <Text style={styles.matchText}>
+                        <Icon name="emoji-events" color="white" size={18} />
+                        Winner:
+                        {match.winner || 'N/A'}
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                ))
+              ) : (
+                <>
+                  <Text style={styles.noMatchText}>No matches scheduled yet.</Text>
+                  {/* Schedule Buttons */}
+                  {isCreator &&
+                    <>
+                      <Text style={styles.scheduleButtonsHeading}>How would you like to schedule the matches?</Text>
+                      <View style={styles.scheduleButtons}>
+                        <Pressable onPress={aiMatchScheduleHandler} style={styles.button}>
+                          <Text style={styles.buttonText}>USING AI</Text>
+                        </Pressable>
+                        <Pressable style={styles.button}>
+                          <Text style={styles.buttonText}>MANUALLY</Text>
+                        </Pressable>
+                      </View>
+                    </>
+                  }
+                </>
+              )}
+            </View>
+          </ScrollView>
 
 
 
