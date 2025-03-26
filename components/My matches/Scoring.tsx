@@ -215,7 +215,7 @@ const ScoringScreen = ({ route }) => {
           return count + (ball.noBall || ball.wide ? 0 : 1);
         }, 0);
         setLegalDeliveries(deliveryCount);
-        if (deliveryCount !== 0 && (data.completedOvers !== (data.totalOvers - 1))) {
+        if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
           setModals((prev) => ({ ...prev, nextBowler: true }));
         }
 
@@ -281,7 +281,7 @@ const ScoringScreen = ({ route }) => {
           return count + (ball.noBall || ball.wide ? 0 : 1);
         }, 0);
         setLegalDeliveries(deliveryCount);
-        if (deliveryCount !== 0 && (data.completedOvers !== (data.totalOvers - 1))) {
+        if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
           setModals((prev) => ({ ...prev, nextBowler: true }));
         }
 
@@ -348,7 +348,7 @@ const ScoringScreen = ({ route }) => {
           return count + (ball.noBall || ball.wide ? 0 : 1);
         }, 0);
         setLegalDeliveries(deliveryCount);
-        if (deliveryCount !== 0 && (data.completedOvers !== (data.totalOvers - 1))) {
+        if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
           setModals((prev) => ({ ...prev, nextBowler: true }));
         }
 
