@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator, ImageBackground, StatusBar } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
+const backgroundImage = require('../../assets/images/cricsLogo.png');
 
 const TeamPage = () => {
   const [teams, setTeams] = useState([]);
@@ -15,6 +18,7 @@ const TeamPage = () => {
 
   const fetchTeams = async () => {
     try {
+      const userId = await AsyncStorage.getItem('userUUID');
       const token = await AsyncStorage.getItem("jwtToken");
       if (!token) {
         throw new Error("Authentication token not found.");
@@ -24,7 +28,13 @@ const TeamPage = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setTeams(response.data.data);
+      const filteredTeams = response.data.data.filter((team) =>
+        team.creator.id === userId ||
+        team.captain.id === userId ||
+        team.players.some((player) => player?.id === userId)
+      );
+
+      setTeams(filteredTeams);
     } catch (err) {
       console.error("Error fetching teams:", err.response?.data || err.message);
     } finally {
@@ -71,31 +81,64 @@ const TeamPage = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Teams</Text>
-      {teams.length > 0 ? (
-        <FlatList
-          data={teams}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderTeamCard}
-        />
-      ) : (
-        <Text style={styles.noTeamsText}>No teams available</Text>
-      )}
-    </View>
+    <>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#34B8FF"
+        translucent={true}
+      />
+      <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradientOverlay}>
+        <ImageBackground source={backgroundImage} style={styles.background} resizeMode="cover">
+          <BlurView intensity={50} tint="light" style={styles.container}>
+            {teams.length > 0 ? (
+              <FlatList
+                data={teams}
+                keyExtractor={(item) => item.id.toString()}
+                ListHeaderComponent={() => <Text style={styles.heading}>Teams</Text>}
+                renderItem={renderTeamCard}
+              />
+            ) : (
+              <Text style={styles.noTeamsText}>No teams available</Text>
+            )}
+          </BlurView>
+        </ImageBackground>
+      </LinearGradient>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#003b5c", padding: 20},
-  heading: { fontSize: 22, fontWeight: "bold", color: "#fff", textAlign: "center", marginBottom: 10 },
-  card: { flexDirection: "row", backgroundColor: "#fff", padding: 15, borderRadius: 10, marginBottom: 10, alignItems: "center" },
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    opacity: 0.8
+  },
+  gradientOverlay: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  container: {
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 15,
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20
+  },
+  heading: { fontSize: 22, fontWeight: "bold", color: "#005a7f", textAlign: "center", marginBottom: 10, marginTop: 30 },
+  card: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    padding: 15, borderRadius: 10, marginBottom: 10, alignItems: "center"
+  },
   teamLogo: { width: 60, height: 60, borderRadius: 30, marginRight: 10 },
   teamInfo: { flex: 1 },
   teamName: { fontSize: 18, fontWeight: "bold", color: "#003b5c" },
   captain: { fontSize: 14, color: "#666" },
   loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  noTeamsText: { color: "#fff", textAlign: "center", marginTop: 20, fontSize: 16 },
+  noTeamsText: { color: "#003b5c", textAlign: "center", marginTop: 20, fontSize: 16 },
 });
 
 export default TeamPage;

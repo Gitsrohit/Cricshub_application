@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     color: '#004466',
   },
   signupLink: {
-    color: '#FFD700',
+    color: '#6BB9F0',
     fontWeight: 'bold',
   },
 });
