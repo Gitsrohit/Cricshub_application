@@ -360,7 +360,7 @@ const ScoringScreen = ({ route }) => {
         const data = event.data;
         console.log("Match complete");
         console.log(JSON.parse(data));
-        navigation.navigate('MatchScoreCard', { matchId: data.matchId })
+        navigation.navigate('MatchScoreCard', { matchId })
       })
 
       eventSource.onerror = (error) => {
