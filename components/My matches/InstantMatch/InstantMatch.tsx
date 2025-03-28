@@ -23,8 +23,10 @@ import { AntDesign } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+const moment = require('moment-timezone');
 
 const InstantMatch = () => {
+  const istDateTime = moment().tz("Asia/Kolkata");
   const [overs, setOvers] = useState('');
   const [venue, setVenue] = useState('');
   const [teamModalVisible, setTeamModalVisible] = useState(false);
@@ -137,8 +139,8 @@ const InstantMatch = () => {
         team1Id,
         team2Id,
         overs: matchDetails.overs,
-        matchDate,
-        matchTime,
+        matchDate: istDateTime.format("YYYY-MM-DD"),
+        matchTime: istDateTime.format("HH:mm:ss.SSS"),
         venue,
       };
 

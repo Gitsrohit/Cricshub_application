@@ -355,6 +355,12 @@ const ScoringScreen = ({ route }) => {
         setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
         setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
         setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
+      });
+      eventSource.addEventListener('match-complete', (event) => {
+        const data = event.data;
+        console.log("Match complete");
+        console.log(JSON.parse(data));
+        navigation.navigate('MatchScoreCard', { matchId: data.matchId })
       })
 
       eventSource.onerror = (error) => {
@@ -487,10 +493,7 @@ const ScoringScreen = ({ route }) => {
     ).map(({ playerId, name }) => ({ playerId, name }));
     setAvailableBatsmen(available);
 
-    setModals({ ...modals, wicket: false });
-    setTimeout(() => {
-      setModals({ ...modals, nextBatsman: true });
-    }, 6000);
+    setModals({ ...modals, wicket: false, nextBatsman: true });
   };
 
   const submitScore = async (data) => {
