@@ -23,6 +23,12 @@ const ScoreCard = ({ route }) => {
         `https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      const matchDetails = await axios.get(
+        `https://score360-7.onrender.com/api/v1/matches/${matchId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log(matchDetails.data);
+
       console.log(response.data);
       setMatchState(response.data);
     } catch (error) {
