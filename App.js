@@ -9,6 +9,7 @@ import Tournaments from './components/Tournaments/Tournaments';
 import Home from './components/Home/Home';
 import Teams from './components/Teams/Teams';
 import Profile from './components/Settings/Profile';
+import Performance from './components/Settings/Performance';
 import Footer from './components/Footer'; // Footer component
 import CreateTeam from './components/Teams/CreateTeam';
 import CreateTournaments from './components/Tournaments/CreateTournaments';
@@ -22,6 +23,7 @@ import SelectRoles from './components/My matches/SelectRoles';
 import AddPlayersToTeam from './components/Teams/AddPlayersToTeam';
 import SelectRoles2ndInnings from './components/My matches/SelectRoles2ndInnings';
 import AllMatches from './components/My matches/AllMatches/AllMatches';
+// import Performance from './components/Settings/Performance';
 
 const Stack = createStackNavigator();
 
@@ -56,6 +58,7 @@ const MainScreens = () => {
           <Stack.Screen name="Tournaments" component={Tournaments} />
           <Stack.Screen name="Teams" component={Teams} />
           <Stack.Screen name="Profile" component={Profile} />
+          <Stack.Screen name="Performance" component={Performance} />
           <Stack.Screen name="CreateTeam" component={CreateTeam} />
           <Stack.Screen name="CreateTournaments" component={CreateTournaments} />
           <Stack.Screen name="ManageTournaments" component={ManageTournaments} />
