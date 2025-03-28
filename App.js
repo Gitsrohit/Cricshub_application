@@ -22,6 +22,7 @@ import SelectRoles from './components/My matches/SelectRoles';
 import AddPlayersToTeam from './components/Teams/AddPlayersToTeam';
 import SelectRoles2ndInnings from './components/My matches/SelectRoles2ndInnings';
 import AllMatches from './components/My matches/AllMatches/AllMatches';
+import ScoreCard from './components/My matches/ScoreCard';
 
 const Stack = createStackNavigator();
 
@@ -67,6 +68,7 @@ const MainScreens = () => {
           <Stack.Screen name="SelectRoles" component={SelectRoles} />
           <Stack.Screen name="AddPlayersToTeam" component={AddPlayersToTeam} />
           <Stack.Screen name="SelectRoles2ndInnings" component={SelectRoles2ndInnings} />
+          <Stack.Screen name="MatchScoreCard" component={ScoreCard} />
         </Stack.Navigator>
       </View>
       <Footer style={styles.footer} />
