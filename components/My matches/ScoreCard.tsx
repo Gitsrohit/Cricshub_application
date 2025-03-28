@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, FlatList, ImageBackground, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ImageBackground, StatusBar, TouchableHighlight, TouchableOpacity } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,8 +8,9 @@ const background = require('../../assets/images/cricsLogo.png');
 const cardGradientColors = ['#4A90E2', '#6BB9F0'];
 
 const ScoreCard = ({ route }) => {
-  const [matchState, setMatchState] = useState(null);
   const { matchId } = route.params;
+  const [team, setTeam] = useState(null);
+  const [matchState, setMatchState] = useState(null);
 
   const getMatchState = async () => {
     try {
@@ -23,8 +24,10 @@ const ScoreCard = ({ route }) => {
         `https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log(response.data);
       setMatchState(response.data);
+      setTeam(response.data.team1.name);
+      console.log(response.data);
+
     } catch (error) {
       console.error('Error fetching match state:', error);
     }
@@ -42,6 +45,31 @@ const ScoreCard = ({ route }) => {
     );
   }
 
+  const renderBattingOrder = (team, battingOrder) => {
+    const orderedBatting = [
+      ...battingOrder,
+      ...team?.playingXI.filter(player => !battingOrder?.some(b => b?.playerId === player?.playerId))
+    ];
+
+    return (
+      <FlatList
+        data={orderedBatting}
+        keyExtractor={(item) => item.playerId}
+        renderItem={({ item }) => {
+          const playerStats = team.playingXI.find(p => p.playerId === item.playerId) || {};
+          return (
+            <View style={styles.playerRow}>
+              <Text style={styles.playerName}>{item.name}</Text>
+              <Text style={styles.stats}>Runs: {playerStats.runs || 0}, Balls: {playerStats.ballsFaced || 0}</Text>
+              <Text style={styles.stats}>4s: {playerStats.fours || 0}, 6s: {playerStats.sixes || 0}, SR: {playerStats.strikeRate ? playerStats.strikeRate.toFixed(2) : 0}</Text>
+              <Text style={styles.stats}>Bowling: Wickets-{playerStats.wicketsTaken || 0}, Runs conceded- {playerStats.runsConceded || 0}</Text>
+            </View>
+          );
+        }}
+      />
+    );
+  };
+
   return (
     <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
       <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
@@ -56,34 +84,29 @@ const ScoreCard = ({ route }) => {
           </View>
         </LinearGradient>
 
-        {/* Batting & Bowling Order */}
-        <View style={styles.orderContainer}>
-          <Text style={styles.title}>Batting & Bowling Stats</Text>
-          <FlatList
-            data={matchState.battingTeamPlayingXI}
-            keyExtractor={(item) => item.playerId}
-            renderItem={({ item }) => (
-              <View style={styles.playerRow}>
-                <Text style={styles.playerName}>{item.name}</Text>
-                <Text style={styles.stats}>Runs: {item.runs}, Balls: {item.ballsFaced}</Text>
-                <Text style={styles.stats}>4s: {item.fours}, 6s: {item.sixes}, SR: {item.strikeRate.toFixed(2)}</Text>
-              </View>
-            )}
-          />
-
-          <Text style={styles.title}>Batting & Bowling Stats</Text>
-          <FlatList
-            data={matchState.bowlingTeamPlayingXI}
-            keyExtractor={(item) => item.playerId}
-            renderItem={({ item }) => (
-              <View style={styles.playerRow}>
-                <Text style={styles.playerName}>{item.name}</Text>
-                <Text style={styles.stats}>Overs: {item.overs}, Balls: {item.ballsBowled}</Text>
-                <Text style={styles.stats}>Wickets: {item.wicketsTaken}, Economy: {item.economyRate.toFixed(2)}</Text>
-              </View>
-            )}
-          />
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={() => setTeam(matchState.team1.name)}>
+            <Text style={styles.buttonText}>{matchState.team1.name}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={() => setTeam(matchState.team2.name)}>
+            <Text style={styles.buttonText}>{matchState.team2.name}</Text>
+          </TouchableOpacity>
         </View>
+
+        {/* Batting Orders */}
+        {team === matchState.team1.name && (
+          <View style={styles.orderContainer}>
+            <Text style={styles.title}>Batting Order - {matchState.team1.name}</Text>
+            {renderBattingOrder(matchState.team1, matchState.team1BattingOrder)}
+          </View>
+        )}
+
+        {team === matchState.team2.name && (
+          <View style={styles.orderContainer}>
+            <Text style={styles.title}>Batting Order - {matchState.team2.name}</Text>
+            {renderBattingOrder(matchState.team2, matchState.team2BattingOrder)}
+          </View>
+        )}
       </ImageBackground>
     </LinearGradient>
   );
@@ -106,7 +129,7 @@ const styles = StyleSheet.create({
   teamButton: {
     width: '100%',
     padding: 10,
-    marginTop: StatusBar?.currentHeight,
+    marginTop: StatusBar.currentHeight || 0,
     shadowColor: '#4A90E2',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -153,5 +176,20 @@ const styles = StyleSheet.create({
   stats: {
     fontSize: 14,
     color: 'black',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 10,
+  },
+  button: {
+    backgroundColor: '#6BB9F0',
+    padding: 10,
+    marginHorizontal: 10,
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });

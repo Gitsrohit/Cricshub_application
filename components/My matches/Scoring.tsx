@@ -360,7 +360,7 @@ const ScoringScreen = ({ route }) => {
         const data = event.data;
         console.log("Match complete");
         console.log(JSON.parse(data));
-        navigation.navigate('MatchScoreCard', { matchId: data.matchId })
+        navigation.navigate('MatchScoreCard', { matchId })
       })
 
       eventSource.onerror = (error) => {
@@ -492,8 +492,12 @@ const ScoringScreen = ({ route }) => {
       (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
     ).map(({ playerId, name }) => ({ playerId, name }));
     setAvailableBatsmen(available);
+    setWicketType('');
 
-    setModals({ ...modals, wicket: false, nextBatsman: true });
+    setModals((prev) => ({ ...prev, wicket: false }));
+    setTimeout(() => {
+      setModals((prev) => ({ ...prev, nextBatsman: true }));
+    }, 10000);
   };
 
   const submitScore = async (data) => {
