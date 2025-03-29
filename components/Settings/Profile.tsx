@@ -1,116 +1,274 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   ActivityIndicator,
   SafeAreaView,
-  ImageBackground,
   TextInput,
-  Modal,
-  Pressable,
-  Button,
   TouchableOpacity,
   Image,
-} from "react-native";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import bgImage from "../../assets/images/cricsLogo.png";
-import { LinearGradient } from "expo-linear-gradient";
-import IconSet from "react-native-vector-icons/FontAwesome";
-import { BlurView } from "expo-blur";
-import * as ImagePicker from "expo-image-picker";
+  ScrollView,
+  Animated,
+  Easing,
+  ImageBackground,
+} from 'react-native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import * as ImagePicker from 'expo-image-picker';
+import backgroundImage from '../../assets/images/cricsLogo.png';
+
+const Notification = ({ message, type, visible }) => {
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    if (visible) {
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+        Animated.delay(2000),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, fadeAnim]);
+
+  if (!visible) return null;
+
+  const bgColor = type === 'success' ? '#4CAF50' : '#F44336';
+
+  return (
+    <Animated.View
+      style={[
+        styles.notificationContainer,
+        { opacity: fadeAnim, backgroundColor: bgColor },
+      ]}
+    >
+      <Icon
+        name={type === 'success' ? 'check-circle' : 'exclamation-circle'}
+        size={20}
+        color="#fff"
+        style={styles.notificationIcon}
+      />
+      <Text style={styles.notificationText}>{message}</Text>
+    </Animated.View>
+  );
+};
 
 const Settings = () => {
   const [profile, setProfile] = useState({
-    name: "",
-    phone: "",
-    role: "",
-    totalMatchesPlayed: "",
-    totalRuns: 0,
-    totalWickets: 0,
-    total100s: 0,
-    total50s: 0,
-    totalSixes: 0,
-    totalFours: 0,
+    name: '',
+    phone: '',
+    email: '',
+    role: '',
+    profilePicture: null,
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [updatedProfile, setUpdatedProfile] = useState({
-    name: "",
-    phoneNumber: "",
-    profilePicturePath: "",
+  const [editField, setEditField] = useState(null);
+  const [tempValue, setTempValue] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [notification, setNotification] = useState({
+    visible: false,
+    message: '',
+    type: 'success',
   });
 
-  const myIcon = <IconSet name="user" size={80} color="#fff" />;
+  const showNotification = (message, type = 'success') => {
+    setNotification({ visible: true, message, type });
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, visible: false }));
+    }, 3000);
+  };
 
   const fetchProfile = async () => {
     try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Please login again");
+      setLoading(true);
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) {
+        showNotification('Please login again', 'error');
+        return;
+      }
 
       const response = await axios.get(
-        "https://score360-7.onrender.com/api/v1/profile/current",
+        'https://score360-7.onrender.com/api/v1/profile/current',
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      setProfile(response.data);
-      setUpdatedProfile({
-        name: response.data.name,
-        phoneNumber: response.data.phone,
-        profilePicturePath: response.data.profilePicturePath || "",
+
+      const profileData = response.data.data || response.data;
+      setProfile({
+        name: profileData.name || '',
+        phone: profileData.phone || profileData.phoneNumber || '',
+        email: profileData.email || '',
+        role: profileData.role || '',
+        profilePicture: profileData.logoPath
+          ? `${profileData.logoPath}?${new Date().getTime()}`
+          : null,
       });
-      setError("");
     } catch (err) {
-      setError("Failed to load profile information");
+      console.error('Profile fetch error:', err);
+      let errorMessage = 'Failed to load profile data';
+      if (err.response) {
+        if (err.response.status === 401) {
+          errorMessage = 'Session expired. Please login again';
+        } else {
+          errorMessage = err.response.data?.message || errorMessage;
+        }
+      }
+      showNotification(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status === "granted") {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 4],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        setUpdatedProfile((prev) => ({
-          ...prev,
-          profilePicturePath: result.assets[0].uri,
-        }));
-      }
-    } else {
-      alert("Permission to access media library is required!");
-    }
-  };
-
-  const updateProfile = async () => {
+  const updateProfileData = async (updatedData) => {
     try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Please login again");
+      setIsUpdating(true);
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) {
+        showNotification('Please login again', 'error');
+        return false;
+      }
 
-      await axios.put(
-        "https://score360-7.onrender.com/api/v1/profile/update",
-        updatedProfile,
+      const response = await axios.put(
+        'https://score360-7.onrender.com/api/v1/profile/update',
+        updatedData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
         }
       );
-      // setProfile((prev) => ({ ...prev, ...updatedProfile }));
-      setModalVisible(false);
+
+      const updatedProfile = response.data.data || response.data;
+      setProfile(prev => ({
+        ...prev,
+        ...updatedData,
+        profilePicture: updatedProfile.profilePicturePath
+          ? `${updatedProfile.profilePicturePath}?${new Date().getTime()}`
+          : prev.profilePicture,
+      }));
+
+      showNotification('Profile updated successfully');
+      return true;
     } catch (err) {
-      alert("Failed to update profile");
+      console.error('Update error:', err);
+      let errorMessage = 'Failed to update profile';
+      if (err.response) {
+        errorMessage = err.response.data?.message || errorMessage;
+      }
+      showNotification(errorMessage, 'error');
+      return false;
+    } finally {
+      setIsUpdating(false);
     }
+  };
+
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        showNotification('Photo access permission required', 'error');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        setIsUploading(true);
+        const newImageUri = result.assets[0].uri;
+        
+        setProfile(prev => ({
+          ...prev,
+          profilePicture: newImageUri,
+        }));
+
+        const formData = new FormData();
+        formData.append('profilePicture', {
+          uri: newImageUri,
+          type: 'image/jpeg',
+          name: 'profile.jpg',
+        });
+
+        const token = await AsyncStorage.getItem('jwtToken');
+        const response = await axios.put(
+          'https://score360-7.onrender.com/api/v1/profile/update',
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+
+        const updatedProfile = response.data.data || response.data;
+        setProfile(prev => ({
+          ...prev,
+          name: updatedProfile.name || prev.name,
+          phone: updatedProfile.phone || updatedProfile.phoneNumber || prev.phone,
+          profilePicture: updatedProfile.profilePicturePath 
+            ? `${updatedProfile.profilePicturePath}?${new Date().getTime()}`
+            : newImageUri,
+        }));
+
+        showNotification('Profile updated successfully');
+      }
+    } catch (err) {
+      console.error('Image upload error:', err);
+      fetchProfile();
+      showNotification(
+        err.response?.data?.message || 'Failed to update profile picture', 
+        'error'
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleEdit = (field) => {
+    setEditField(field);
+    setTempValue(profile[field]);
+  };
+
+  const handleSave = async () => {
+    if (!tempValue.trim()) {
+      showNotification('Field cannot be empty', 'error');
+      return;
+    }
+
+    const updatedData = {
+      [editField]: tempValue,
+    };
+
+    const success = await updateProfileData(updatedData);
+    if (success) {
+      setEditField(null);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditField(null);
   };
 
   useEffect(() => {
@@ -120,307 +278,341 @@ const Settings = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
+        <ActivityIndicator size="large" color="#4e8cff" />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.settings}>
-      <LinearGradient
-        colors={['#000000', '#0A303B', '#36B0D5']}
-        style={styles.gradient}
+    <SafeAreaView style={styles.container}>
+      <Notification
+        visible={notification.visible}
+        message={notification.message}
+        type={notification.type}
+      />
+      <ImageBackground
+        source={backgroundImage}
+        style={styles.backgroundImage}
+        imageStyle={styles.backgroundImageStyle}
       >
-        <ImageBackground
-          source={bgImage} // Dynamically set the image source
-          style={styles.cardBackground} // Added shadow styling
-          imageStyle={styles.cardImage}
+        <LinearGradient 
+          colors={['rgba(8, 102, 170, 0.2)', 'rgba(107, 185, 240, 0.2)']}  
+          style={styles.gradientOverlay}
         >
-          <View style={styles.settingsContent}>
-            <View style={styles.userImageContainer}>
-              <View style={styles.userImage}>{myIcon}</View>
-              <Pressable
-                style={styles.editIconContainer}
-                onPress={() => setModalVisible(true)}
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.profileContainer}>
+              <TouchableOpacity
+                style={styles.profileImageContainer}
+                onPress={pickImage}
+                disabled={isUploading}
               >
-                <IconSet name="edit" size={20} color="#fff" />
-              </Pressable>
+                {profile.profilePicture ? (
+                  <>
+                    <Image
+                      source={{ 
+                        uri: profile.profilePicture,
+                        cache: 'reload',
+                      }}
+                      style={styles.profileImage}
+                      onError={() => fetchProfile()}
+                    />
+                    {isUploading && (
+                      <View style={styles.uploadOverlay}>
+                        <ActivityIndicator size="large" color="#fff" />
+                      </View>
+                    )}
+                  </>
+                ) : (
+                  <View style={styles.profileImagePlaceholder}>
+                    <Icon name="user" size={60} color="#fff" />
+                  </View>
+                )}
+                <View style={styles.editPhotoButton}>
+                  <Icon name="camera" size={16} color="#fff" />
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.infoContainer}>
+                {/* Name Field */}
+                <View style={styles.infoItem}>
+                  {editField === 'name' ? (
+                    <View style={styles.editContainer}>
+                      <TextInput
+                        style={styles.editInput}
+                        value={tempValue}
+                        onChangeText={setTempValue}
+                        autoFocus
+                        placeholder="Enter your name"
+                      />
+                      <TouchableOpacity
+                        style={styles.saveButton}
+                        onPress={handleSave}
+                        disabled={isUpdating}
+                      >
+                        {isUpdating ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Icon name="check" size={18} color="#fff" />
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.cancelButton}
+                        onPress={handleCancelEdit}
+                        disabled={isUpdating}
+                      >
+                        <Icon name="times" size={18} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.infoTextContainer}>
+                      <Text style={styles.infoLabel}>Name:</Text>
+                      <Text style={styles.infoValue}>{profile.name}</Text>
+                      <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => handleEdit('name')}
+                        disabled={isUpdating || isUploading}
+                      >
+                        <Icon name="pencil" size={16} color="#4e8cff" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
+                {/* Phone Field */}
+                <View style={styles.infoItem}>
+                  {editField === 'phone' ? (
+                    <View style={styles.editContainer}>
+                      <TextInput
+                        style={styles.editInput}
+                        value={tempValue}
+                        onChangeText={setTempValue}
+                        keyboardType="phone-pad"
+                        autoFocus
+                        placeholder="Enter your phone"
+                      />
+                      <TouchableOpacity
+                        style={styles.saveButton}
+                        onPress={handleSave}
+                        disabled={isUpdating}
+                      >
+                        {isUpdating ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Icon name="check" size={18} color="#fff" />
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.cancelButton}
+                        onPress={handleCancelEdit}
+                        disabled={isUpdating}
+                      >
+                        <Icon name="times" size={18} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.infoTextContainer}>
+                      <Text style={styles.infoLabel}>Phone:</Text>
+                      <Text style={styles.infoValue}>{profile.phone}</Text>
+                      <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => handleEdit('phone')}
+                        disabled={isUpdating || isUploading}
+                      >
+                        <Icon name="pencil" size={16} color="#4e8cff" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
+                {/* Email Field (read-only) */}
+                <View style={styles.infoItem}>
+                  <View style={styles.infoTextContainer}>
+                    <Text style={styles.infoLabel}>Email:</Text>
+                    <Text style={styles.infoValue}>
+                      {profile.email || 'Not set'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Role Field (read-only) */}
+                <View style={styles.infoItem}>
+                  <View style={styles.infoTextContainer}>
+                    <Text style={styles.infoLabel}>Role:</Text>
+                    <Text style={styles.infoValue}>{profile.role}</Text>
+                  </View>
+                </View>
+              </View>
             </View>
-
-            <View style={styles.namePhone}>
-              <Text style={styles.headerHeading}>Name: <Text style={styles.headerValue}>{profile.name}</Text></Text>
-              <Text style={styles.headerHeading}>Phone: <Text style={styles.headerValue}>{profile.phone}</Text></Text>
-            </View>
-
-            <BlurView intensity={80} style={styles.blurContainer}>
-              <Text style={{ fontSize: 22, fontWeight: 'bold', color: 'white', textAlign: 'center' }}>Player Statistics</Text>
-            </BlurView>
-
-            <BlurView intensity={180} style={styles.statisticsBlurContainer}>
-              <Text style={styles.playerRole}>{profile.role}</Text>
-
-              <View style={styles.statisticsContainer}>
-                <Text style={styles.statisticsHeading}>Total Matches: </Text>
-                <Text style={styles.statisticsValue}>{profile.totalMatchesPlayed}</Text>
-              </View>
-
-              <View style={styles.statisticsContainer}>
-                <Text style={styles.statisticsHeading}>Total Runs: </Text>
-                <Text style={styles.statisticsValue}>{profile.totalRuns}</Text>
-              </View>
-
-              <View style={styles.statisticsContainer}>
-                <Text style={styles.statisticsHeading}>Total Wickets: </Text>
-                <Text style={styles.statisticsValue}>{profile.totalWickets}</Text>
-              </View>
-
-              <View style={styles.statisticsContainer}>
-                <Text style={styles.statisticsHeading}>Total 100: </Text>
-                <Text style={styles.statisticsValue}>{profile.total100s}</Text>
-              </View>
-
-              <View style={styles.statisticsContainer}>
-                <Text style={styles.statisticsHeading}>Total 50: </Text>
-                <Text style={styles.statisticsValue}>{profile.total50s}</Text>
-              </View>
-
-              <View style={styles.statisticsContainer}>
-                <Text style={styles.statisticsHeading}>Total Sixes: </Text>
-                <Text style={styles.statisticsValue}>{profile.totalSixes}</Text>
-              </View>
-
-              <View style={styles.statisticsContainer}>
-                <Text style={styles.statisticsHeading}>Total Fours: </Text>
-                <Text style={styles.statisticsValue}>{profile.totalFours}</Text>
-              </View>
-            </BlurView>
-          </View>
-        </ImageBackground>
-      </LinearGradient>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Update Profile</Text>
-            <TouchableOpacity onPress={pickImage} style={styles.userUpdatedImage}>
-              {updatedProfile.profilePicturePath !== "" ? (
-                <Image resizeMode="cover" source={{ uri: updatedProfile.profilePicturePath }} style={styles.bannerImage} />
-              ) : (
-                <Pressable style={styles.imagePickerButton} onPress={pickImage}>
-                  <Text style={styles.imagePickerButtonText}>Pick Profile Picture</Text>
-                </Pressable>
-              )}
-            </TouchableOpacity>
-            <View style={styles.modalInputLabelContainer}>
-              <Text style={styles.modalTitle}>Name</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Name"
-                value={updatedProfile.name}
-                onChangeText={(text) =>
-                  setUpdatedProfile((prev) => ({ ...prev, name: text }))
-                }
-              />
-            </View>
-            <View style={styles.modalInputLabelContainer}>
-              <Text style={styles.modalTitle}>Phone</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Phone Number"
-                value={updatedProfile.phoneNumber}
-                onChangeText={(text) =>
-                  setUpdatedProfile((prev) => ({ ...prev, phoneNumber: text }))
-                }
-              />
-            </View>
-
-            <View style={styles.modalActions}>
-              <Button title="Save" onPress={updateProfile} />
-              <Button title="Cancel" onPress={() => setModalVisible(false)} />
-            </View>
-          </View>
-        </View>
-      </Modal>
+          </ScrollView>
+        </LinearGradient>
+      </ImageBackground>
     </SafeAreaView>
   );
 };
 
-export default Settings;
-
 const styles = StyleSheet.create({
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 50,
+  container: {
+    flex: 1,
   },
-  blurContainer: {
-    padding: 6,
-    borderRadius: 10,
-    width: '60%',
-    textAlign: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+  backgroundImage: {
+    flex: 1,
+    resizeMode: 'cover',
+  },
+  backgroundImageStyle: {
+    opacity: 0.9,  
+  },
+  gradientOverlay: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
+  },
+  profileContainer: {
+    alignItems: 'center',
     marginTop: 30,
+  },
+  profileImageContainer: {
+    position: 'relative',
     marginBottom: 30,
   },
-  cardBackground: {
+  profileImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  profileImagePlaceholder: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  uploadOverlay: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editPhotoButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#4e8cff',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  infoContainer: {
     width: '100%',
-    height: '100%',
-    marginBottom: 35,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  cardImage: {
-    resizeMode: 'cover',
-    opacity: 0.5,
-    borderRadius: 10,
+  infoItem: {
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingBottom: 15,
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
+  infoTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  errorText: {
-    color: "red",
+  infoLabel: {
+    color: '#333',
     fontSize: 16,
-  },
-  gradient: {
-    flex: 1,
-  },
-  headerHeading: {
-    fontSize: 14,
-    color: '#fff',
-  },
-  headerValue: {
-    fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    width: 80,
   },
-  imagePickerButton: {
-    width: 100,
-    height: 100,
+  infoValue: {
+    color: '#555',
+    fontSize: 16,
+    flex: 1,
+    marginLeft: 10,
+  },
+  editButton: {
+    marginLeft: 10,
+    padding: 5,
+  },
+  editContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editInput: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
     padding: 10,
-    borderRadius: 4,
+    color: '#000',
     borderWidth: 1,
-    borderColor: 'black',
-    marginTop: 10,
-    marginBottom: 10
+    borderColor: '#e0e0e0',
   },
-  imagePickerButtonText: {},
+  saveButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    padding: 10,
+    marginLeft: 10,
+  },
+  cancelButton: {
+    backgroundColor: '#F44336',
+    borderRadius: 8,
+    padding: 10,
+    marginLeft: 5,
+  },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 4
-  },
-  modalContainer: {
-    overflow: 'hidden',
-    flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    flex: 1,
+    backgroundColor: '#121212',
   },
-  modalContent: {
-    height: 400,
-    width: '80%',
-    borderRadius: 20,
-    backgroundColor: 'white',
-    padding: 20,
-    overflow: 'hidden',
-  },
-  modalInput: {
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: 'black',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  modalInputLabelContainer: {
-    marginBottom: 10,
-  },
-  namePhone: {
-    marginTop: 10,
-  },
-  playerRole: {
-    marginBottom: 10,
-    fontSize: 20,
-    color: '#4e545c',
-    textAlign: 'center'
-  },
-  settings: {
-    flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'center',
-  },
-  settingsContent: {
-    flex: 1,
-    marginVertical: 40,
-    alignItems: 'center',
-  },
-  statisticsBlurContainer: {
-    width: '80%',
-    overflow: 'hidden',
-    borderRadius: 10,
-    padding: 10,
-  },
-  statisticsContainer: {
+  notificationContainer: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    right: 20,
+    padding: 15,
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  statisticsHeading: {
-    fontSize: 20,
-    color: '#4e545c',
-    textAlign: 'left'
+  notificationIcon: {
+    marginRight: 10,
   },
-  statisticsValue: {
-    fontSize: 20,
-    color: 'black',
-    textAlign: 'right'
+  notificationText: {
+    color: '#fff',
+    fontSize: 14,
+    flex: 1,
   },
-  userImage: {
-    backgroundColor: '#002B46',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 100,
-    height: 100,
-    borderRadius: '100%',
-    borderWidth: 1,
-    borderColor: '#fff'
-  },
-  userUpdatedImage: {
-    marginTop: 10,
-    marginBottom: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 100,
-    height: 100,
-    borderRadius: '100%',
-    borderWidth: 1,
-    borderColor: '#fff'
-  },
-  userImageContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
-  editIconContainer: {},
 });
+
+export default Settings;
