@@ -37,7 +37,7 @@ const Toss = ({ route }) => {
         { tossWinner, choice },
         { headers: { authorization: `Bearer ${token}` } }
       );
-      navigation.navigate('SelectRoles', { matchId });
+      navigation.navigate('SelectRoles', { matchId, isFirstInnings: true });
     } catch (error) {
       Alert.alert('Error', 'Failed to submit toss decision. Please try again.');
     }
@@ -136,24 +136,24 @@ const Toss = ({ route }) => {
             </View>
 
             {/* Choice Dropdown */}
-<View style={styles.inputContainer}>
-  <Text style={styles.label}>Choose Bat or Bowl:</Text>
-  <TouchableOpacity
-    style={styles.dropdownButton}
-    onPress={() => setChoiceModalVisible(true)}
-  >
-    {/* Use the cricket bat or ball icon based on the selected choice */}
-    {choice === 'bat' ? (
-      <MaterialIcons name="sports-cricket" size={20} color="#333" style={styles.dropdownIcon} />
-    ) : (
-      <MaterialIcons name="sports-baseball" size={20} color="#333" style={styles.dropdownIcon} />
-    )}
-    <Text style={styles.dropdownButtonText}>
-      {choice ? (choice === 'bat' ? 'Bat' : 'Bowl') : 'Select Choice'}
-    </Text>
-    <MaterialIcons name="arrow-drop-down" size={24} color="#333" />
-  </TouchableOpacity>
-</View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Choose Bat or Bowl:</Text>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setChoiceModalVisible(true)}
+              >
+                {/* Use the cricket bat or ball icon based on the selected choice */}
+                {choice === 'bat' ? (
+                  <MaterialIcons name="sports-cricket" size={20} color="#333" style={styles.dropdownIcon} />
+                ) : (
+                  <MaterialIcons name="sports-baseball" size={20} color="#333" style={styles.dropdownIcon} />
+                )}
+                <Text style={styles.dropdownButtonText}>
+                  {choice ? (choice === 'bat' ? 'Bat' : 'Bowl') : 'Select Choice'}
+                </Text>
+                <MaterialIcons name="arrow-drop-down" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
 
             {/* Submit Button */}
             <Pressable style={styles.button} onPress={handleTossSubmit}>

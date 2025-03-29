@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useNavigation } from '@react-navigation/native';
 
 const AllMatches = () => {
   const [activeTab, setActiveTab] = useState('MY');
@@ -220,6 +221,7 @@ const MyMatch = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState(null);
+  const navigation = useNavigation();
 
   useEffect(() => {
     getMyMatches();
@@ -228,10 +230,11 @@ const MyMatch = () => {
   const getMyMatches = async () => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
+      const playerId = await AsyncStorage.getItem('userUUID');
       if (!token)
         throw new Error('Please Login Again');
       setLoading(true);
-      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches`,
+      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/player/${playerId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMatches(response.data);
@@ -258,11 +261,20 @@ const MyMatch = () => {
     }
   };
 
+  const matchCardClickHandler = (item) => {
+    const matchId = item.id;
+    navigation.navigate('MatchScoreCard', { matchId })
+  }
+
   const renderMatchItem = ({ item }) => {
     const matchDate = item.matchDate ? `${item.matchDate[2]}-${item.matchDate[1]}-${item.matchDate[0]}` : 'N/A';
 
     return (
-      <Pressable key={item.id} style={styles.card}>
+      <Pressable
+        key={item.id}
+        style={styles.card}
+        onPress={() => matchCardClickHandler(item)}
+      >
         <View style={liveMatchStyles.teamRow}>
           <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
           <View>
@@ -308,13 +320,16 @@ const MyMatch = () => {
 };
 
 const LiveMatch = () => {
+  const navigation = useNavigation();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
+  const [isCreator, setIsCreator] = useState(false);
 
   const getLiveMatches = async () => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
+      const userId = await AsyncStorage.getItem('userUUID');
       if (!token)
         throw new Error('Please Login Again');
       setLoading(true);
@@ -323,7 +338,11 @@ const LiveMatch = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMatches(response.data);
-
+      if (userId === response.data.creatorName.id) {
+        setIsCreator(true);
+      } else {
+        setIsCreator(false);
+      }
     } catch (err) {
       setError('Failed to load live matches');
     } finally {
@@ -335,27 +354,48 @@ const LiveMatch = () => {
     getLiveMatches();
   }, []);
 
+  const liveMatchClickHandler = async (matchId: string) => {
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (isCreator) {
+        const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        const data = response;
+        console.log(data);
+        // navigation.navigate('Scoring', { matchId });
+      }
+      else {
+        navigation.navigate('MatchScoreCard', { matchId })
+      }
+    } catch (error) {
+
+    }
+  }
+
   const renderMatchItem = ({ item }) => (
-    <View style={liveMatchStyles.card}>
-      <View style={liveMatchStyles.teamRow}>
-        <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
-        <View>
-          <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
-          <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+    <Pressable onPress={() => liveMatchClickHandler(item.id)}>
+      <View style={liveMatchStyles.card}>
+        <View style={liveMatchStyles.teamRow}>
+          <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+          <View>
+            <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+          </View>
+          <Text style={liveMatchStyles.vs}>VS</Text>
+          <View>
+            <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+          </View>
+          <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
         </View>
-        <Text style={liveMatchStyles.vs}>VS</Text>
-        <View>
-          <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
-          <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
-        </View>
-        <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+        <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
+        <Text style={liveMatchStyles.date}>
+          Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
+        </Text>
+        <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
       </View>
-      <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
-      <Text style={liveMatchStyles.date}>
-        Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
-      </Text>
-      <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
-    </View>
+    </Pressable>
   );
 
   return (
