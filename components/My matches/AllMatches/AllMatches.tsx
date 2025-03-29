@@ -365,6 +365,9 @@ const LiveMatch = () => {
         console.log(data);
         // navigation.navigate('Scoring', { matchId });
       }
+      else {
+        navigation.navigate('MatchScoreCard', { matchId })
+      }
     } catch (error) {
 
     }
