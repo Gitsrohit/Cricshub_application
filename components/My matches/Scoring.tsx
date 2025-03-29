@@ -360,6 +360,7 @@ const ScoringScreen = ({ route }) => {
         const data = event.data;
         console.log("Match complete");
         console.log(JSON.parse(data));
+        eventSource.close();
         navigation.navigate('MatchScoreCard', { matchId })
       })
 
@@ -496,7 +497,9 @@ const ScoringScreen = ({ route }) => {
 
     setModals((prev) => ({ ...prev, wicket: false }));
     setTimeout(() => {
-      setModals((prev) => ({ ...prev, nextBatsman: true }));
+      if (wicket < 9) {
+        setModals((prev) => ({ ...prev, nextBatsman: true }));
+      }
     }, 10000);
   };
 
