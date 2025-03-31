@@ -140,7 +140,7 @@ const InstantMatch = () => {
         team2Id,
         overs: matchDetails.overs,
         matchDate: istDateTime.format("YYYY-MM-DD"),
-        matchTime: istDateTime.format("HH:mm:ss.SSS"),
+        matchTime: istDateTime.format("HH:mm"),
         venue,
       };
 
