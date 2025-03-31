@@ -116,7 +116,7 @@ const SelectRoles = ({ route, navigation }) => {
 
       showPopupNotification();
       setTimeout(() => {
-        navigation.navigate(`Scoring`, { matchId, strikerId, nonStrikerId, bowler, strikerName, nonStrikerName, bowlerName });
+        navigation.navigate(`Scoring`, { matchId, strikerId, nonStrikerId, bowler, strikerName, nonStrikerName, bowlerName, isFirstInnings });
       }, 1000);
     } catch (err) {
       Alert.alert('Error', 'Failed to update players');
