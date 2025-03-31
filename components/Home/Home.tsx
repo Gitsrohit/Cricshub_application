@@ -22,10 +22,10 @@ const { width, height } = Dimensions.get('window');
 
 const Home = () => {
   const navigation = useNavigation();
-  const sidebarAnim = useRef(new Animated.Value(-width)).current; 
+  const sidebarAnim = useRef(new Animated.Value(-width)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const [isSidebarVisible, setIsSidebarVisible] = React.useState(false);
-  const [userName, setUserName] = useState('Player Name'); 
+  const [userName, setUserName] = useState('Player Name');
   useEffect(() => {
     const fetchUserName = async () => {
       try {
@@ -161,10 +161,10 @@ const Home = () => {
           >
             <View style={styles.sidebarHeader}>
               <Image
-                source={require('../../assets/user_profile.png')} 
+                source={require('../../assets/user_profile.png')}
                 style={styles.userImage}
               />
-              <Text style={styles.sidebarTitle}>{userName}</Text> 
+              <Text style={styles.sidebarTitle}>{userName}</Text>
             </View>
 
             {/* Sidebar Items */}
@@ -340,7 +340,7 @@ const Home = () => {
   );
 };
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
@@ -349,6 +349,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+    marginTop: StatusBar?.currentHeight || 0,
   },
   overlay: {
     position: 'absolute',
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    width: width * 0.7, 
+    width: width * 0.7,
     height: '100%',
     backgroundColor: '#FFF',
     zIndex: 100,

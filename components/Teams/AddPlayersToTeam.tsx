@@ -9,8 +9,10 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  ImageBackground,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -190,90 +192,105 @@ const AddPlayersToTeam = () => {
   };
 
   return (
-    <LinearGradient colors={['#4A90E2', '#6BB9F0']} style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Add Players to {teamName}</Text>
-      </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Search players"
-        placeholderTextColor="#ccc"
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
-      {loading && <ActivityIndicator size="small" color="#fff" />}
-      <FlatList
-        data={teamPlayers}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.teamPlayerCard}>
-            <Image
-              source={{ uri: item.profilePic || 'https://via.placeholder.com/50' }}
-              style={styles.playerProfilePic}
-            />
-            <View style={styles.playerInfo}>
-              <Text style={styles.playerName}>{item.name}</Text>
-              <Text style={styles.playerRole}>{item.role || 'Unknown Role'}</Text>
-            </View>
-            <View style={styles.cardActions}>
-              <TouchableOpacity
-                style={styles.captainButton}
-                onPress={() => makeCaptain(item.id)}
-              >
-                <Text style={styles.captainButtonText}>C</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => removePlayerFromTeam(item.id)}>
-                <MaterialIcons name="delete" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
+    <View style={{ flex: 1 }}>
+      <StatusBar />
+      <ImageBackground
+        source={require('../../assets/images/cricsLogo.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.headerText}>Add Players to {teamName}</Text>
           </View>
-        )}
-        contentContainerStyle={styles.selectedPlayersList}
-      />
-      {filteredPlayers.length > 0 && (
-        <View style={styles.dropdownContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Search players"
+            placeholderTextColor="#4A90E2"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {loading && <ActivityIndicator size="small" color="#4A90E2" />}
+          {filteredPlayers.length > 0 && (
+            <View style={styles.dropdownContainer}>
+              <FlatList
+                data={filteredPlayers}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item, index }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.dropdownItem,
+                      activeIndex === index && styles.dropdownItemActive,
+                    ]}
+                    onPress={() => {
+                      addPlayerToTeam(item);
+                      setActiveIndex(index);
+                    }}
+                  >
+                    <Image
+                      source={{ uri: item.profilePic || 'https://via.placeholder.com/50' }}
+                      style={styles.dropdownPlayerProfilePic}
+                    />
+                    <View style={styles.dropdownPlayerInfo}>
+                      <Text style={styles.dropdownPlayerName}>{item.name}</Text>
+                      <Text style={styles.dropdownPlayerRole}>{item.role || 'Unknown Role'}</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+                contentContainerStyle={styles.filteredPlayersList}
+              />
+            </View>
+          )}
           <FlatList
-            data={filteredPlayers}
+            data={teamPlayers}
             keyExtractor={(item) => item.id}
-            renderItem={({ item, index }) => (
-              <TouchableOpacity
-                style={[
-                  styles.dropdownItem,
-                  activeIndex === index && styles.dropdownItemActive,
-                ]}
-                onPress={() => {
-                  addPlayerToTeam(item);
-                  setActiveIndex(index);
-                }}
-              >
+            renderItem={({ item }) => (
+              <View style={styles.teamPlayerCard}>
                 <Image
                   source={{ uri: item.profilePic || 'https://via.placeholder.com/50' }}
-                  style={styles.dropdownPlayerProfilePic}
+                  style={styles.playerProfilePic}
                 />
-                <View style={styles.dropdownPlayerInfo}>
-                  <Text style={styles.dropdownPlayerName}>{item.name}</Text>
-                  <Text style={styles.dropdownPlayerRole}>{item.role || 'Unknown Role'}</Text>
+                <View style={styles.playerInfo}>
+                  <Text style={styles.playerName}>{item.name}</Text>
+                  <Text style={styles.playerRole}>{item.role || 'Unknown Role'}</Text>
                 </View>
-              </TouchableOpacity>
+                <View style={styles.cardActions}>
+                  <TouchableOpacity
+                    style={styles.captainButton}
+                    onPress={() => makeCaptain(item.id)}
+                  >
+                    <Text style={styles.captainButtonText}>C</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => removePlayerFromTeam(item.id)}>
+                    <MaterialIcons name="delete" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
-            contentContainerStyle={styles.filteredPlayersList}
+            contentContainerStyle={styles.selectedPlayersList}
           />
-        </View>
-      )}
 
-      <TouchableOpacity onPress={createTeam} style={styles.createButton} disabled={creatingTeam}>
-        <Text style={styles.createButtonText}>
-          {creatingTeam ? 'Creating Team...' : 'Create Team'}
-        </Text>
-      </TouchableOpacity>
-      {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
-    </LinearGradient>
+          <TouchableOpacity onPress={createTeam} style={styles.createButton} disabled={creatingTeam}>
+            <Text style={styles.createButtonText}>
+              {creatingTeam ? 'Creating Team...' : 'Create Team'}
+            </Text>
+          </TouchableOpacity>
+          {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
+        </SafeAreaView>
+      </ImageBackground>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
+    marginTop: StatusBar?.currentHeight || 0,
     padding: 20,
   },
   header: {
@@ -281,32 +298,30 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   headerText: {
-    color: '#fff',
+    color: '#4A90E2',
     fontSize: 20,
     fontWeight: 'bold',
   },
   input: {
-    borderColor: '#fff',
+    borderColor: '#4A90E2',
     borderWidth: 1,
     padding: 10,
-    color: '#fff',
+    color: '#4A90E2',
     borderRadius: 5,
-    marginBottom: 20,
+    marginBottom: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   selectedPlayersList: {
+    marginTop: 10,
     marginBottom: 20,
   },
   dropdownContainer: {
-    position: 'absolute',
-    top: 150, 
-    left: 20,
-    right: 20,
-    zIndex: 1,
     backgroundColor: '#4A90E2',
-    borderRadius: 10,
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
     maxHeight: 200,
     overflow: 'hidden',
+    marginBottom: 10,
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -340,7 +355,7 @@ const styles = StyleSheet.create({
   teamPlayerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#4A90E2',
     borderRadius: 10,
     padding: 15,
     marginBottom: 10,
@@ -384,7 +399,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   createButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#4A90E2',
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
@@ -398,10 +413,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 10,
     textAlign: 'center',
-   
   },
-  filteredPlayersList:{
-    marginBottom: 20, 
+  filteredPlayersList: {
+    marginBottom: 20,
   }
 });
 
