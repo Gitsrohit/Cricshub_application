@@ -36,12 +36,12 @@ const loftedImage = require('../../assets/images/LoaftedShot.png');
 const ScoringScreen = ({ route }) => {
   const navigation = useNavigation();
   const [matchId, setMatchId] = useState(route.params.matchId);
-  const [strikerId, setStrikerId] = useState(route.params.strikerId);
-  const [nonStrikerId, setNonStrikerId] = useState(route.params.nonStrikerId);
-  const [bowler, setBowler] = useState(route.params.bowler);
-  const [selectedStrikerName, setSelectedStrikerName] = useState(route.params.strikerName);
-  const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(route.params.nonStrikerName);
-  const [selectedBowlerName, setSelectedBowlerName] = useState(route.params.bowlerName);
+  const [strikerId, setStrikerId] = useState(null);
+  const [nonStrikerId, setNonStrikerId] = useState(null);
+  const [bowler, setBowler] = useState(null);
+  const [selectedStrikerName, setSelectedStrikerName] = useState(null);
+  const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(null);
+  const [selectedBowlerName, setSelectedBowlerName] = useState(null);
   const [selectedRun, setSelectedRun] = useState(null);
   const [wideExtra, setWideExtra] = useState('');
   const [noBallExtra, setNoBallExtra] = useState('');
@@ -225,6 +225,14 @@ const ScoringScreen = ({ route }) => {
 
       });
 
+      eventSource.addEventListener('match-complete', (event) => {
+        const data = event.data;
+        console.log("Match complete");
+        console.log(JSON.parse(data));
+        eventSource.close();
+        navigation.navigate('MatchScoreCard', { matchId })
+      })
+
       eventSource.addEventListener('innings-complete', (event) => {
         console.log("Innings over!");
         const data = JSON.parse(event.data);
@@ -356,13 +364,6 @@ const ScoringScreen = ({ route }) => {
         setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
         setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
       });
-      eventSource.addEventListener('match-complete', (event) => {
-        const data = event.data;
-        console.log("Match complete");
-        console.log(JSON.parse(data));
-        eventSource.close();
-        navigation.navigate('MatchScoreCard', { matchId })
-      })
 
       eventSource.onerror = (error) => {
         console.error('SSE Error:', error);
@@ -380,6 +381,87 @@ const ScoringScreen = ({ route }) => {
   useEffect(() => {
     SSEhandler();
   }, [matchId]);
+
+  const getMatchState = async () => {
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log(response.data);
+      const data = response.data;
+      setMatchId(response.data.matchId);
+      setStrikerId(data.currentStriker.playerId);
+      setNonStrikerId(data.currentNonStriker.playerId);
+      setBowler(data.currentBowler.playerId);
+      setSelectedStrikerName(data.currentStriker.name);
+      setSelectedNonStrikerName(data.currentNonStriker.name);
+      setSelectedBowlerName(data.currentBowler.name);
+      setBattingTeamName(data.battingTeam.name);
+      setScore(data.battingTeam.score);
+      setBowlingTeamName(data.bowlingTeam.name);
+      setWicket(data.battingTeam.wickets);
+      setExtras(data.battingTeam.extras);
+      setBattingTeamII(data.battingTeamPlayingXI);
+      setBowlingTeamII(data.bowlingTeamPlayingXI);
+      setCompletedOvers(data.completedOvers);
+      setCurrentOver(data.currentOver);
+
+      // Fetch available bowlers
+      const filteredBowlers = data.bowlingTeamPlayingXI.filter((player) => player.playerId !== bowler).map(({ playerId, name }) => ({ playerId, name }));
+      setAvailableBowlers(filteredBowlers);
+
+      // Fetch available batsmen
+      const available = data.battingTeamPlayingXI.filter(
+        (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
+      ).map(({ playerId, name }) => ({ playerId, name }));
+      setAvailableBatsmen(available);
+
+      // Extract striker details
+      const strikerStats = data.battingTeamPlayingXI.find(
+        (player) => player?.name === data.currentStriker?.name
+      );
+
+      // Extract non-striker details
+      const nonStrikerStats = data.battingTeamPlayingXI.find(
+        (player) => player?.name === data.currentNonStriker?.name
+      );
+      const bowlerStats = data.bowlingTeamPlayingXI.find(
+        (player) => player?.name === data.currentBowler?.name
+      );
+      const formattedOverDetails = data.currentOver.map((ball) => {
+        let event = ball.runs.toString();
+
+        if (ball.wicket) event += 'W';
+        if (ball.noBall) event += 'NB';
+        if (ball.wide) event += 'Wd';
+        if (ball.bye) event += 'B';
+        if (ball.legBye) event += 'LB';
+
+        return event;
+      });
+
+      setOverDetails(formattedOverDetails);
+      const deliveryCount = data.currentOver.reduce((count, ball) => {
+        return count + (ball.noBall || ball.wide ? 0 : 1);
+      }, 0);
+      setLegalDeliveries(deliveryCount);
+      if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
+        setModals((prev) => ({ ...prev, nextBowler: true }));
+      }
+
+      setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
+      setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
+      setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
+
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  useEffect(() => {
+    getMatchState();
+  }, [])
 
   const scoringOptions = ['0', '1', '2', '3', '4', '6'];
 
