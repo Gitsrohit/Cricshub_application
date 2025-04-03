@@ -394,17 +394,17 @@ const ScoringScreen = ({ route }) => {
       const data = response.data;
 
       setMatchId(data.matchId);
-      setStrikerId(data.currentStriker?.playerId || null);
-      setNonStrikerId(data.currentNonStriker?.playerId || null);
-      setBowler(data.currentBowler?.playerId || null);
-      setSelectedStrikerName(data.currentStriker?.name || "Unknown");
-      setSelectedNonStrikerName(data.currentNonStriker?.name || "Unknown");
-      setSelectedBowlerName(data.currentBowler?.name || "Unknown");
-      setBattingTeamName(data.battingTeam?.name || "Unknown");
-      setScore(data.battingTeam?.score || 0);
-      setBowlingTeamName(data.bowlingTeam?.name || "Unknown");
-      setWicket(data.battingTeam?.wickets || 0);
-      setExtras(data.battingTeam?.extras || 0);
+      setStrikerId(data.currentStriker.playerId || null);
+      setNonStrikerId(data.currentNonStriker.playerId || null);
+      setBowler(data.currentBowler.playerId || null);
+      setSelectedStrikerName(data.currentStriker.name || "Unknown");
+      setSelectedNonStrikerName(data.currentNonStriker.name || "Unknown");
+      setSelectedBowlerName(data.currentBowler.name || "Unknown");
+      setBattingTeamName(data.battingTeam.name || "Unknown");
+      setScore(data.battingTeam.score || 0);
+      setBowlingTeamName(data.bowlingTeam.name || "Unknown");
+      setWicket(data.battingTeam.wickets || 0);
+      setExtras(data.battingTeam.extras || 0);
       setBattingTeamII(data.battingTeamPlayingXI || []);
       setBowlingTeamII(data.bowlingTeamPlayingXI || []);
       setCompletedOvers(data.completedOvers || 0);
@@ -468,7 +468,7 @@ const ScoringScreen = ({ route }) => {
   };
 
   useEffect(() => {
-    // getMatchState();
+    getMatchState();
   }, []);
 
   const scoringOptions = ['0', '1', '2', '3', '4', '6'];
@@ -794,7 +794,7 @@ const ScoringScreen = ({ route }) => {
               style={styles.submitButton}
               onPress={() => {
                 setModals({ ...modals, noBall: false });
-                submitScore({ runs: parseInt(noBallExtra || '0'), noBallExtra: true });
+                submitScore({ runs: parseInt(noBallExtra || '0'), noBall: true });
                 setNoBallExtra('0');
               }}
             >
