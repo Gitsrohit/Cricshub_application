@@ -445,7 +445,7 @@ const LiveMatch = () => {
         navigation.navigate('Scoring', { matchId, strikerId, nonStrikerId, bowler, selectedStrikerName, selectedNonStrikerName, selectedBowlerName, battingTeamName, score, bowlingTeamName, wicket, battingTeamII, bowlingTeamII, completedOvers });
       }
       else {
-        navigation.navigate('MatchScoreCard', { matchId })
+        navigation.navigate('CommentaryScorecard', { matchId })
       }
     } catch (error) {
 
