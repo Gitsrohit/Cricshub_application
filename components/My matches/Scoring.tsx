@@ -20,7 +20,6 @@ import * as Animatable from 'react-native-animatable';
 import EventSource from 'react-native-event-source';
 import bg from '../../assets/images/cricsLogo.png';
 import { Picker } from '@react-native-picker/picker';
-import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 const driveImage = require('../../assets/images/DriveShot.png');
 const cutImage = require('../../assets/images/squareShot.png');

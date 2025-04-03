@@ -24,6 +24,7 @@ import AddPlayersToTeam from './components/Teams/AddPlayersToTeam';
 import SelectRoles2ndInnings from './components/My matches/SelectRoles2ndInnings';
 import AllMatches from './components/My matches/AllMatches/AllMatches';
 import ScheduleMatch from './components/My matches/ScheduleMatch/ScheduleMatch';
+import CommentaryScorecard from './components/My matches/CommentaryScorecard';
 
 // import Performance from './components/Settings/Performance';
 
@@ -59,6 +60,7 @@ const MainScreens = () => {
       <View style={{ flex: 1 }}>
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
           <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="MyMatches" component={AllMatches} />
           <Stack.Screen name="Tournaments" component={Tournaments} />
           <Stack.Screen name="Teams" component={Teams} />
@@ -77,6 +79,7 @@ const MainScreens = () => {
           <Stack.Screen name="SelectRoles2ndInnings" component={SelectRoles2ndInnings} />
           <Stack.Screen name="MatchScoreCard" component={ScoreCard} />
           <Stack.Screen name="ScheduleMatch" component={ScheduleMatch} />
+          <Stack.Screen name="CommentaryScorecard" component={CommentaryScorecard} />
         </Stack.Navigator>
       </View>
       <Footer style={styles.footer} />

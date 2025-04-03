@@ -130,9 +130,20 @@ const Home = () => {
     }
   };
 
+  const LogOutHandler = async () => {
+    try {
+      await AsyncStorage.removeItem('jwtToken');
+      console.log('Token removed securely');
+    } catch (error) {
+      console.error('Error removing token:', error);
+    } finally {
+      navigation.navigate('Login');
+    }
+  }
+
   return (
     <View style={{ flex: 1 }}>
-      <StatusBar 
+      <StatusBar
         barStyle="light-content"
         backgroundColor="#34B8FF"
         translucent={true}
@@ -229,10 +240,7 @@ const Home = () => {
 
             <TouchableOpacity
               style={styles.sidebarItem}
-              onPress={() => {
-                navigation.navigate('Logout');
-                closeSidebar();
-              }}
+              onPress={() => LogOutHandler()}
             >
               <Ionicons name="log-out-outline" size={24} color="#333" />
               <Text style={styles.sidebarItemText}>Logout</Text>
