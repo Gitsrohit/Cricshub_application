@@ -132,7 +132,11 @@ const Home = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      <StatusBar />
+      <StatusBar 
+        barStyle="light-content"
+        backgroundColor="#34B8FF"
+        translucent={true}
+      />
       <ImageBackground
         source={require('../../assets/images/cricsLogo.png')}
         style={styles.backgroundImage}
