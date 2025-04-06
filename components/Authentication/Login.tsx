@@ -84,15 +84,15 @@ const Login = ({ navigation }) => {
       if (response.data.success) {
         const token = response.data.data?.token;
         const userId = response.data.data?.user?.id;
+        const name = response.data.data?.user?.name;
 
         if (!token || !userId) {
           throw new Error('Token or User ID is missing in the API response.');
         }
-
+        
         await saveToken(token);
         await AsyncStorage.setItem('userUUID', userId);
-
-        // alert(`Welcome, ${formData.email}!`);
+        await AsyncStorage.setItem('userName', name);
         navigation.replace('Main');
       } else {
         alert('Invalid credentials, please try again!');
