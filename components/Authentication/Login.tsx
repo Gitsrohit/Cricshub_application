@@ -58,6 +58,7 @@ const removeToken = async () => {
 const Login = ({ navigation }) => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleInputChange = (key, value) => {
     setFormData({ ...formData, [key]: value });
@@ -75,7 +76,7 @@ const Login = ({ navigation }) => {
       const response = await axios.post(
         'https://score360-7.onrender.com/api/v1/auth/login',
         {
-          username: formData.email,
+          username: formData.email.toLowerCase(),
           password: formData.password,
         }
       );
@@ -96,10 +97,13 @@ const Login = ({ navigation }) => {
       } else {
         alert('Invalid credentials, please try again!');
       }
-    } catch (error) {
-      console.error('Login error:', error.response || error.message);
-      if (error.response) {
-        alert(`Error: ${error.response.status} - ${error.response.data.message}`);
+    } catch (err) {
+      setFormData({ email: '', password: '' });
+      if (err.response.data.error === "Unauthorized") {
+        setError('Invalid credentials');
+      }
+      else if (err.response) {
+        alert(`Error: ${err.response.status} - ${err.response.data.message}`);
       } else {
         alert('An error occurred. Please try again later.');
       }
@@ -142,6 +146,8 @@ const Login = ({ navigation }) => {
                   onChangeText={(value) => handleInputChange('password', value)}
                   editable={!loading}
                 />
+
+                {error && <Text style={{ color: 'red', fontWeight: '700' }}>{error}</Text>}
                 <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
                   <Text style={styles.loginButtonText}>
                     {loading ? 'Logging in...' : 'Login'}

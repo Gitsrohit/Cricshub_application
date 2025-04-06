@@ -157,6 +157,10 @@ const styles = StyleSheet.create({
     padding: 10,
     overflow: 'hidden',
   },
+  activityIndicator: {
+    paddingTop: 50,
+    padding: 10,
+  },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
@@ -262,42 +266,42 @@ const MyMatch = () => {
   };
 
   const matchCardClickHandler = (item) => {
-    const matchId = item.id;
+    const matchId = item?.id;
     navigation.navigate('MatchScoreCard', { matchId })
   }
 
   const renderMatchItem = ({ item }) => {
-    const matchDate = item.matchDate ? `${item.matchDate[2]}-${item.matchDate[1]}-${item.matchDate[0]}` : 'N/A';
+    const matchDate = item?.matchDate ? `${item?.matchDate[2]}-${item?.matchDate[1]}-${item?.matchDate[0]}` : 'N/A';
 
     return (
       <Pressable
-        key={item.id}
+        key={item?.id}
         style={styles.card}
         onPress={() => matchCardClickHandler(item)}
       >
         <View style={liveMatchStyles.teamRow}>
-          <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+          <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
           <View>
-            <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+            <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
           </View>
           <Text style={liveMatchStyles.vs}>VS</Text>
           <View>
-            <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+            <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
           </View>
-          <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+          <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
         </View>
 
         <View style={{ borderWidth: 0.5, borderColor: '#34B8FF' }}></View>
 
         <View style={{ marginTop: 5 }}>
           <Text style={styles.tournamentContent}><Icon name="calendar-month" size={18} color="#555" /> Date: {matchDate}</Text>
-          <Text style={styles.tournamentContent}><Icon name="flag" size={18} color="#555" /> Venue: {item.venue}</Text>
+          <Text style={styles.tournamentContent}><Icon name="flag" size={18} color="#555" /> Venue: {item?.venue}</Text>
         </View>
 
         <View style={{ alignItems: 'center', marginTop: 10 }}>
-          <Text style={styles.winnerText}>{item.winner ? `Winner: ${item.winner}` : 'Match Result Pending'}</Text>
+          <Text style={styles.winnerText}>{item?.winner ? `Winner: ${item?.winner}` : 'Match Result Pending'}</Text>
         </View>
       </Pressable>
     );
@@ -305,16 +309,17 @@ const MyMatch = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" />}
-      {error && <Text style={styles.errorText}>{error}</Text>}
-      {!loading && matches?.length === 0 && <Text style={styles.noMatchText}>No matches found</Text>}
+      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
+      {!loading && error && <Text style={[styles.errorText, styles.activityIndicator]}>{error}</Text>}
+      {!loading && matches?.length === 0 && <Text style={[styles.noMatchText, styles.activityIndicator]}>No matches found</Text>}
 
-      <FlatList
+      {!loading && matches?.length !== 0 && <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
         renderItem={renderMatchItem}
         contentContainerStyle={styles.cardContainer}
       />
+      }
     </View>
   );
 };
@@ -371,7 +376,7 @@ const LiveMatch = () => {
         setIsCreator(false);
       }
     } catch (err) {
-      setError('Failed to load live matches');
+      console.log(err);
     } finally {
       setLoading(false);
     }
@@ -453,42 +458,41 @@ const LiveMatch = () => {
   }
 
   const renderMatchItem = ({ item }) => (
-    <Pressable onPress={() => liveMatchClickHandler(item.id, item)}>
+    <Pressable onPress={() => liveMatchClickHandler(item?.id, item)}>
       <View style={liveMatchStyles.card}>
         <View style={liveMatchStyles.teamRow}>
-          <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+          <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
           <View>
-            <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+            <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
           </View>
           <Text style={liveMatchStyles.vs}>VS</Text>
           <View>
-            <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+            <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
           </View>
-          <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+          <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
         </View>
-        <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
+        <Text style={liveMatchStyles.venue}>Venue: {item?.venue}</Text>
         <Text style={liveMatchStyles.date}>
-          Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
+          Date: {item?.matchDate[2]}-{item?.matchDate[1]}-{item?.matchDate[0]}
         </Text>
-        <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
       </View>
     </Pressable>
   );
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" />}
-      {error && <Text style={liveMatchStyles.errorText}>{error}</Text>}
-      {!loading && matches.length === 0 && <Text style={liveMatchStyles.errorText}>No matches</Text>}
-
-      <FlatList
+      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
+      {error && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>{error}</Text>}
+      {!loading && matches?.length === 0 && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>No matches</Text>}
+      {!loading && matches?.length !== 0 && <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
         renderItem={renderMatchItem}
         contentContainerStyle={styles.cardContainer}
       />
+      }
     </View>
   )
 };
@@ -678,42 +682,42 @@ const UpcomingMatch = () => {
   }
 
   const renderMatchItem = ({ item }) => (
-    <Pressable onPress={() => liveMatchClickHandler(item.id, item)}>
+    <Pressable onPress={() => liveMatchClickHandler(item?.id, item)}>
       <View style={liveMatchStyles.card}>
         <View style={liveMatchStyles.teamRow}>
-          <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+          <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
           <View>
-            <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+            <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
           </View>
           <Text style={liveMatchStyles.vs}>VS</Text>
           <View>
-            <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+            <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
           </View>
-          <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+          <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
         </View>
-        <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
+        <Text style={liveMatchStyles.venue}>Venue: {item?.venue}</Text>
         <Text style={liveMatchStyles.date}>
-          Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
+          Date: {item?.matchDate[2]}-{item?.matchDate[1]}-{item?.matchDate[0]}
         </Text>
-        <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
       </View>
     </Pressable>
   );
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" />}
-      {error && <Text style={liveMatchStyles.errorText}>{error}</Text>}
-      {!loading && matches.length === 0 && <Text style={liveMatchStyles.errorText}>No matches</Text>}
+      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
+      {error && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>{error}</Text>}
+      {!loading && matches?.length === 0 && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>No matches</Text>}
 
-      <FlatList
+      {!loading && matches?.length !== 0 && <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
         renderItem={renderMatchItem}
         contentContainerStyle={styles.cardContainer}
       />
+      }
     </View>
   )
 };
@@ -749,38 +753,39 @@ const PastMatch = () => {
   const renderMatchItem = ({ item }) => (
     <View style={liveMatchStyles.card}>
       <View style={liveMatchStyles.teamRow}>
-        <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+        <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
         <View>
-          <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
-          <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+          <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+          <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
         </View>
         <Text style={liveMatchStyles.vs}>VS</Text>
         <View>
-          <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
-          <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+          <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+          <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
         </View>
-        <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+        <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
       </View>
-      <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
+      <Text style={liveMatchStyles.venue}>Venue: {item?.venue}</Text>
       <Text style={liveMatchStyles.date}>
-        Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
+        Date: {item?.matchDate[2]}-{item?.matchDate[1]}-{item?.matchDate[0]}
       </Text>
-      <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
+      <Text style={liveMatchStyles.winner}>{item?.winner} won the match!</Text>
     </View>
   );
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" />}
-      {error && <Text style={liveMatchStyles.errorText}>{error}</Text>}
-      {!loading && matches.length === 0 && <Text style={liveMatchStyles.errorText}>No matches</Text>}
+      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
+      {error && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>{error}</Text>}
+      {!loading && matches?.length === 0 && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>No matches</Text>}
 
-      <FlatList
+      {!loading && matches?.length !== 0 && <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
         renderItem={renderMatchItem}
         contentContainerStyle={styles.cardContainer}
       />
+      }
     </View>
   );
 };
