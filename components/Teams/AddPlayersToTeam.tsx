@@ -170,12 +170,7 @@ const AddPlayersToTeam = () => {
         setPlayerId([]);
         setCaptainId(null);
         Alert.alert('Success', 'Team created successfully!');
-        navigation.navigate('CreateTeamSuccess', {
-          teamName,
-          logoUri,
-          teamPlayers,
-          captainId,
-        });
+        navigation.navigate('Teams');
       } else {
         const data = await response.json();
         console.error('API Error:', data);

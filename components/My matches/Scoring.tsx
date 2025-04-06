@@ -54,6 +54,8 @@ const ScoringScreen = ({ route }) => {
     nextBowler: false,
     noBall: false,
     startNextInnings: false,
+    catch: false,
+    runout: false,
   });
   const [battingTeamName, setBattingTeamName] = useState(route.params.battingTeamName);
   const [score, setScore] = useState(route.params.score || 0);
@@ -78,6 +80,10 @@ const ScoringScreen = ({ route }) => {
   const [legalDeliveries, setLegalDeliveries] = useState(0);
   const [availableBowlers, setAvailableBowlers] = useState([]);
   const [selectedBowler, setSelectedBowler] = useState({
+    playerId: '',
+    name: ''
+  });
+  const [selectedCatcher, setSelectedCatcher] = useState({
     playerId: '',
     name: ''
   });
@@ -614,6 +620,9 @@ const ScoringScreen = ({ route }) => {
           legBye: data.legBye || false,
           wicket: data.wicket || false,
           freeHit: false,
+          catcherId: null,
+          runOutMakerId: null,
+          runOutGetterId: null,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -908,6 +917,42 @@ const ScoringScreen = ({ route }) => {
 
             <Picker
               selectedValue={selectedBowler?.playerId}
+              onValueChange={(itemValue) => {
+                const selectedPlayer = availableBowlers.find(player => player.playerId === itemValue);
+                setSelectedBowler(selectedPlayer);
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Select Bowler" value="" />
+              {availableBowlers.map((bowler) => (
+                <Picker.Item key={bowler.playerId} label={bowler?.name} value={bowler?.playerId} />
+              ))}
+            </Picker>
+
+            <Pressable
+              style={styles.submitButton}
+              onPress={() => {
+                if (!selectedBowler?.playerId) {
+                  Alert.alert('Error', 'Please select a bowler.');
+                  return;
+                }
+                selectNextBowler(selectedBowler.playerId, selectedBowler.name);
+              }}
+            >
+              <Text style={styles.submitText}>Confirm Bowler</Text>
+            </Pressable>
+
+          </View>
+        </View>
+      </Modal>
+      {/* Catcher Modal */}
+      <Modal visible={modals.catch} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Catcher</Text>
+
+            <Picker
+              selectedValue={selectedCatcher?.playerId}
               onValueChange={(itemValue) => {
                 const selectedPlayer = availableBowlers.find(player => player.playerId === itemValue);
                 setSelectedBowler(selectedPlayer);

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, FlatList, ImageBackground, StatusBar, TouchableHighlight, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ImageBackground, StatusBar, TouchableHighlight, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,7 +8,7 @@ import EventSource from 'react-native-event-source';
 const background = require('../../assets/images/cricsLogo.png');
 
 const CommentaryScorecard = ({ route }) => {
-  const { matchId } = route.params;
+  const [matchId, setMatchId] = useState(route.params.matchId);
   const [team, setTeam] = useState(null);
   const [matchState, setMatchState] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,8 +30,10 @@ const CommentaryScorecard = ({ route }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMatchState(response.data);
+      setMatchId(response.data.matchId);
       setTeam(response.data.team1.name);
       console.log(response.data);
+      console.log(response.data.matchId);
       setStrikerStats(response.data.battingTeam.playingXI.find(player => player.playerId === response.data.currentStriker.playerId));
       setNonStrikerStats(response.data.battingTeam.playingXI.find(player => player.playerId === response.data.currentNonStriker.playerId));
       setBowlerStats(response.data.bowlingTeam.playingXI.find(player => player.playerId === response.data.currentBowler.playerId));
@@ -81,8 +83,8 @@ const CommentaryScorecard = ({ route }) => {
     const cleanedCommentary = item.commentary.replace(/[*\\"/]/g, '');
 
     return (
-      <View style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#ddd' }}>
-        <Text style={{ color: 'white', fontSize: 16 }}>{cleanedCommentary}</Text>
+      <View style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#36B0D5' }}>
+        <Text style={{ color: 'black', fontSize: 14 }}>{cleanedCommentary}</Text>
       </View>
     );
   };
@@ -103,35 +105,40 @@ const CommentaryScorecard = ({ route }) => {
                     <Text style={{ color: '#fff', fontSize: 18, paddingBottom: 4, fontWeight: '800' }}>{matchState.team2.name}</Text>
                     <Text style={{ color: '#fff', fontSize: 18, paddingBottom: 4 }}>{matchState.team2.score}-{matchState.team2.wickets}</Text>
                   </View>
+                  <View style={styles.playerDetails}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={styles.playerStats}>{strikerStats.name}</Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                        <Text style={styles.playerStats}>{strikerStats.runs}</Text>
+                        <Text style={styles.playerStats}>({strikerStats.ballsFaced})</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={styles.playerStats}>{nonStrikerStats.name}</Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                        <Text style={styles.playerStats}>{nonStrikerStats.runs}</Text>
+                        <Text style={styles.playerStats}>({nonStrikerStats.ballsFaced})</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+                      <Text style={styles.playerStats}>{bowlerStats.name}</Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                        <Text style={styles.playerStats}>{bowlerStats.wicketsTaken}-</Text>
+                        <Text style={styles.playerStats}>{bowlerStats.runsConceded}</Text>
+                      </View>
+                    </View>
+                  </View>
                 </LinearGradient>
-                <View style={styles.playerDetails}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={styles.playerStats}>{strikerStats.name}</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-                      <Text style={styles.playerStats}>{strikerStats.runs}</Text>
-                      <Text style={styles.playerStats}>({strikerStats.ballsFaced})</Text>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={styles.playerStats}>{nonStrikerStats.name}</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-                      <Text style={styles.playerStats}>{nonStrikerStats.runs}</Text>
-                      <Text style={styles.playerStats}>{nonStrikerStats.ballsFaced}</Text>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={styles.playerStats}>{bowlerStats.name}</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-                      <Text style={styles.playerStats}>{bowlerStats.wicketsTaken}-</Text>
-                      <Text style={styles.playerStats}>{bowlerStats.runsConceded}</Text>
-                    </View>
-                  </View>
+                <View style={styles.commentaryContainer}>
+                  <FlatList
+                    data={matchState.innings1Overs.flat().reverse()}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={renderItem}
+                    ListHeaderComponent={() => (
+                      <Text style={{ fontSize: 18, fontWeight: '700', paddingVertical: 8 }}>Live commentary</Text>
+                    )}
+                  />
                 </View>
-                <FlatList
-                  data={[].concat(...matchState.innings1Overs).reverse()}
-                  keyExtractor={(item, index) => index.toString()}
-                  renderItem={renderItem}
-                />
               </View>
             )
           }
@@ -167,16 +174,30 @@ const styles = StyleSheet.create({
     width: '100%',
     display: 'flex',
     flexDirection: 'row',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
   },
   playerDetails: {
-    backgroundColor: '#fff',
-    padding: 16,
-    margin: 10,
+    borderTopColor: 'white',
+    borderTopWidth: 1,
+    // backgroundColor: '#fff',
+    // padding: 16,
+    // margin: 10,
+    paddingHorizontal: 10,
+    marginTop: 10,
   },
   playerStats: {
-    color: 'black',
+    // color: 'black',
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    marginTop: 10,
+  },
+  commentaryContainer: {
+    padding: 12,
+    margin: 16,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    flex: 1,
   },
 })
