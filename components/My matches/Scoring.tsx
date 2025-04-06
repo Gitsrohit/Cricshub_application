@@ -56,6 +56,7 @@ const ScoringScreen = ({ route }) => {
     startNextInnings: false,
     catch: false,
     runout: false,
+    fielderSelect: false,
   });
   const [battingTeamName, setBattingTeamName] = useState(route.params.battingTeamName);
   const [score, setScore] = useState(route.params.score || 0);
@@ -83,10 +84,9 @@ const ScoringScreen = ({ route }) => {
     playerId: '',
     name: ''
   });
-  const [selectedCatcher, setSelectedCatcher] = useState({
-    playerId: '',
-    name: ''
-  });
+  const [selectedCatcher, setSelectedCatcher] = useState();
+  const [runOutGetterId, setRunOutGetterId] = useState(null);
+  const [runOutFielderId, setRunOutFielderId] = useState(null);
   const [directionModalVisible, setDirectionModalVisible] = useState(false);
   const [selectedDirection, setSelectedDirection] = useState(null);
   const [selectedShot, setSelectedShot] = useState(null);
@@ -534,10 +534,16 @@ const ScoringScreen = ({ route }) => {
       Alert.alert('Error', 'Please select a batsman first');
       return;
     }
-    setStrikerStats({ runs: 0, ballsFaced: 0 });
 
-    setStrikerId(selectedPlayer.playerId);
-    setStrikerName(selectedPlayer.name);
+    if (strikerId === null) {
+      setStrikerStats({ runs: 0, ballsFaced: 0 });
+      setStrikerId(selectedPlayer.playerId);
+      setStrikerName(selectedPlayer.name);
+    } else {
+      setNonStrikerStats({ runs: 0, ballsFaced: 0 });
+      setNonStrikerId(selectedPlayer.playerId);
+      setNonStrikerName(selectedPlayer.name);
+    }
     setModals({ ...modals, nextBatsman: false });
 
     try {
@@ -577,7 +583,39 @@ const ScoringScreen = ({ route }) => {
     }
   };
 
+  const catchHandler = () => {
+    console.log('Selected Catcher:', selectedCatcher);
+
+    submitScore({
+      runs: 0,
+      wicket: true,
+      wicketType: 'Caught',
+      catcherId: selectedCatcher, // just pass the string ID
+    });
+
+    const available = battingTeamII.filter(
+      (player) =>
+        player.ballsFaced === 0 &&
+        player.playerId !== strikerId &&
+        player.playerId !== nonStrikerId
+    ).map(({ playerId, name }) => ({ playerId, name }));
+
+    setAvailableBatsmen(available);
+    setWicketType('');
+    setSelectedCatcher(null);
+
+    setModals((prev) => ({ ...prev, catch: false }));
+
+    setTimeout(() => {
+      if (wicket < 9) {
+        setModals((prev) => ({ ...prev, nextBatsman: true }));
+      }
+    }, 10000);
+  };
+
   const wicketHandler = (value) => {
+    console.log("Wicket giraa");
+
     setWicketType(value);
     submitScore({
       runs: 0,
@@ -620,9 +658,9 @@ const ScoringScreen = ({ route }) => {
           legBye: data.legBye || false,
           wicket: data.wicket || false,
           freeHit: false,
-          catcherId: null,
-          runOutMakerId: null,
-          runOutGetterId: null,
+          catcherId: selectedCatcher || null,
+          runOutMakerId: data.runOutMakerId || null,
+          runOutGetterId: data.runOutGetterId || null,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -840,7 +878,18 @@ const ScoringScreen = ({ route }) => {
 
             <Picker
               selectedValue={wicketType}
-              onValueChange={(itemValue) => wicketHandler(itemValue)}
+              onValueChange={(itemValue) => {
+                if (itemValue === 'Catch') {
+                  setWicketType('Catch');
+                  setModals((prev) => ({ ...prev, wicket: false, catch: true }));
+                } else if (itemValue === 'Run Out') {
+                  setWicketType('Run Out');
+                  setModals((prev) => ({ ...prev, wicket: false, runout: true }));
+                } else {
+                  wicketHandler(itemValue);
+                }
+              }}
+
               style={styles.picker}
             >
               <Picker.Item label="Select Wicket Type" value="" />
@@ -952,32 +1001,115 @@ const ScoringScreen = ({ route }) => {
             <Text style={styles.modalTitle}>Select Catcher</Text>
 
             <Picker
-              selectedValue={selectedCatcher?.playerId}
+              selectedValue={selectedCatcher}
               onValueChange={(itemValue) => {
-                const selectedPlayer = availableBowlers.find(player => player.playerId === itemValue);
-                setSelectedBowler(selectedPlayer);
+                console.log(itemValue);
+                setSelectedCatcher(itemValue);
               }}
               style={styles.picker}
             >
-              <Picker.Item label="Select Bowler" value="" />
-              {availableBowlers.map((bowler) => (
-                <Picker.Item key={bowler.playerId} label={bowler?.name} value={bowler?.playerId} />
+              <Picker.Item label="Select Catcher" value="" />
+              {bowlingTeamII.map((fielder) => (
+                <Picker.Item key={fielder.playerId} label={fielder?.name} value={fielder.playerId} />
               ))}
             </Picker>
 
             <Pressable
               style={styles.submitButton}
               onPress={() => {
-                if (!selectedBowler?.playerId) {
-                  Alert.alert('Error', 'Please select a bowler.');
+                if (!selectedCatcher) {
+                  Alert.alert('Error', 'Please select the catcher.');
                   return;
                 }
-                selectNextBowler(selectedBowler.playerId, selectedBowler.name);
+                catchHandler();
               }}
             >
-              <Text style={styles.submitText}>Confirm Bowler</Text>
+              <Text style={styles.submitText}>Confirm Catcher</Text>
             </Pressable>
 
+          </View>
+        </View>
+      </Modal>
+
+      {/* Run Out - Step 1: Who got out */}
+      <Modal visible={modals.runout} transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Who got run out?</Text>
+            <Pressable
+              style={styles.submitButton}
+              onPress={() => {
+                setRunOutGetterId(strikerId);
+                setModals((prev) => ({ ...prev, runout: false, fielderSelect: true }));
+              }}
+            >
+              <Text>{strikerName} (Striker)</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.submitButton}
+              onPress={() => {
+                setRunOutGetterId(nonStrikerId);
+                setModals((prev) => ({ ...prev, runout: false, fielderSelect: true }));
+              }}
+            >
+              <Text>{nonStrikerName} (Non-Striker)</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Run Out - Step 2: Fielder Involved */}
+      <Modal visible={modals.fielderSelect} transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Fielder</Text>
+            <Picker
+              selectedValue={runOutFielderId}
+              onValueChange={(itemValue) => setRunOutFielderId(itemValue)}
+              style={styles.picker}
+            >
+              <Picker.Item label="Select Fielder" value="" />
+              {bowlingTeamII.map((fielder) => (
+                <Picker.Item key={fielder.playerId} label={fielder.name} value={fielder.playerId} />
+              ))}
+            </Picker>
+
+            <Pressable
+              style={styles.submitButton}
+              onPress={() => {
+                if (!runOutFielderId) {
+                  Alert.alert('Error', 'Please select a fielder.');
+                  return;
+                }
+
+                // Call score handler
+                submitScore({
+                  runs: 0,
+                  wicket: true,
+                  wicketType: 'Run Out',
+                  runOutGetterId: runOutGetterId,
+                  runOutMakerId: runOutFielderId,
+                });
+
+                const available = battingTeamII.filter(
+                  (player) =>
+                    player.ballsFaced === 0 &&
+                    player.playerId !== strikerId &&
+                    player.playerId !== nonStrikerId
+                ).map(({ playerId, name }) => ({ playerId, name }));
+
+                setAvailableBatsmen(available);
+                setModals((prev) => ({ ...prev, fielderSelect: false }));
+                setTimeout(() => {
+                  if (wicket < 9) {
+                    setModals((prev) => ({ ...prev, nextBatsman: true }));
+                  }
+                }, 10000);
+              }}
+            >
+              <Text style={styles.submitText}>Confirm Run Out</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
