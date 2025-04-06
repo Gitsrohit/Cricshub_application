@@ -20,7 +20,6 @@ import * as Animatable from 'react-native-animatable';
 import EventSource from 'react-native-event-source';
 import bg from '../../assets/images/cricsLogo.png';
 import { Picker } from '@react-native-picker/picker';
-import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 const driveImage = require('../../assets/images/DriveShot.png');
 const cutImage = require('../../assets/images/squareShot.png');
@@ -39,9 +38,9 @@ const ScoringScreen = ({ route }) => {
   const [strikerId, setStrikerId] = useState(route.params.strikerId);
   const [nonStrikerId, setNonStrikerId] = useState(route.params.nonStrikerId);
   const [bowler, setBowler] = useState(route.params.bowler);
-  const [selectedStrikerName, setSelectedStrikerName] = useState(route.params.strikerName);
-  const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(route.params.nonStrikerName);
-  const [selectedBowlerName, setSelectedBowlerName] = useState(route.params.bowlerName);
+  const [selectedStrikerName, setSelectedStrikerName] = useState(route.params.selectedStrikerName);
+  const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(route.params.selectedNonStrikerName);
+  const [selectedBowlerName, setSelectedBowlerName] = useState(route.params.selectedBowlerName);
   const [selectedRun, setSelectedRun] = useState(null);
   const [wideExtra, setWideExtra] = useState('');
   const [noBallExtra, setNoBallExtra] = useState('');
@@ -55,15 +54,17 @@ const ScoringScreen = ({ route }) => {
     nextBowler: false,
     noBall: false,
     startNextInnings: false,
+    catch: false,
+    runout: false,
   });
-  const [battingTeamName, setBattingTeamName] = useState('');
-  const [score, setScore] = useState(0);
+  const [battingTeamName, setBattingTeamName] = useState(route.params.battingTeamName);
+  const [score, setScore] = useState(route.params.score || 0);
   const [extras, setExtras] = useState(0);
-  const [bowlingTeamName, setBowlingTeamName] = useState('');
-  const [wicket, setWicket] = useState(0);
-  const [battingTeamII, setBattingTeamII] = useState([]);
-  const [bowlingTeamII, setBowlingTeamII] = useState([]);
-  const [completedOvers, setCompletedOvers] = useState(0);
+  const [bowlingTeamName, setBowlingTeamName] = useState(route.params.bowlingTeamName);
+  const [wicket, setWicket] = useState(route.params.wicket || 0);
+  const [battingTeamII, setBattingTeamII] = useState(route.params.battingTeamII || []);
+  const [bowlingTeamII, setBowlingTeamII] = useState(route.params.bowlingTeamII || []);
+  const [completedOvers, setCompletedOvers] = useState(route.params.completedOvers || 0);
   const [currentBowlerName, setCurrentBowlerName] = useState(selectedBowlerName);
   const [strikerName, setStrikerName] = useState(selectedStrikerName);
   const [nonStrikerName, setNonStrikerName] = useState(selectedNonStrikerName);
@@ -79,6 +80,10 @@ const ScoringScreen = ({ route }) => {
   const [legalDeliveries, setLegalDeliveries] = useState(0);
   const [availableBowlers, setAvailableBowlers] = useState([]);
   const [selectedBowler, setSelectedBowler] = useState({
+    playerId: '',
+    name: ''
+  });
+  const [selectedCatcher, setSelectedCatcher] = useState({
     playerId: '',
     name: ''
   });
@@ -225,6 +230,14 @@ const ScoringScreen = ({ route }) => {
 
       });
 
+      eventSource.addEventListener('match-complete', (event) => {
+        const data = event.data;
+        console.log("Match complete");
+        console.log(JSON.parse(data));
+        eventSource.close();
+        navigation.navigate('MatchScoreCard', { matchId })
+      })
+
       eventSource.addEventListener('innings-complete', (event) => {
         console.log("Innings over!");
         const data = JSON.parse(event.data);
@@ -356,13 +369,6 @@ const ScoringScreen = ({ route }) => {
         setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
         setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
       });
-      eventSource.addEventListener('match-complete', (event) => {
-        const data = event.data;
-        console.log("Match complete");
-        console.log(JSON.parse(data));
-        eventSource.close();
-        navigation.navigate('MatchScoreCard', { matchId })
-      })
 
       eventSource.onerror = (error) => {
         console.error('SSE Error:', error);
@@ -380,6 +386,95 @@ const ScoringScreen = ({ route }) => {
   useEffect(() => {
     SSEhandler();
   }, [matchId]);
+
+  const getMatchState = async () => {
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log("Match State Data:", response.data);
+      const data = response.data;
+
+      setMatchId(data.matchId);
+      setStrikerId(data.currentStriker.playerId || null);
+      setNonStrikerId(data.currentNonStriker.playerId || null);
+      setBowler(data.currentBowler.playerId || null);
+      setSelectedStrikerName(data.currentStriker.name || "Unknown");
+      setSelectedNonStrikerName(data.currentNonStriker.name || "Unknown");
+      setSelectedBowlerName(data.currentBowler.name || "Unknown");
+      setBattingTeamName(data.battingTeam.name || "Unknown");
+      setScore(data.battingTeam.score || 0);
+      setBowlingTeamName(data.bowlingTeam.name || "Unknown");
+      setWicket(data.battingTeam.wickets || 0);
+      setExtras(data.battingTeam.extras || 0);
+      setBattingTeamII(data.battingTeamPlayingXI || []);
+      setBowlingTeamII(data.bowlingTeamPlayingXI || []);
+      setCompletedOvers(data.completedOvers || 0);
+      setCurrentOver(data.currentOver || []);
+
+      const filteredBowlers = data.bowlingTeamPlayingXI?.filter((player) => player.playerId !== data.currentBowler?.playerId)
+        .map(({ playerId, name }) => ({ playerId, name })) || [];
+      setAvailableBowlers(filteredBowlers);
+
+      const available = data.battingTeamPlayingXI?.filter(
+        (player) => player.ballsFaced === 0 && player.playerId !== data.currentStriker?.playerId && player.playerId !== data.currentNonStriker?.playerId
+      ).map(({ playerId, name }) => ({ playerId, name })) || [];
+      setAvailableBatsmen(available);
+
+      const strikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentStriker?.name) || { runs: 0, ballsFaced: 0 };
+      const nonStrikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentNonStriker?.name) || { runs: 0, ballsFaced: 0 };
+      const bowlerStats = data.bowlingTeamPlayingXI?.find(player => player?.name === data.currentBowler?.name) || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 };
+
+      setStrikerStats(strikerStats);
+      setNonStrikerStats(nonStrikerStats);
+      setBowlerStats(bowlerStats);
+
+      const formattedOverDetails = data.currentOver?.map((ball) => {
+        let event = ball.runs.toString();
+        if (ball.wicket) event += 'W';
+        if (ball.noBall) event += 'NB';
+        if (ball.wide) event += 'Wd';
+        if (ball.bye) event += 'B';
+        if (ball.legBye) event += 'LB';
+        return event;
+      }) || [];
+
+      setOverDetails(formattedOverDetails);
+
+      const deliveryCount = data.currentOver?.reduce((count, ball) => {
+        return count + (ball.noBall || ball.wide ? 0 : 1);
+      }, 0) || 0;
+      setLegalDeliveries(deliveryCount);
+
+      if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
+        setModals((prev) => ({ ...prev, nextBowler: true }));
+      }
+      console.log("Logging set values");
+      console.log("Match ID:", matchId);
+      console.log("Striker:", strikerId);
+      console.log("Non-Striker:", nonStrikerId);
+      console.log("Bowler:", bowler);
+      console.log("Selected Striker Name:", selectedStrikerName);
+      console.log("Selected Non-Striker Name:", selectedNonStrikerName);
+      console.log("Selected Bowler Name:", selectedBowlerName);
+      console.log("Batting Team Name:", battingTeamName);
+      console.log("Score:", score);
+      console.log("Wickets:", wicket);
+      console.log("Extras:", extras);
+      console.log("Completed Overs:", completedOvers);
+
+
+    } catch (error) {
+      console.log("Error fetching match state:", error);
+    }
+  };
+
+  useEffect(() => {
+    getMatchState();
+  }, []);
 
   const scoringOptions = ['0', '1', '2', '3', '4', '6'];
 
@@ -525,6 +620,9 @@ const ScoringScreen = ({ route }) => {
           legBye: data.legBye || false,
           wicket: data.wicket || false,
           freeHit: false,
+          catcherId: null,
+          runOutMakerId: null,
+          runOutGetterId: null,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -704,7 +802,7 @@ const ScoringScreen = ({ route }) => {
               style={styles.submitButton}
               onPress={() => {
                 setModals({ ...modals, noBall: false });
-                submitScore({ runs: parseInt(noBallExtra || '0'), noBallExtra: true });
+                submitScore({ runs: parseInt(noBallExtra || '0'), noBall: true });
                 setNoBallExtra('0');
               }}
             >
@@ -819,6 +917,42 @@ const ScoringScreen = ({ route }) => {
 
             <Picker
               selectedValue={selectedBowler?.playerId}
+              onValueChange={(itemValue) => {
+                const selectedPlayer = availableBowlers.find(player => player.playerId === itemValue);
+                setSelectedBowler(selectedPlayer);
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Select Bowler" value="" />
+              {availableBowlers.map((bowler) => (
+                <Picker.Item key={bowler.playerId} label={bowler?.name} value={bowler?.playerId} />
+              ))}
+            </Picker>
+
+            <Pressable
+              style={styles.submitButton}
+              onPress={() => {
+                if (!selectedBowler?.playerId) {
+                  Alert.alert('Error', 'Please select a bowler.');
+                  return;
+                }
+                selectNextBowler(selectedBowler.playerId, selectedBowler.name);
+              }}
+            >
+              <Text style={styles.submitText}>Confirm Bowler</Text>
+            </Pressable>
+
+          </View>
+        </View>
+      </Modal>
+      {/* Catcher Modal */}
+      <Modal visible={modals.catch} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Catcher</Text>
+
+            <Picker
+              selectedValue={selectedCatcher?.playerId}
               onValueChange={(itemValue) => {
                 const selectedPlayer = availableBowlers.find(player => player.playerId === itemValue);
                 setSelectedBowler(selectedPlayer);

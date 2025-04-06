@@ -157,6 +157,10 @@ const styles = StyleSheet.create({
     padding: 10,
     overflow: 'hidden',
   },
+  activityIndicator: {
+    paddingTop: 50,
+    padding: 10,
+  },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
@@ -262,42 +266,42 @@ const MyMatch = () => {
   };
 
   const matchCardClickHandler = (item) => {
-    const matchId = item.id;
+    const matchId = item?.id;
     navigation.navigate('MatchScoreCard', { matchId })
   }
 
   const renderMatchItem = ({ item }) => {
-    const matchDate = item.matchDate ? `${item.matchDate[2]}-${item.matchDate[1]}-${item.matchDate[0]}` : 'N/A';
+    const matchDate = item?.matchDate ? `${item?.matchDate[2]}-${item?.matchDate[1]}-${item?.matchDate[0]}` : 'N/A';
 
     return (
       <Pressable
-        key={item.id}
+        key={item?.id}
         style={styles.card}
         onPress={() => matchCardClickHandler(item)}
       >
         <View style={liveMatchStyles.teamRow}>
-          <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+          <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
           <View>
-            <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+            <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
           </View>
           <Text style={liveMatchStyles.vs}>VS</Text>
           <View>
-            <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+            <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
           </View>
-          <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+          <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
         </View>
 
         <View style={{ borderWidth: 0.5, borderColor: '#34B8FF' }}></View>
 
         <View style={{ marginTop: 5 }}>
           <Text style={styles.tournamentContent}><Icon name="calendar-month" size={18} color="#555" /> Date: {matchDate}</Text>
-          <Text style={styles.tournamentContent}><Icon name="flag" size={18} color="#555" /> Venue: {item.venue}</Text>
+          <Text style={styles.tournamentContent}><Icon name="flag" size={18} color="#555" /> Venue: {item?.venue}</Text>
         </View>
 
         <View style={{ alignItems: 'center', marginTop: 10 }}>
-          <Text style={styles.winnerText}>{item.winner ? `Winner: ${item.winner}` : 'Match Result Pending'}</Text>
+          <Text style={styles.winnerText}>{item?.winner ? `Winner: ${item?.winner}` : 'Match Result Pending'}</Text>
         </View>
       </Pressable>
     );
@@ -305,16 +309,17 @@ const MyMatch = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" />}
-      {error && <Text style={styles.errorText}>{error}</Text>}
-      {!loading && matches?.length === 0 && <Text style={styles.noMatchText}>No matches found</Text>}
+      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
+      {!loading && error && <Text style={[styles.errorText, styles.activityIndicator]}>{error}</Text>}
+      {!loading && matches?.length === 0 && <Text style={[styles.noMatchText, styles.activityIndicator]}>No matches found</Text>}
 
-      <FlatList
+      {!loading && matches?.length !== 0 && <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
         renderItem={renderMatchItem}
         contentContainerStyle={styles.cardContainer}
       />
+      }
     </View>
   );
 };
@@ -325,6 +330,33 @@ const LiveMatch = () => {
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
   const [isCreator, setIsCreator] = useState(false);
+  const [strikerId, setStrikerId] = useState(null);
+  const [nonStrikerId, setNonStrikerId] = useState(null);
+  const [bowler, setBowler] = useState(null);
+  const [selectedStrikerName, setSelectedStrikerName] = useState(null);
+  const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(null);
+  const [selectedBowlerName, setSelectedBowlerName] = useState(null);
+  const [battingTeamName, setBattingTeamName] = useState('');
+  const [score, setScore] = useState(0);
+  const [extras, setExtras] = useState(0);
+  const [bowlingTeamName, setBowlingTeamName] = useState('');
+  const [wicket, setWicket] = useState(0);
+  const [battingTeamII, setBattingTeamII] = useState([]);
+  const [bowlingTeamII, setBowlingTeamII] = useState([]);
+  const [completedOvers, setCompletedOvers] = useState(0);
+  const [currentBowlerName, setCurrentBowlerName] = useState(selectedBowlerName);
+  const [strikerName, setStrikerName] = useState(selectedStrikerName);
+  const [nonStrikerName, setNonStrikerName] = useState(selectedNonStrikerName);
+  const [currentOver, setCurrentOver] = useState([]);
+  const [availableBowlers, setAvailableBowlers] = useState([]);
+  const [availableBatsmen, setAvailableBatsmen] = useState(battingTeamII?.filter(
+    (player) => player?.ballsFaced === 0 && player?.playerId !== strikerId && player?.playerId !== nonStrikerId
+  ).map(({ playerId, name }) => ({ playerId, name })));
+  const [nonStrikerStats, setNonStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
+  const [strikerStats, setStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
+  const [bowlerStats, setBowlerStats] = useState({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
+  const [overDetails, setOverDetails] = useState(null);
+  const [legalDeliveries, setLegalDeliveries] = useState(0);
 
   const getLiveMatches = async () => {
     try {
@@ -344,7 +376,7 @@ const LiveMatch = () => {
         setIsCreator(false);
       }
     } catch (err) {
-      setError('Failed to load live matches');
+      console.log(err);
     } finally {
       setLoading(false);
     }
@@ -354,19 +386,71 @@ const LiveMatch = () => {
     getLiveMatches();
   }, []);
 
-  const liveMatchClickHandler = async (matchId: string) => {
+  const liveMatchClickHandler = async (matchId: string, match: any) => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      if (isCreator) {
+      const userId = (await AsyncStorage.getItem('userUUID')).trim();
+      const creatorId = match.creatorName.id;
+      if (userId === creatorId) {
         const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         )
-        const data = response;
+        const data = response.data;
         console.log(data);
-        // navigation.navigate('Scoring', { matchId });
+        setStrikerId(data.currentStriker?.playerId || null);
+        setNonStrikerId(data.currentNonStriker?.playerId || null);
+        setBowler(data.currentBowler?.playerId || null);
+        setSelectedStrikerName(data.currentStriker?.name || "Unknown");
+        setSelectedNonStrikerName(data.currentNonStriker?.name || "Unknown");
+        setSelectedBowlerName(data.currentBowler?.name || "Unknown");
+        setBattingTeamName(data.battingTeam?.name || "Unknown");
+        setScore(data.battingTeam?.score || 0);
+        setBowlingTeamName(data.bowlingTeam?.name || "Unknown");
+        setWicket(data.battingTeam?.wickets || 0);
+        setExtras(data.battingTeam?.extras || 0);
+        setBattingTeamII(data.battingTeamPlayingXI || []);
+        setBowlingTeamII(data.bowlingTeamPlayingXI || []);
+        setCompletedOvers(data.completedOvers || 0);
+        setCurrentOver(data.currentOver || []);
+
+
+        const filteredBowlers = data.bowlingTeamPlayingXI?.filter((player) => player.playerId !== data.currentBowler?.playerId)
+          .map(({ playerId, name }) => ({ playerId, name })) || [];
+        setAvailableBowlers(filteredBowlers);
+
+        const available = data.battingTeamPlayingXI?.filter(
+          (player) => player.ballsFaced === 0 && player.playerId !== data.currentStriker?.playerId && player.playerId !== data.currentNonStriker?.playerId
+        ).map(({ playerId, name }) => ({ playerId, name })) || [];
+        setAvailableBatsmen(available);
+
+        const strikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentStriker?.name) || { runs: 0, ballsFaced: 0 };
+        const nonStrikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentNonStriker?.name) || { runs: 0, ballsFaced: 0 };
+        const bowlerStats = data.bowlingTeamPlayingXI?.find(player => player?.name === data.currentBowler?.name) || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 };
+
+        setStrikerStats(strikerStats);
+        setNonStrikerStats(nonStrikerStats);
+        setBowlerStats(bowlerStats);
+
+        const formattedOverDetails = data.currentOver?.map((ball) => {
+          let event = ball.runs.toString();
+          if (ball.wicket) event += 'W';
+          if (ball.noBall) event += 'NB';
+          if (ball.wide) event += 'Wd';
+          if (ball.bye) event += 'B';
+          if (ball.legBye) event += 'LB';
+          return event;
+        }) || [];
+
+        setOverDetails(formattedOverDetails);
+
+        const deliveryCount = data.currentOver?.reduce((count, ball) => {
+          return count + (ball.noBall || ball.wide ? 0 : 1);
+        }, 0) || 0;
+        setLegalDeliveries(deliveryCount);
+        navigation.navigate('Scoring', { matchId, strikerId, nonStrikerId, bowler, selectedStrikerName, selectedNonStrikerName, selectedBowlerName, battingTeamName, score, bowlingTeamName, wicket, battingTeamII, bowlingTeamII, completedOvers });
       }
       else {
-        navigation.navigate('MatchScoreCard', { matchId })
+        navigation.navigate('CommentaryScorecard', { matchId })
       }
     } catch (error) {
 
@@ -374,42 +458,41 @@ const LiveMatch = () => {
   }
 
   const renderMatchItem = ({ item }) => (
-    <Pressable onPress={() => liveMatchClickHandler(item.id)}>
+    <Pressable onPress={() => liveMatchClickHandler(item?.id, item)}>
       <View style={liveMatchStyles.card}>
         <View style={liveMatchStyles.teamRow}>
-          <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+          <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
           <View>
-            <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+            <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
           </View>
           <Text style={liveMatchStyles.vs}>VS</Text>
           <View>
-            <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+            <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
           </View>
-          <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+          <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
         </View>
-        <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
+        <Text style={liveMatchStyles.venue}>Venue: {item?.venue}</Text>
         <Text style={liveMatchStyles.date}>
-          Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
+          Date: {item?.matchDate[2]}-{item?.matchDate[1]}-{item?.matchDate[0]}
         </Text>
-        <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
       </View>
     </Pressable>
   );
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" />}
-      {error && <Text style={liveMatchStyles.errorText}>{error}</Text>}
-      {!loading && matches.length === 0 && <Text style={liveMatchStyles.errorText}>No matches</Text>}
-
-      <FlatList
+      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
+      {error && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>{error}</Text>}
+      {!loading && matches?.length === 0 && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>No matches</Text>}
+      {!loading && matches?.length !== 0 && <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
         renderItem={renderMatchItem}
         contentContainerStyle={styles.cardContainer}
       />
+      }
     </View>
   )
 };
@@ -472,9 +555,37 @@ const liveMatchStyles = StyleSheet.create({
 })
 
 const UpcomingMatch = () => {
+  const navigation = useNavigation();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
+  const [strikerId, setStrikerId] = useState(null);
+  const [nonStrikerId, setNonStrikerId] = useState(null);
+  const [bowler, setBowler] = useState(null);
+  const [selectedStrikerName, setSelectedStrikerName] = useState(null);
+  const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(null);
+  const [selectedBowlerName, setSelectedBowlerName] = useState(null);
+  const [battingTeamName, setBattingTeamName] = useState('');
+  const [score, setScore] = useState(0);
+  const [extras, setExtras] = useState(0);
+  const [bowlingTeamName, setBowlingTeamName] = useState('');
+  const [wicket, setWicket] = useState(0);
+  const [battingTeamII, setBattingTeamII] = useState([]);
+  const [bowlingTeamII, setBowlingTeamII] = useState([]);
+  const [completedOvers, setCompletedOvers] = useState(0);
+  const [currentBowlerName, setCurrentBowlerName] = useState(selectedBowlerName);
+  const [strikerName, setStrikerName] = useState(selectedStrikerName);
+  const [nonStrikerName, setNonStrikerName] = useState(selectedNonStrikerName);
+  const [currentOver, setCurrentOver] = useState([]);
+  const [availableBowlers, setAvailableBowlers] = useState([]);
+  const [availableBatsmen, setAvailableBatsmen] = useState(battingTeamII?.filter(
+    (player) => player?.ballsFaced === 0 && player?.playerId !== strikerId && player?.playerId !== nonStrikerId
+  ).map(({ playerId, name }) => ({ playerId, name })));
+  const [nonStrikerStats, setNonStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
+  const [strikerStats, setStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
+  const [bowlerStats, setBowlerStats] = useState({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
+  const [overDetails, setOverDetails] = useState(null);
+  const [legalDeliveries, setLegalDeliveries] = useState(0);
 
   const getUpcomingMatches = async () => {
     try {
@@ -489,7 +600,7 @@ const UpcomingMatch = () => {
       setMatches(response.data);
 
     } catch (err) {
-      setError('Failed to load live matches');
+      setError('Failed to load upcoming matches');
     } finally {
       setLoading(false);
     }
@@ -499,41 +610,114 @@ const UpcomingMatch = () => {
     getUpcomingMatches();
   }, []);
 
+  const liveMatchClickHandler = async (matchId: string, match: any) => {
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      const userId = (await AsyncStorage.getItem('userUUID')).trim();
+      const creatorId = match.creatorName.id;
+      if (userId === creatorId) {
+        const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        const data = response.data;
+        console.log(data);
+        setStrikerId(data.currentStriker?.playerId || null);
+        setNonStrikerId(data.currentNonStriker?.playerId || null);
+        setBowler(data.currentBowler?.playerId || null);
+        setSelectedStrikerName(data.currentStriker?.name || "Unknown");
+        setSelectedNonStrikerName(data.currentNonStriker?.name || "Unknown");
+        setSelectedBowlerName(data.currentBowler?.name || "Unknown");
+        setBattingTeamName(data.battingTeam?.name || "Unknown");
+        setScore(data.battingTeam?.score || 0);
+        setBowlingTeamName(data.bowlingTeam?.name || "Unknown");
+        setWicket(data.battingTeam?.wickets || 0);
+        setExtras(data.battingTeam?.extras || 0);
+        setBattingTeamII(data.battingTeamPlayingXI || []);
+        setBowlingTeamII(data.bowlingTeamPlayingXI || []);
+        setCompletedOvers(data.completedOvers || 0);
+        setCurrentOver(data.currentOver || []);
+
+
+        const filteredBowlers = data.bowlingTeamPlayingXI?.filter((player) => player.playerId !== data.currentBowler?.playerId)
+          .map(({ playerId, name }) => ({ playerId, name })) || [];
+        setAvailableBowlers(filteredBowlers);
+
+        const available = data.battingTeamPlayingXI?.filter(
+          (player) => player.ballsFaced === 0 && player.playerId !== data.currentStriker?.playerId && player.playerId !== data.currentNonStriker?.playerId
+        ).map(({ playerId, name }) => ({ playerId, name })) || [];
+        setAvailableBatsmen(available);
+
+        const strikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentStriker?.name) || { runs: 0, ballsFaced: 0 };
+        const nonStrikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentNonStriker?.name) || { runs: 0, ballsFaced: 0 };
+        const bowlerStats = data.bowlingTeamPlayingXI?.find(player => player?.name === data.currentBowler?.name) || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 };
+
+        setStrikerStats(strikerStats);
+        setNonStrikerStats(nonStrikerStats);
+        setBowlerStats(bowlerStats);
+
+        const formattedOverDetails = data.currentOver?.map((ball) => {
+          let event = ball.runs.toString();
+          if (ball.wicket) event += 'W';
+          if (ball.noBall) event += 'NB';
+          if (ball.wide) event += 'Wd';
+          if (ball.bye) event += 'B';
+          if (ball.legBye) event += 'LB';
+          return event;
+        }) || [];
+
+        setOverDetails(formattedOverDetails);
+
+        const deliveryCount = data.currentOver?.reduce((count, ball) => {
+          return count + (ball.noBall || ball.wide ? 0 : 1);
+        }, 0) || 0;
+        setLegalDeliveries(deliveryCount);
+        navigation.navigate('Scoring', { matchId, strikerId, nonStrikerId, bowler, selectedStrikerName, selectedNonStrikerName, selectedBowlerName, battingTeamName, score, bowlingTeamName, wicket, battingTeamII, bowlingTeamII, completedOvers });
+      }
+      else {
+        navigation.navigate('MatchScoreCard', { matchId })
+      }
+    } catch (error) {
+
+    }
+  }
+
   const renderMatchItem = ({ item }) => (
-    <View style={liveMatchStyles.card}>
-      <View style={liveMatchStyles.teamRow}>
-        <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
-        <View>
-          <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
-          <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+    <Pressable onPress={() => liveMatchClickHandler(item?.id, item)}>
+      <View style={liveMatchStyles.card}>
+        <View style={liveMatchStyles.teamRow}>
+          <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
+          <View>
+            <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
+          </View>
+          <Text style={liveMatchStyles.vs}>VS</Text>
+          <View>
+            <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
+          </View>
+          <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
         </View>
-        <Text style={liveMatchStyles.vs}>VS</Text>
-        <View>
-          <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
-          <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
-        </View>
-        <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+        <Text style={liveMatchStyles.venue}>Venue: {item?.venue}</Text>
+        <Text style={liveMatchStyles.date}>
+          Date: {item?.matchDate[2]}-{item?.matchDate[1]}-{item?.matchDate[0]}
+        </Text>
       </View>
-      <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
-      <Text style={liveMatchStyles.date}>
-        Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
-      </Text>
-      <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
-    </View>
+    </Pressable>
   );
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" />}
-      {error && <Text style={liveMatchStyles.errorText}>{error}</Text>}
-      {!loading && matches.length === 0 && <Text style={liveMatchStyles.errorText}>No matches</Text>}
+      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
+      {error && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>{error}</Text>}
+      {!loading && matches?.length === 0 && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>No matches</Text>}
 
-      <FlatList
+      {!loading && matches?.length !== 0 && <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
         renderItem={renderMatchItem}
         contentContainerStyle={styles.cardContainer}
       />
+      }
     </View>
   )
 };
@@ -569,38 +753,39 @@ const PastMatch = () => {
   const renderMatchItem = ({ item }) => (
     <View style={liveMatchStyles.card}>
       <View style={liveMatchStyles.teamRow}>
-        <Image source={{ uri: item.team1.logoPath }} style={liveMatchStyles.logo} />
+        <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
         <View>
-          <Text style={liveMatchStyles.teamName}>{item.team1.name}</Text>
-          <Text style={{ color: '#555', fontSize: 12 }}>{item.team1Score || 'N/A'}</Text>
+          <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+          <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
         </View>
         <Text style={liveMatchStyles.vs}>VS</Text>
         <View>
-          <Text style={liveMatchStyles.teamName}>{item.team2.name}</Text>
-          <Text style={{ color: '#555', fontSize: 12 }}>{item.team2Score || 'N/A'}</Text>
+          <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+          <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
         </View>
-        <Image source={{ uri: item.team2.logoPath }} style={liveMatchStyles.logo} />
+        <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
       </View>
-      <Text style={liveMatchStyles.venue}>Venue: {item.venue}</Text>
+      <Text style={liveMatchStyles.venue}>Venue: {item?.venue}</Text>
       <Text style={liveMatchStyles.date}>
-        Date: {item.matchDate[2]}-{item.matchDate[1]}-{item.matchDate[0]}
+        Date: {item?.matchDate[2]}-{item?.matchDate[1]}-{item?.matchDate[0]}
       </Text>
-      <Text style={liveMatchStyles.winner}>{item.winner} won the match!</Text>
+      <Text style={liveMatchStyles.winner}>{item?.winner} won the match!</Text>
     </View>
   );
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" />}
-      {error && <Text style={liveMatchStyles.errorText}>{error}</Text>}
-      {!loading && matches.length === 0 && <Text style={liveMatchStyles.errorText}>No matches</Text>}
+      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
+      {error && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>{error}</Text>}
+      {!loading && matches?.length === 0 && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>No matches</Text>}
 
-      <FlatList
+      {!loading && matches?.length !== 0 && <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
         renderItem={renderMatchItem}
         contentContainerStyle={styles.cardContainer}
       />
+      }
     </View>
   );
 };

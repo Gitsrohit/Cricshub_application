@@ -18,6 +18,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import moment from "moment"
 
 const background = require('../../assets/images/cricsLogo.png');
 const { height } = Dimensions.get('window');
@@ -192,6 +193,7 @@ const CreateTournament = () => {
 
               {showStartDatePicker && (
                 <DateTimePicker
+                  minimumDate={moment().toDate()}
                   value={startDate}
                   mode="date"
                   display="default"

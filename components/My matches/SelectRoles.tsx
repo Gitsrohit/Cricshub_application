@@ -1,4 +1,4 @@
-import { Alert, FlatList, ImageBackground, Pressable, StyleSheet, Text, View, Animated } from 'react-native';
+import { Alert, FlatList, ImageBackground, Pressable, StyleSheet, Text, View, Animated, Image } from 'react-native';
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,22 +12,39 @@ const SelectRoles = ({ route, navigation }) => {
 
   const [battingII, setBattingII] = useState([]);
   const [bowlingII, setBowlingII] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [strikerId, setStrikerId] = useState(null);
   const [strikerName, setStrikerName] = useState(null);
   const [nonStrikerId, setNonStrikerId] = useState(null);
   const [nonStrikerName, setNonStrikerName] = useState(null);
-  const [bowler, setBowler] = useState(null);
+  const [bowlerId, setBowlerId] = useState(null);
   const [bowlerName, setBowlerName] = useState(null);
   const [step, setStep] = useState(1);
 
-
   const [showNotification, setShowNotification] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const buttonAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchPlayingII();
   }, []);
+
+  useEffect(() => {
+    if (strikerId && nonStrikerId) {
+      Animated.spring(buttonAnim, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.spring(buttonAnim, {
+        toValue: 0,
+        friction: 4,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [strikerId, nonStrikerId]);
 
   const showPopupNotification = () => {
     setShowNotification(true);
@@ -42,7 +59,6 @@ const SelectRoles = ({ route, navigation }) => {
     });
   };
 
-
   const hidePopupNotification = () => {
     Animated.timing(fadeAnim, {
       toValue: 0,
@@ -55,21 +71,39 @@ const SelectRoles = ({ route, navigation }) => {
 
   const fetchPlayingII = async () => {
     try {
+      setIsLoading(true);
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error("Please login again");
 
-      const responseBatting = await axios.get(`https://score360-7.onrender.com/api/v1/matches/${matchId}/playingXI/batting`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const responseBowling = await axios.get(`https://score360-7.onrender.com/api/v1/matches/${matchId}/playingXI/bowling`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const [responseBatting, responseBowling] = await Promise.all([
+        axios.get(`https://score360-7.onrender.com/api/v1/matches/${matchId}/playingXI/batting`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`https://score360-7.onrender.com/api/v1/matches/${matchId}/playingXI/bowling`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      
       setBattingII(responseBatting.data);
       setBowlingII(responseBowling.data);
     } catch (err) {
       Alert.alert('Error', 'Failed to fetch playing XI');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const ShimmerEffect = ({ width, height, style }) => {
+    return (
+      <View style={[styles.shimmerContainer, { width, height }, style]}>
+        <LinearGradient
+          colors={['#e0e0e0', '#f5f5f5', '#e0e0e0']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.shimmerGradient}
+        />
+      </View>
+    );
   };
 
   const handleSelectBatsman = ({ playerId, name }) => {
@@ -89,45 +123,109 @@ const SelectRoles = ({ route, navigation }) => {
   };
 
   const handleSelectBowler = ({ playerId, name }) => {
-    if (bowler === playerId) {
-      setBowler(null);
+    if (bowlerId === playerId) {
+      setBowlerId(null);
       setBowlerName(null);
     } else {
-      setBowler(playerId);
+      setBowlerId(playerId);
       setBowlerName(name);
     }
   };
 
   const handleSubmit = async () => {
-    if (!strikerId || !nonStrikerId || !bowler) {
+    if (!strikerId || !nonStrikerId || !bowlerId) {
       Alert.alert('Error', 'Please select a striker, non-striker, and bowler');
       return;
     }
 
     try {
+      setIsLoading(true);
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error("Please login again");
 
       await axios.post(
         `https://score360-7.onrender.com/api/v1/matches/${matchId}/players/update`,
-        { striker: strikerId, nonStriker: nonStrikerId, bowler },
+        { striker: strikerId, nonStriker: nonStrikerId, bowler: bowlerId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       showPopupNotification();
       setTimeout(() => {
-        navigation.navigate(`Scoring`, { matchId, strikerId, nonStrikerId, bowler, strikerName, nonStrikerName, bowlerName });
+        navigation.navigate(`Scoring`, { 
+          matchId, 
+          strikerId, 
+          nonStrikerId, 
+          bowler: bowlerId, 
+          selectedStrikerName: strikerName, 
+          selectedNonStrikerName: nonStrikerName, 
+          selectedBowlerName: bowlerName, 
+          isFirstInnings, 
+          score: 0, 
+          wicket: 0, 
+          completedOvers: 0 
+        });
       }, 1000);
     } catch (err) {
+      setIsLoading(false);
       Alert.alert('Error', 'Failed to update players');
     }
   };
+
+  const renderPlayerItem = ({ item }) => (
+    <Pressable
+      style={[
+        styles.playerCard, 
+        (step === 1 ? (strikerId === item.playerId || nonStrikerId === item.playerId) : bowlerId === item.playerId) && styles.selected
+      ]}
+      onPress={() => step === 1 ? 
+        handleSelectBatsman({ playerId: item.playerId, name: item.name }) : 
+        handleSelectBowler({ playerId: item.playerId, name: item.name })}
+    >
+      <View style={styles.playerContent}>
+        <Image
+          source={require("../../assets/defaultLogo.png")}
+          style={[
+            styles.userImage,
+            (step === 1 ? (strikerId === item.playerId || nonStrikerId === item.playerId) : bowlerId === item.playerId) && styles.selectedImage
+          ]}
+        />
+        <Text style={[
+          styles.playerText, 
+          (step === 1 ? (strikerId === item.playerId || nonStrikerId === item.playerId) : bowlerId === item.playerId) && styles.selectedText
+        ]}>
+          {item.name}
+        </Text>
+      </View>
+      <View style={styles.roleIndicator}>
+        {step === 1 ? (
+          <>
+            {strikerId === item.playerId && <Text style={styles.roleText}>Striker</Text>}
+            {nonStrikerId === item.playerId && <Text style={styles.roleText}>Non-Striker</Text>}
+          </>
+        ) : (
+          bowlerId === item.playerId && <Text style={styles.roleText}>Bowler</Text>
+        )}
+      </View>
+    </Pressable>
+  );
+
+  const renderShimmerItem = () => (
+    <View style={[styles.playerCard, { backgroundColor: '#f5f5f5' }]}>
+      <View style={styles.playerContent}>
+        <ShimmerEffect width={36} height={36} style={{ borderRadius: 18, marginRight: 12 }} />
+        <ShimmerEffect width="60%" height={20} />
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
         <ImageBackground source={stadiumBG} resizeMode="cover" style={styles.background} imageStyle={styles.backgroundImage}>
-          <Text style={styles.heading}>Select Roles</Text>
+          <View style={styles.headerContainer}>
+            <Text style={styles.heading}>Select Roles</Text>
+          </View>
+          
           <BlurView style={styles.selectRolesIIContainer} intensity={50}>
             <LinearGradient
               colors={['#0866AA', '#6BB9F0']}
@@ -136,58 +234,101 @@ const SelectRoles = ({ route, navigation }) => {
               end={{ x: 1, y: 1 }}
             >
               {step === 1 ? (
-                <>
+                <View style={styles.stepContainer}>
                   <Text style={styles.subHeading}>Select Striker & Non-Striker</Text>
-                  <FlatList
-                    data={battingII}
-
-                    keyExtractor={(item) => item.playerId}
-                    renderItem={({ item }) => (
-                      <Pressable
-                        style={[styles.playerCard, strikerId === item.playerId || nonStrikerId === item.playerId ? styles.selected : {}]}
-                        onPress={() => handleSelectBatsman({ playerId: item.playerId, name: item.name })}
-                      >
-                        <Text style={styles.playerText}>{item.name}</Text>
-                        {strikerId === item.playerId && <Text style={styles.roleText}>Striker</Text>}
-                        {nonStrikerId === item.playerId && <Text style={styles.roleText}>Non-Striker</Text>}
-                      </Pressable>
+                  <View style={styles.listWrapper}>
+                    {isLoading ? (
+                      <FlatList
+                        data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]}
+                        keyExtractor={(item, index) => index.toString()}
+                        renderItem={renderShimmerItem}
+                        contentContainerStyle={styles.listContent}
+                      />
+                    ) : (
+                      <FlatList
+                        data={battingII}
+                        keyExtractor={(item) => item.playerId}
+                        renderItem={renderPlayerItem}
+                        contentContainerStyle={styles.listContent}
+                      />
                     )}
-                  />
-                  {strikerId && nonStrikerId && (
-                    <Pressable style={styles.nextButton} onPress={() => setStep(2)}>
-                      <Text style={styles.submitText}>Next</Text>
+                  </View>
+                  
+                  <Animated.View 
+                    style={[
+                      styles.nextButtonContainer,
+                      {
+                        opacity: buttonAnim,
+                        transform: [{
+                          translateY: buttonAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [20, 0]
+                          })
+                        }]
+                      }
+                    ]}
+                  >
+                    <Pressable 
+                      style={[styles.nextButton, styles.actionButton]} 
+                      onPress={() => setStep(2)}
+                    >
+                      <Text style={styles.actionButtonText}>Next</Text>
+                      <MaterialIcons name="arrow-forward" size={20} color="white" />
                     </Pressable>
-                  )}
-                </>
+                  </Animated.View>
+                </View>
               ) : (
-                <>
+                <View style={styles.stepContainer}>
                   <Text style={styles.subHeading}>Select Bowler</Text>
-                  <FlatList
-                    data={bowlingII}
-                    keyExtractor={(item) => item.playerId}
-                    renderItem={({ item }) => (
-                      <Pressable
-                        style={[styles.playerCard, bowler === item.playerId ? styles.selected : {}]}
-                        onPress={() => handleSelectBowler({ playerId: item.playerId, name: item.name })}
+                  <View style={styles.listWrapper}>
+                    {isLoading ? (
+                      <FlatList
+                        data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]}
+                        keyExtractor={(item, index) => index.toString()}
+                        renderItem={renderShimmerItem}
+                        contentContainerStyle={styles.listContent}
+                      />
+                    ) : (
+                      <FlatList
+                        data={bowlingII}
+                        keyExtractor={(item) => item.playerId}
+                        renderItem={renderPlayerItem}
+                        contentContainerStyle={styles.listContent}
+                      />
+                    )}
+                  </View>
+                  <View style={styles.bottomButtonContainer}>
+                    <Pressable 
+                      style={[styles.backButton, styles.actionButton]} 
+                      onPress={() => setStep(1)}
+                    >
+                      <MaterialIcons name="arrow-back" size={20} color="white" />
+                      <Text style={styles.actionButtonText}>Back</Text>
+                    </Pressable>
+                    {bowlerId && (
+                      <Pressable 
+                        style={[styles.submitButton, styles.actionButton]} 
+                        onPress={handleSubmit}
+                        disabled={isLoading}
                       >
-                        <Text style={styles.playerText}>{item.name}</Text>
-                        {bowler === item.playerId && <Text style={styles.roleText}>Bowler</Text>}
+                        {isLoading ? (
+                          <Text style={styles.actionButtonText}>Loading...</Text>
+                        ) : (
+                          <>
+                            <Text style={styles.actionButtonText}>Submit</Text>
+                            <MaterialIcons name="check" size={20} color="white" />
+                          </>
+                        )}
                       </Pressable>
                     )}
-                  />
-                  {bowler && (
-                    <Pressable style={styles.nextButton} onPress={handleSubmit}>
-                      <Text style={styles.submitText}>Submit</Text>
-                    </Pressable>
-                  )}
-                </>
+                  </View>
+                </View>
               )}
             </LinearGradient>
           </BlurView>
         </ImageBackground>
       </LinearGradient>
 
-      {/* Pop-up Notification */}
       {showNotification && (
         <Animated.View style={[styles.notificationContainer, { opacity: fadeAnim }]}>
           <MaterialIcons name="emoji-events" size={24} color="#fff" />
@@ -197,8 +338,6 @@ const SelectRoles = ({ route, navigation }) => {
     </View>
   );
 };
-
-export default SelectRoles;
 
 const styles = StyleSheet.create({
   container: {
@@ -219,80 +358,139 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%'
   },
-  selectRolesIIContainer: {
-    width: '85%',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  cardBackground: {
-    padding: 10,
-    borderRadius: 12,
+  headerContainer: {
+    marginBottom: 15,
+    width: '100%',
+    alignItems: 'center',
   },
   heading: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
     color: 'white',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 5,
   },
+  selectRolesIIContainer: {
+    width: '90%',
+    height: '75%',
+    maxHeight: 600,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  cardBackground: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 12,
+  },
+  stepContainer: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  listWrapper: {
+    flex: 1,
+    marginBottom: 10,
+  },
+  listContent: {
+    paddingBottom: 80,
+  },
   subHeading: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginVertical: 8,
+    marginVertical: 10,
     color: 'white',
     textAlign: 'center',
   },
   playerCard: {
-    flex: 1,
     padding: 12,
-    marginVertical: 4,
+    marginVertical: 6,
     backgroundColor: '#fff',
     borderRadius: 8,
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    minHeight: 60,
+    justifyContent: 'center',
   },
   selected: {
     backgroundColor: '#36B0D5',
-    shadowColor: '#36B0D5',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#0A303B',
+  },
+  playerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
+  userImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  selectedImage: {
+    borderColor: '#fff',
+    borderWidth: 2,
   },
   playerText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    flex: 1,
+  },
+  selectedText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  roleIndicator: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
   },
   roleText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#ffff',
-    marginTop: 2,
+  },
+  bottomButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 5,
+    paddingBottom: 10,
+  },
+  nextButtonContainer: {
+    position: 'absolute',
+    bottom: 15,
+    right: 15,
+    zIndex: 10,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    minWidth: 100,
   },
   nextButton: {
     backgroundColor: '#0A303B',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
   },
-  submitText: {
-    fontSize: 14,
+  backButton: {
+    backgroundColor: '#6c757d',
+  },
+  submitButton: {
+    backgroundColor: '#28a745',
+  },
+  actionButtonText: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+    marginHorizontal: 8,
   },
   notificationContainer: {
     position: 'absolute',
@@ -315,4 +513,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginLeft: 10,
   },
+  shimmerContainer: {
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  shimmerGradient: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
 });
+
+export default SelectRoles;

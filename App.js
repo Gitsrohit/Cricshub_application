@@ -15,7 +15,7 @@ import CreateTeam from './components/Teams/CreateTeam';
 import CreateTournaments from './components/Tournaments/CreateTournaments';
 import ManageTournaments from './components/Tournaments/ManageTournaments';
 import TeamDetailsScreen from './components/Teams/TeamDetailsScreen';
-import InstantMatch from './components/My matches/InstantMatch/InstantMatch';
+import InstantMatch from './components/My matches/ScheduleMatch/InstantMatch';
 import SelectPlayingII from './components/My matches/SelectPlayingII';
 import Toss from './components/My matches/Toss';
 import Scoring from './components/My matches/Scoring';
@@ -23,6 +23,8 @@ import SelectRoles from './components/My matches/SelectRoles';
 import AddPlayersToTeam from './components/Teams/AddPlayersToTeam';
 import SelectRoles2ndInnings from './components/My matches/SelectRoles2ndInnings';
 import AllMatches from './components/My matches/AllMatches/AllMatches';
+import ScheduleMatch from './components/My matches/ScheduleMatch/ScheduleMatch';
+import CommentaryScorecard from './components/My matches/CommentaryScorecard';
 
 // import Performance from './components/Settings/Performance';
 
@@ -58,6 +60,7 @@ const MainScreens = () => {
       <View style={{ flex: 1 }}>
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
           <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="MyMatches" component={AllMatches} />
           <Stack.Screen name="Tournaments" component={Tournaments} />
           <Stack.Screen name="Teams" component={Teams} />
@@ -75,6 +78,8 @@ const MainScreens = () => {
           <Stack.Screen name="AddPlayersToTeam" component={AddPlayersToTeam} />
           <Stack.Screen name="SelectRoles2ndInnings" component={SelectRoles2ndInnings} />
           <Stack.Screen name="MatchScoreCard" component={ScoreCard} />
+          <Stack.Screen name="ScheduleMatch" component={ScheduleMatch} />
+          <Stack.Screen name="CommentaryScorecard" component={CommentaryScorecard} />
         </Stack.Navigator>
       </View>
       <Footer style={styles.footer} />

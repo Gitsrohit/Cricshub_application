@@ -140,7 +140,7 @@ const InstantMatch = () => {
         team2Id,
         overs: matchDetails.overs,
         matchDate: istDateTime.format("YYYY-MM-DD"),
-        matchTime: istDateTime.format("HH:mm:ss.SSS"),
+        matchTime: istDateTime.format("HH:mm"),
         venue,
       };
 
@@ -159,6 +159,10 @@ const InstantMatch = () => {
     }
   };
 
+  const scheduleMatchHandler = () => {
+    navigation.navigate('ScheduleMatch');
+  }
+
   const cardGradientColors = ['#4A90E2', '#6BB9F0'];
 
   return (
@@ -172,7 +176,7 @@ const InstantMatch = () => {
         <View style={styles.instantMatchContainer}>
           <View style={styles.centerContainer}>
             <BlurView style={styles.instantMatchForm} intensity={50}>
-              <Text style={styles.title}>Match Details</Text>
+              <Text style={styles.title}>Instant Match Details</Text>
               <View style={styles.teamSelectionContainer}>
                 <TouchableOpacity
                   onPress={() => {
@@ -234,6 +238,12 @@ const InstantMatch = () => {
                   </View>
                 </View>
               </View>
+              <Text
+                onPress={scheduleMatchHandler}
+                style={styles.upcomingMatch}
+              >
+                Schedule an upcoming match
+              </Text>
               <TouchableOpacity style={styles.nextButton} onPress={handleNextButtonClick}>
                 <LinearGradient colors={cardGradientColors} style={styles.nextButtonGradient}>
                   <Text style={styles.nextButtonText}>Next</Text>
@@ -377,6 +387,11 @@ const styles = StyleSheet.create({
     color: '#333',
     fontSize: 16,
     paddingVertical: 10,
+  },
+  upcomingMatch: {
+    color: '#4A90E2',
+    marginTop: 10,
+    fontSize: 16,
   },
   nextButton: {
     marginTop: 20,
