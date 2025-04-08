@@ -18,12 +18,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import moment from "moment"
+import moment from "moment";
+import axios from 'axios';
 
 const background = require('../../assets/images/cricsLogo.png');
 const { height } = Dimensions.get('window');
 
-const CreateTournament = () => {
+const CreateTournament = ({ navigation }) => {
   const [tournamentName, setTournamentName] = useState('');
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
@@ -46,7 +47,8 @@ const CreateTournament = () => {
 
   const getUserUUID = async () => {
     try {
-      return await AsyncStorage.getItem('userUUID');
+      const userId = await AsyncStorage.getItem('userUUID');
+      return userId;
     } catch (error) {
       console.error('Error retrieving token:', error);
       return null;
@@ -62,23 +64,18 @@ const CreateTournament = () => {
       return;
     }
     try {
-      const requestPayload = {
-        request: {
-          name: tournamentName,
-          startDate: startDate.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0],
-          format: format,
-          type: overs,
-          ballType: ballType,
-          matchesPerDay: 1,
-          matchesPerTeam: 1,
-          venues: ["Default Venue"],
-        },
-        banner: "Default Banner",
-      };
-
       const formData = new FormData();
-      formData.append("request", JSON.stringify(requestPayload.request));
+
+      formData.append("name", tournamentName);
+      formData.append("startDate", startDate.toISOString().split('T')[0]);
+      formData.append("endDate", endDate.toISOString().split('T')[0]);
+      formData.append("format", format);
+      formData.append("type", overs);
+      formData.append("ballType", ballType);
+      formData.append("matchesPerDay", "1");
+      formData.append("matchesPerTeam", "1");
+
+      formData.append("venues", "Default Venue");
 
       if (banner) {
         const fileName = banner.split('/').pop();
@@ -99,25 +96,24 @@ const CreateTournament = () => {
         return;
       }
 
-      const response = await fetch(`https://score360-7.onrender.com/api/v1/tournaments/${userId}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formData,
-      });
-
-      if (response.ok) {
-        Alert.alert('Success', 'Tournament created successfully!');
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Error', `Failed to create the tournament. ${errorData.status},${errorData.message}`);
+      const response = await axios.post(
+        `https://score360-7.onrender.com/api/v1/tournaments/${userId}`,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      if (response.status === 200) {
+        navigation.navigate('Tournaments');
       }
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Something went wrong.');
     } finally {
+      setLoading(false);
       setTournamentName('');
       setStartDate(new Date());
       setEndDate(new Date());
@@ -125,7 +121,6 @@ const CreateTournament = () => {
       setBallType('');
       setOvers('');
       setBanner(null);
-      setLoading(false);
     }
   };
 
