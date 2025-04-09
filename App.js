@@ -29,6 +29,7 @@ import CommentaryScorecard from './components/My matches/CommentaryScorecard';
 // import Performance from './components/Settings/Performance';
 
 import ScoreCard from './components/My matches/ScoreCard';
+import SideBar from './components/Sidebar';
 
 
 const Stack = createStackNavigator();
@@ -55,8 +56,7 @@ const App = () => {
 
 const MainScreens = () => {
   return (
-    <View style={{ flex: 1 }}>
-      <StatusBar />
+    <SideBar>
       <View style={{ flex: 1 }}>
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
           <Stack.Screen name="Home" component={Home} />
@@ -81,9 +81,9 @@ const MainScreens = () => {
           <Stack.Screen name="ScheduleMatch" component={ScheduleMatch} />
           <Stack.Screen name="CommentaryScorecard" component={CommentaryScorecard} />
         </Stack.Navigator>
+        <Footer style={styles.footer} />
       </View>
-      <Footer style={styles.footer} />
-    </View>
+    </SideBar>
   );
 };
 

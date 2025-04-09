@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, FlatList, ImageBackground, StatusBar, TouchableHighlight, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ImageBackground, ActivityIndicator } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -104,7 +104,7 @@ const CommentaryScorecard = ({ route }) => {
   return (
     <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
       <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
-        <View style={{ marginTop: StatusBar?.currentHeight | 0 }}>
+        <View>
           {loading ? <ActivityIndicator color='#002233' />
             : (
               <View>

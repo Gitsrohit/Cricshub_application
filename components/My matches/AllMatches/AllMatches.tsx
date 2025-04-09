@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ImageBackground,
-  StatusBar,
   Image,
   Pressable,
   ActivityIndicator,
@@ -24,11 +23,6 @@ const AllMatches = () => {
   return (
     <ImageBackground source={backgroundImage} style={styles.backgroundImage} resizeMode="cover">
       <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradientOverlay}>
-        <StatusBar
-          barStyle="light-content"
-          backgroundColor="#34B8FF"
-          translucent={true}
-        />
         <View style={styles.header}>
           <LinearGradient
             colors={['#34B8FF', '#34B8FF']}
@@ -93,7 +87,7 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1,
     height: 140,
-    paddingTop: StatusBar.currentHeight || 0,
+    // paddingTop: StatusBar.currentHeight || 0,
     backgroundColor: 'transparent',
   },
   glassHeader: {

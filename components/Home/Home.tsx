@@ -156,118 +156,9 @@ const Home = () => {
         resizeMode="cover"
       >
         <SafeAreaView style={styles.container}>
-          {isSidebarVisible && (
-            <TouchableWithoutFeedback onPress={closeSidebar}>
-              <Animated.View
-                style={[
-                  styles.overlay,
-                  {
-                    opacity: overlayAnim,
-                  },
-                ]}
-              />
-            </TouchableWithoutFeedback>
-          )}
-          <Animated.View
-            style={[
-              styles.sidebar,
-              {
-                transform: [{ translateX: sidebarAnim }],
-              },
-            ]}
-          >
-            <View style={styles.sidebarHeader}>
-              <Image
-                source={require("../../assets/defaultLogo.png")}
-                style={styles.userImage}
-              />
-              <Text
-                style={styles.sidebarTitle}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {userName}
-              </Text>
-            </View>
-
-            {/* Sidebar Items */}
-            <TouchableOpacity
-              style={styles.sidebarItem}
-              onPress={() => {
-                navigation.navigate("Profile");
-                closeSidebar();
-              }}
-            >
-              <Ionicons name="person-outline" size={24} color="#333" />
-              <Text style={styles.sidebarItemText}>Profile</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.sidebarItem}
-              onPress={() => {
-                navigation.navigate("Performance");
-                closeSidebar();
-              }}
-            >
-              <Ionicons name="stats-chart-outline" size={24} color="#333" />
-              <Text style={styles.sidebarItemText}>Performance</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.sidebarItem}
-              onPress={() => {
-                navigation.navigate("Support");
-                closeSidebar();
-              }}
-            >
-              <Ionicons name="help-circle-outline" size={24} color="#333" />
-              <Text style={styles.sidebarItemText}>Support & Help</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.sidebarItem}
-              onPress={() => {
-                navigation.navigate("RateUs");
-                closeSidebar();
-              }}
-            >
-              <Ionicons name="star-outline" size={24} color="#333" />
-              <Text style={styles.sidebarItemText}>Rate Us</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.sidebarItem}
-              onPress={() => {
-                navigation.navigate("Settings");
-                closeSidebar();
-              }}
-            >
-              <Ionicons name="settings-outline" size={24} color="#333" />
-              <Text style={styles.sidebarItemText}>Settings</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.sidebarItem}
-              onPress={() => LogOutHandler()}
-            >
-              <Ionicons name="log-out-outline" size={24} color="#333" />
-              <Text style={styles.sidebarItemText}>Logout</Text>
-            </TouchableOpacity>
-
-            {/* Footer */}
-            <View style={styles.sidebarFooter}>
-              <Text style={styles.footerText}>cricshub @2025</Text>
-            </View>
-          </Animated.View>
 
           {/* Main Content */}
           <View style={styles.mainContent}>
-            <View style={styles.topBar}>
-              <TouchableOpacity onPress={toggleSidebar}>
-                <MaterialIcons name="menu" size={30} color="#333" />
-              </TouchableOpacity>
-              <FontAwesome name="filter" size={24} color="#333" />
-            </View>
 
             {/* Content */}
             <View style={styles.content}>
@@ -375,7 +266,7 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "transparent",
-    marginTop: StatusBar?.currentHeight || 0,
+    // marginTop: StatusBar?.currentHeight || 0,
   },
   overlay: {
     position: "absolute",
@@ -385,65 +276,6 @@ export const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     zIndex: 99,
-  },
-  sidebar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: width * 0.7,
-    height: "100%",
-    backgroundColor: "#FFF",
-    zIndex: 100,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  sidebarHeader: {
-    alignItems: 'center',
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    width: '100%',
-  },
-  sidebarTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 10,
-    maxWidth: '100%',
-  },
-
-  userImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 10,
-  },
-  sidebarItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  sidebarItemText: {
-    fontSize: 16,
-    color: "#333",
-    marginLeft: 10,
-  },
-  sidebarFooter: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
-    alignItems: "center",
-  },
-  footerText: {
-    fontSize: 14,
-    color: "#888",
   },
   mainContent: {
     flex: 1,

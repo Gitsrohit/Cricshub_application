@@ -7,7 +7,6 @@ import {
   ImageBackground,
   Modal,
   Pressable,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -167,7 +166,6 @@ const InstantMatch = () => {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <ImageBackground
         source={require('../../../assets/images/cricsLogo.png')}
         style={styles.backgroundImage}
