@@ -1,12 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 const backgroundImage = require('../../assets/images/cricsLogo.png');
+import DateTimePicker from '@react-native-community/datetimepicker';
+import moment from 'moment';
+import { Picker } from '@react-native-picker/picker';
 
 export default function ManageTournaments({ route }) {
   const [activeTab, setActiveTab] = useState('INFO');
@@ -49,11 +52,6 @@ export default function ManageTournaments({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="#34B8FF"
-        translucent={true}
-      />
       <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradientOverlay}>
         <ImageBackground source={backgroundImage} style={styles.background} resizeMode="cover">
           {/* Toggle Buttons */}
@@ -110,8 +108,6 @@ const styles = StyleSheet.create({
   },
   container: {
     height: '100%',
-    // paddingHorizontal: 6,
-    paddingTop: StatusBar.currentHeight || 0,
   },
   toggleContainer: {
     // marginTop: 10,
@@ -168,19 +164,20 @@ const styles = StyleSheet.create({
   },
   tournamentDetailsRow: {
     flexDirection: 'row',
-    marginTop: 10,
     borderBottomWidth: 0.25,
     borderBottomColor: 'white',
+    paddingVertical: 10,
+    paddingHorizontal: 14
   },
   tournamentDetailsHeading: {
     color: 'white',
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
   },
   tournamentDetailsValue: {
     color: 'white',
     flex: 2,
-    fontSize: 16,
+    fontSize: 14,
   },
   loader: {
     marginTop: 20,
@@ -233,7 +230,6 @@ const styles = StyleSheet.create({
 
   //Teams
   tournamentTeams: {
-    flex: 1,
     padding: 15,
     paddingBottom: 10,
     color: 'white',
@@ -365,24 +361,44 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   addTournamentWarning: {
-    color: 'white',
+    color: 'red',
     textAlign: 'center',
     marginTop: 10,
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '700',
   },
 
   //Matches
   matchTab: {},
-  scheduleButtonsHeading: {
-    color: 'white',
-    fontSize: 16,
-    marginTop: 20,
-    marginBottom: 10,
+  matchScheduleOptions: {
+    marginBottom: 8
   },
-  scheduleButtons: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center'
+  matchScheduleTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: '#0866AA',
+    marginBottom: 8
+  },
+  matchScheduleOption: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 500
+  },
+  matchScheduleOptionContainer: {
+    padding: 20,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10
+  },
+  matchScheduler: {
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 15,
+    padding: 20,
+    margin: 10,
+    alignItems: 'center',
   },
   buttonText: {
     color: 'black',
@@ -430,14 +446,49 @@ const styles = StyleSheet.create({
     borderRadius: 20
   },
   vs: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ff0000'
+    fontSize: 10,
+    color: 'white'
   },
   matchTeamName: {
     fontSize: 18,
     color: 'white',
     fontWeight: 'bold',
+  },
+  input: {
+    borderBottomWidth: 1,
+    borderColor: '#fff',
+    marginBottom: 10,
+    padding: 8,
+    borderRadius: 6,
+    color: 'white',
+  },
+  matchUpdateModalOverlay: {
+    height: '100%',
+    justifyContent: "flex-end",
+  },
+  matchUpdateModalContainer: {
+    backgroundColor: "#6BB9F0",
+    flexDirection: 'column',
+    justifyContent: 'center',
+    // alignItems: 'center',
+    padding: 16,
+    overflow: 'hidden',
+    borderRadius: 20,
+  },
+  matchUpdateModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'left',
+    color: 'white',
+    marginBottom: 10
+  },
+  inputTextContainer: {
+
+  },
+  inputModalText: {
+    fontSize: 16,
+    fontWeight: 400,
+    color: 'white'
   },
 });
 
@@ -541,7 +592,7 @@ export const Info = ({ id, isCreator }) => {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.tournamentDetails}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomColor: 'white', borderBottomWidth: 1 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomColor: 'white', borderBottomWidth: 1, paddingVertical: 10, paddingHorizontal: 14 }}>
               <Text style={styles.tournamentName}>{tournamentDetails.name}</Text>
               {isCreator && <Icon name="edit" color="#e3e3e3" size={20} onPress={() => setEditingTournament(true)} />}
             </View>
@@ -850,7 +901,7 @@ export const Teams = ({ id, isCreator }) => {
       )}
       {loading.value === true && <ActivityIndicator size="large" color="white" />}
       {isCreator && <TouchableOpacity style={styles.addButton} onPress={openModal}>
-        <Text style={styles.addButtonText}>Add Team</Text>
+        <Text style={styles.addButtonText}>Add Teams</Text>
       </TouchableOpacity>}
 
       {/* Modal for adding a team */}
@@ -881,9 +932,26 @@ export const Teams = ({ id, isCreator }) => {
                         setTeamId(item.id);
                         addNewTeam(item.id, item.name);
                         setShowDropdown(false);
+                        setEnteredTeamName("");
+                        setDropdownOptions([]);
                       }}
                     >
-                      <Text style={styles.dropdownOption}>{item.name}</Text>
+                      <LinearGradient
+                        key={item.name}
+                        colors={['#0866AA', '#6BB9F0']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.teamCard}>
+                        <View style={styles.teamHeader}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'flex-start', gap: 10, alignItems: 'center' }}>
+                            <Image source={{ uri: item.logoPath }} style={styles.teamImage} resizeMode='cover' />
+                            <View>
+                              <Text style={styles.teamName}>{item.name}</Text>
+                              <Text style={styles.teamCaptain}>{item.captain.name}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      </LinearGradient>
                     </Pressable>
                   )}
                 />
@@ -904,6 +972,25 @@ export const Matches = ({ id, isCreator }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [venues, setVenues] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [matchDate, setMatchDate] = useState(new Date());
+  const [matchTime, setMatchTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [venue, setVenue] = useState('');
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [manualTeamA, setManualTeamA] = useState('');
+  const [manualTeamB, setManualTeamB] = useState('');
+  const [manualMatchDate, setManualMatchDate] = useState(new Date());
+  const [manualMatchTime, setManualMatchTime] = useState(new Date());
+  const [manualVenue, setManualVenue] = useState('');
+  const [tournamentData, setTournamentData] = useState(null);
+  const [manualMatchTeamA, setManualMatchTeamA] = useState(null);
+  const [manualMatchTeamB, setManualMatchTeamB] = useState(null);
+  const [manualMatchShowDatePicker, setManualMatchShowDatePicker] = useState(false);
+  const [manualMatchShowTimePicker, setManualMatchShowTimePicker] = useState(false);
+  const [manualMatchVenue, setManualMatchVenue] = useState('');
 
   // Fetch Match Details
   const fetchMatchDetails = async (id) => {
@@ -949,8 +1036,8 @@ export const Matches = ({ id, isCreator }) => {
           'Content-Type': 'application/json',
         },
       });
-      const tournamentData = response.data;
-      setVenues(tournamentData.venues);
+      setTournamentData(response.data);
+      setVenues(response.data.venues);
     } catch (error) {
       setError('Failed to fetch tournament details');
     }
@@ -990,6 +1077,102 @@ export const Matches = ({ id, isCreator }) => {
     fetchTournamentDetails(id);
   }, [id]);
 
+  const getInitials = (name) => {
+    if (!name) return '';
+    return name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase())
+      .join('');
+  };
+
+  const handleScheduleSubmit = async () => {
+    if (!selectedMatch) return;
+
+    const selectedDateTime = moment(matchDate)
+      .set({
+        hour: moment(matchTime).hour(),
+        minute: moment(matchTime).minute(),
+      });
+
+    const payload = {
+      matchDate: selectedDateTime.format("YYYY-MM-DD"),
+      matchTime: selectedDateTime.format("HH:mm"),
+      venue,
+    };
+
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      const response = await axios.put(
+        `https://score360-7.onrender.com/api/v1/tournaments/${id}/matches/${selectedMatch.id}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log('Match scheduled successfully:', response.data);
+      setModalVisible(false);
+    } catch (error) {
+      console.error('Error scheduling match:', error?.response?.data || error.message);
+      Alert.alert('Error', 'Failed to schedule match');
+    }
+  };
+
+  const manualMatchScheduleHandler = async () => {
+    console.log(`${manualMatchTeamB}, ${manualMatchTeamA}, ${manualMatchDate}, ${manualMatchTime}, ${manualMatchVenue}`);
+
+    if (!manualMatchTeamA || !manualMatchTeamB || !manualMatchDate || !manualMatchTime || !manualMatchVenue) {
+      alert('Please fill in all fields.');
+      return;
+    }
+
+    if (manualMatchTeamA === manualMatchTeamB) {
+      alert('Team A and Team B cannot be the same.');
+      return;
+    }
+
+    const selectedDateTime = moment(manualMatchDate)
+      .set({
+        hour: moment(manualMatchTime).hour(),
+        minute: moment(manualMatchTime).minute(),
+      });
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) {
+        setError('Please Login Again');
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.post(`https://score360-7.onrender.com/api/v1/matches/schedule`, {
+        tournamentId: id,
+        team1Id: manualMatchTeamA,
+        team2Id: manualMatchTeamB,
+        overs: +tournamentData.type,
+        venue: manualMatchVenue,
+        matchDate: selectedDateTime.format("YYYY-MM-DD"),
+        matchTime: selectedDateTime.format("HH:mm"),
+      },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
+
+      if (response.status === 201 || response.status === 200) {
+        alert('Match scheduled successfully!');
+        setIsManualModalOpen(false);
+        fetchMatchDetails(id);
+      }
+    } catch (error) {
+      console.error('Manual match schedule error:', error);
+      alert('Failed to schedule match manually.');
+    }
+  };
+
   return (
     <View style={styles.matchTab}>
       {loading && <ActivityIndicator />}
@@ -997,9 +1180,10 @@ export const Matches = ({ id, isCreator }) => {
         <>
           {/* Match Details Section */}
           <ScrollView>
-            <View style={styles.matchesContainer}>
-              {matchDetails.length > 0 ? (
-                matchDetails.map((match, index) => (
+
+            {matchDetails.length > 0 ? (
+              <View style={styles.matchesContainer}>
+                {matchDetails.map((match, index) => (
                   <LinearGradient
                     key={index}
                     colors={['#0866AA', '#6BB9F0']}
@@ -1007,11 +1191,29 @@ export const Matches = ({ id, isCreator }) => {
                     end={{ x: 1, y: 1 }}
                     style={styles.matchCard}>
                     <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'space-between', borderBottomColor: 'white', borderBottomWidth: 1, paddingBottom: 4 }}>
-                      <Image source={{ uri: match.team1.logoPath }} style={styles.logo} />
-                      <Text style={styles.matchTeamName}>{match.team1?.name}</Text>
-                      <Text style={styles.vs}>VS</Text>
-                      <Text style={styles.matchTeamName}>{match.team2?.name}</Text>
-                      <Image source={{ uri: match.team2.logoPath }} style={styles.logo} />
+                      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', rowGap: 10, paddingBottom: 4 }}>
+                        <Image source={{ uri: match.team1.logoPath }} style={styles.logo} />
+                        <Text style={styles.matchTeamName}>
+                          {getInitials(match.team1?.name)}
+                        </Text>
+                        <Text style={styles.vs}>VS</Text>
+                        <Text style={styles.matchTeamName}>
+                          {getInitials(match.team2?.name)}
+                        </Text>
+                        <Image source={{ uri: match.team2.logoPath }} style={styles.logo} />
+                      </View>
+                      <Icon
+                        name="edit"
+                        size={18}
+                        color="white"
+                        onPress={() => {
+                          setSelectedMatch(match);
+                          setMatchDate(new Date(match.matchDate[0], match.matchDate[1] - 1, match.matchDate[2]));
+                          setMatchTime(new Date());
+                          setVenue(match.venue || '');
+                          setModalVisible(true);
+                        }}
+                      />
                     </View>
                     <Text style={styles.matchStage}>{match.stage}</Text>
                     <Text style={[styles.matchText, { textTransform: 'uppercase' }]}>
@@ -1031,33 +1233,217 @@ export const Matches = ({ id, isCreator }) => {
                     </View>
                   </LinearGradient>
                 ))
-              ) : (
-                <>
-                  <Text style={styles.noMatchText}>No matches scheduled yet.</Text>
-                  {/* Schedule Buttons */}
-                  {isCreator &&
-                    <>
-                      <Text style={styles.scheduleButtonsHeading}>How would you like to schedule the matches?</Text>
-                      <View style={styles.scheduleButtons}>
-                        <Pressable onPress={aiMatchScheduleHandler} style={styles.button}>
-                          <Text style={styles.buttonText}>USING AI</Text>
-                        </Pressable>
-                        <Pressable style={styles.button}>
-                          <Text style={styles.buttonText}>MANUALLY</Text>
-                        </Pressable>
-                      </View>
-                    </>
-                  }
-                </>
-              )}
-            </View>
+                }
+              </View>
+            ) : (
+              <View style={styles.matchScheduler}>
+                {isCreator &&
+                  <View style={styles.matchScheduleOptions}>
+                    <Text style={styles.matchScheduleTitle}>How would you like to schedule the matches?</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' }}>
+                      <Pressable onPress={() => setIsManualModalOpen(true)}>
+                        <LinearGradient style={styles.matchScheduleOptionContainer} colors={['#0866AA', '#6BB9F0']}>
+                          <Icon name="person" size={40} color="white" />
+                          <Text style={styles.matchScheduleOption} >Manually</Text>
+                        </LinearGradient>
+                      </Pressable>
+                      <Pressable onPress={aiMatchScheduleHandler}>
+                        <LinearGradient style={styles.matchScheduleOptionContainer} colors={['#0866AA', '#6BB9F0']}>
+                          <Icon name="smart-toy" size={40} color="white" />
+                          <Text style={styles.matchScheduleOption}>Using AI</Text>
+                        </LinearGradient>
+                      </Pressable>
+                    </View>
+                  </View>
+                }
+              </View>
+            )}
           </ScrollView>
-
-
-
         </>
       )}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      {/* Match Update */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.matchUpdateModalOverlay}>
+          <View style={styles.matchUpdateModalContainer}>
+            <Text style={styles.matchUpdateModalTitle}>Edit Match</Text>
+            <View style={styles.inputTextContainer}>
+              <Text style={styles.inputModalText}>Venue</Text>
+              <TextInput
+                placeholder="Venue"
+                value={venue}
+                onChangeText={setVenue}
+                style={styles.input}
+              />
+            </View>
+
+            <View style={styles.inputTeamContainer}>
+              <Text style={styles.inputModalText}>Date</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(true)} >
+                <Text style={styles.input}>{matchDate ? moment(matchDate).format('YYYY-MM-DD') : 'Select Date'}</Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={matchDate}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (selectedDate) setMatchDate(selectedDate);
+                  }}
+                />
+              )}
+            </View>
+
+            <View style={styles.inputTextContainer}>
+              <Text style={styles.inputModalText}>Time</Text>
+              <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.input}>
+                <Text style={styles.inputModalText}>{matchTime ? moment(matchTime).format('HH:mm') : 'Select Time'}</Text>
+              </TouchableOpacity>
+              {showTimePicker && (
+                <DateTimePicker
+                  value={matchTime}
+                  mode="time"
+                  display="default"
+                  style={styles.input}
+                  onChange={(event, selectedTime) => {
+                    setShowTimePicker(false);
+                    if (selectedTime) setMatchTime(selectedTime);
+                  }}
+                />
+              )}
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: 20 }}>
+              <TouchableOpacity style={{ marginVertical: 10, backgroundColor: 'white', padding: 10, borderRadius: 10 }} onPress={handleScheduleSubmit} >
+                <Text>Submit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ marginVertical: 10, backgroundColor: 'white', padding: 10, borderRadius: 10 }} >
+                <Text>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {isManualModalOpen && (
+
+        // Manual match schedule
+        <Modal
+          transparent={true}
+          visible={isManualModalOpen}
+          animationType="slide"
+          onRequestClose={() => setIsManualModalOpen(false)}
+        >
+          <View style={styles.matchUpdateModalOverlay}>
+            <View style={styles.matchUpdateModalContainer}>
+              <Text style={styles.modalTitle}>Schedule Match Manually</Text>
+
+              {/* Team A Dropdown */}
+              <Text style={styles.inputModalText}>Team A</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={manualMatchTeamA}
+                  onValueChange={(itemValue) => setManualMatchTeamA(itemValue)}
+                >
+                  <Picker.Item label="Select Team A" value="" />
+                  {tournamentData.teamNames.map((team) => (
+                    <Picker.Item key={team.id} label={team.name} value={team.id} />
+                  ))}
+                </Picker>
+              </View>
+
+              {/* Team B Dropdown */}
+              <Text style={styles.inputModalText}>Team B</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={manualMatchTeamB}
+                  onValueChange={(itemValue) => setManualMatchTeamB(itemValue)}
+                >
+                  <Picker.Item label="Select Team B" value="" />
+                  {tournamentData.teamNames.map((team) => (
+                    <Picker.Item key={team.id} label={team.name} value={team.id} />
+                  ))}
+                </Picker>
+              </View>
+
+              {/* Date Picker */}
+              <View style={styles.inputTeamContainer}>
+                <Text style={styles.inputModalText}>Date</Text>
+                <TouchableOpacity onPress={() => setManualMatchShowDatePicker(true)}>
+                  <Text style={styles.input}>
+                    {manualMatchDate ? moment(manualMatchDate).format('YYYY-MM-DD') : 'Select Date'}
+                  </Text>
+                </TouchableOpacity>
+                {manualMatchShowDatePicker && (
+                  <DateTimePicker
+                    value={manualMatchDate || new Date()}
+                    mode="date"
+                    display="default"
+                    minimumDate={new Date()}
+                    onChange={(event, selectedDate) => {
+                      setManualMatchShowDatePicker(false);
+                      if (selectedDate) setManualMatchDate(selectedDate);
+                    }}
+                  />
+                )}
+              </View>
+
+              {/* Time Picker */}
+              <View style={styles.inputTextContainer}>
+                <Text style={styles.inputModalText}>Time</Text>
+                <TouchableOpacity onPress={() => setManualMatchShowTimePicker(true)} style={styles.input}>
+                  <Text style={styles.inputModalText}>
+                    {manualMatchTime ? moment(manualMatchTime).format('HH:mm') : 'Select Time'}
+                  </Text>
+                </TouchableOpacity>
+                {manualMatchShowTimePicker && (
+                  <DateTimePicker
+                    value={manualMatchTime || new Date()}
+                    mode="time"
+                    display="default"
+                    onChange={(event, selectedTime) => {
+                      setManualMatchShowTimePicker(false);
+                      if (selectedTime) setManualMatchTime(selectedTime);
+                    }}
+                  />
+                )}
+              </View>
+
+              {/* Venue Input */}
+              <Text style={styles.inputModalText}>Venue</Text>
+              <TextInput
+                style={styles.input}
+                value={manualMatchVenue}
+                onChangeText={setManualMatchVenue}
+                placeholder="Enter Venue"
+              />
+
+              {/* Buttons */}
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity style={styles.primaryButton} onPress={manualMatchScheduleHandler}>
+                  <Text style={styles.buttonText}>Schedule</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setIsManualModalOpen(false)} style={styles.cancelButton}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', width: '80%', marginHorizontal: '10%' }}>
+        <Pressable onPress={() => setIsManualModalOpen(true)}>
+          <LinearGradient style={styles.matchScheduleOptionContainer} colors={['#0866AA', '#6BB9F0']}>
+            <Text style={styles.matchScheduleOption} >Schedule More Matches</Text>
+          </LinearGradient>
+        </Pressable>
+      </View>
     </View>
   );
 };
