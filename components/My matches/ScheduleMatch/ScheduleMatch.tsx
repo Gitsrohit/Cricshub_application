@@ -7,7 +7,6 @@ import {
   ImageBackground,
   Modal,
   Pressable,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -117,7 +116,7 @@ const ScheduleMatch = () => {
       Alert.alert("Error", "Please fill all details");
       return;
     }
-  
+
     const matchDetails = {
       overs: parseInt(overs, 10),
       venue,
@@ -128,15 +127,15 @@ const ScheduleMatch = () => {
       team2Name,
       team2Logo,
     };
-  
+
     try {
       const token = await AsyncStorage.getItem("jwtToken");
       if (!token) throw new Error("Please login again");
-  
+
       setLoading(true);
-  
+
       const now = moment(); // Current Date and Time
-  
+
       // Combine startDate and startTime into a single moment object
       const selectedDateTime = moment(startDate)
         .set({
@@ -144,11 +143,11 @@ const ScheduleMatch = () => {
           minute: moment(startTime).minute(),
           second: 0,
         });
-  
+
       console.log(`Selected date time: ${selectedDateTime}`);
       console.log(`Now: ${now}`);
       console.log(selectedDateTime.isBefore(now));
-  
+
       // Check if selected date and time is in the past
       if (selectedDateTime.isBefore(now)) {
         Alert.alert("Error", "Please enter a future date and time.");
@@ -157,7 +156,7 @@ const ScheduleMatch = () => {
         setLoading(false);
         return;
       }
-  
+
       const requestBody = {
         tournamentName: null,
         team1Id,
@@ -167,13 +166,13 @@ const ScheduleMatch = () => {
         matchTime: selectedDateTime.format("HH:mm"),
         venue,
       };
-  
+
       const response = await axios.post(
         `https://score360-7.onrender.com/api/v1/matches/schedule`,
         requestBody,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-  
+
       const matchId = response.data.id;
       navigation.navigate("SelectPlayingII", { matchDetails, matchId });
     } catch (err) {
@@ -182,7 +181,7 @@ const ScheduleMatch = () => {
     } finally {
       setLoading(false);
     }
-  };  
+  };
 
   const scheduleMatchHandler = () => {
     navigation.navigate('InstantMatch');
@@ -192,7 +191,6 @@ const ScheduleMatch = () => {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <ImageBackground
         source={require('../../../assets/images/cricsLogo.png')}
         style={styles.backgroundImage}

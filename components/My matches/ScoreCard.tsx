@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, FlatList, ImageBackground, StatusBar, TouchableHighlight, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ImageBackground, TouchableOpacity } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -129,7 +129,6 @@ const styles = StyleSheet.create({
   teamButton: {
     width: '100%',
     padding: 10,
-    marginTop: StatusBar.currentHeight || 0,
     shadowColor: '#4A90E2',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
