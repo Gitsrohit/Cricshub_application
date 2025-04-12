@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+// import DateTimePicker from '@react-native-community/datetimepicker';
 const moment = require('moment-timezone');
 
 const ScheduleMatch = () => {
@@ -273,7 +273,7 @@ const ScheduleMatch = () => {
                       </Text>
                     </TouchableOpacity>
 
-                    {showStartDatePicker && (
+                    {/* {showStartDatePicker && (
                       <DateTimePicker
                         minimumDate={moment().toDate()}
                         value={startDate}
@@ -284,7 +284,7 @@ const ScheduleMatch = () => {
                           if (selectedDate) setStartDate(selectedDate);
                         }}
                       />
-                    )}
+                    )} */}
                   </View>
                 </View>
                 <View style={styles.inputField}>
@@ -300,7 +300,7 @@ const ScheduleMatch = () => {
                       </Text>
                     </TouchableOpacity>
 
-                    {showStartTimePicker && (
+                    {/* {showStartTimePicker && (
                       <DateTimePicker
                         value={startTime} // Now correctly a Date object
                         mode="time"
@@ -310,7 +310,7 @@ const ScheduleMatch = () => {
                           if (selectedTime) setStartTime(selectedTime);
                         }}
                       />
-                    )}
+                    )} */}
                   </View>
                 </View>
               </View>

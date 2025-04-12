@@ -7,7 +7,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 const backgroundImage = require('../../assets/images/cricsLogo.png');
-import DateTimePicker from '@react-native-community/datetimepicker';
+// import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { Picker } from '@react-native-picker/picker';
 
@@ -1288,7 +1288,7 @@ export const Matches = ({ id, isCreator }) => {
               <TouchableOpacity onPress={() => setShowDatePicker(true)} >
                 <Text style={styles.input}>{matchDate ? moment(matchDate).format('YYYY-MM-DD') : 'Select Date'}</Text>
               </TouchableOpacity>
-              {showDatePicker && (
+              {/* {showDatePicker && (
                 <DateTimePicker
                   value={matchDate}
                   mode="date"
@@ -1299,7 +1299,7 @@ export const Matches = ({ id, isCreator }) => {
                     if (selectedDate) setMatchDate(selectedDate);
                   }}
                 />
-              )}
+              )} */}
             </View>
 
             <View style={styles.inputTextContainer}>
@@ -1307,7 +1307,7 @@ export const Matches = ({ id, isCreator }) => {
               <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.input}>
                 <Text style={styles.inputModalText}>{matchTime ? moment(matchTime).format('HH:mm') : 'Select Time'}</Text>
               </TouchableOpacity>
-              {showTimePicker && (
+              {/* {showTimePicker && (
                 <DateTimePicker
                   value={matchTime}
                   mode="time"
@@ -1318,7 +1318,7 @@ export const Matches = ({ id, isCreator }) => {
                     if (selectedTime) setMatchTime(selectedTime);
                   }}
                 />
-              )}
+              )} */}
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: 20 }}>
               <TouchableOpacity style={{ marginVertical: 10, backgroundColor: 'white', padding: 10, borderRadius: 10 }} onPress={handleScheduleSubmit} >
@@ -1380,7 +1380,7 @@ export const Matches = ({ id, isCreator }) => {
                     {manualMatchDate ? moment(manualMatchDate).format('YYYY-MM-DD') : 'Select Date'}
                   </Text>
                 </TouchableOpacity>
-                {manualMatchShowDatePicker && (
+                {/* {manualMatchShowDatePicker && (
                   <DateTimePicker
                     value={manualMatchDate || new Date()}
                     mode="date"
@@ -1391,7 +1391,7 @@ export const Matches = ({ id, isCreator }) => {
                       if (selectedDate) setManualMatchDate(selectedDate);
                     }}
                   />
-                )}
+                )} */}
               </View>
 
               {/* Time Picker */}
