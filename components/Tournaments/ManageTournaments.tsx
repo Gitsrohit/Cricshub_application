@@ -10,6 +10,7 @@ const backgroundImage = require('../../assets/images/cricsLogo.png');
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { Picker } from '@react-native-picker/picker';
+import { useNavigation } from '@react-navigation/native';
 
 export default function ManageTournaments({ route }) {
   const [activeTab, setActiveTab] = useState('INFO');
@@ -86,6 +87,7 @@ export default function ManageTournaments({ route }) {
             {activeTab === 'INFO' && <Info id={id} isCreator={isCreator} />}
             {activeTab === 'TEAMS' && <Teams id={id} isCreator={isCreator} />}
             {activeTab === 'MATCHES' && <Matches id={id} isCreator={isCreator} />}
+            {activeTab === 'POINTS TABLE' && <PointsTable id={id} />}
           </View>
         </ImageBackground>
       </LinearGradient>
@@ -489,6 +491,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 400,
     color: 'white'
+  },
+
+  //points table
+  pointsTable: {},
+  pointsTableContainer: {
+    margin: 16,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  row: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    backgroundColor: 'white'
+  },
+  headerRow: {
+    backgroundColor: '#eee',
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
+  },
+  cell: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 14,
+  },
+  headerCell: {
+    flex: 1,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
 });
 
@@ -1447,3 +1483,127 @@ export const Matches = ({ id, isCreator }) => {
     </View>
   );
 };
+
+export const PointsTable = ({ id }) => {
+  const navigation = useNavigation();
+  // const [pointsData, setPointsData] = useState(null);
+  const pointsData = [
+    {
+      tournamentId: "t1",
+      team: { id: "team1", name: "Mumbai Warriors" },
+      matchesPlayed: 5,
+      matchesWon: 4,
+      matchesLost: 1,
+      matchesDrawn: 0,
+      points: 8,
+      netRunRate: 1.12,
+    },
+    {
+      tournamentId: "t1",
+      team: { id: "team2", name: "Delhi Dynamos" },
+      matchesPlayed: 5,
+      matchesWon: 3,
+      matchesLost: 1,
+      matchesDrawn: 1,
+      points: 7,
+      netRunRate: 0.87,
+    },
+    {
+      tournamentId: "t1",
+      team: { id: "team3", name: "Chennai Chargers" },
+      matchesPlayed: 5,
+      matchesWon: 2,
+      matchesLost: 2,
+      matchesDrawn: 1,
+      points: 5,
+      netRunRate: -0.14,
+    },
+    {
+      tournamentId: "t1",
+      team: { id: "team4", name: "Kolkata Knights" },
+      matchesPlayed: 5,
+      matchesWon: 1,
+      matchesLost: 3,
+      matchesDrawn: 1,
+      points: 3,
+      netRunRate: -0.89,
+    },
+    {
+      tournamentId: "t1",
+      team: { id: "team5", name: "Bangalore Blasters" },
+      matchesPlayed: 5,
+      matchesWon: 0,
+      matchesLost: 5,
+      matchesDrawn: 0,
+      points: 0,
+      netRunRate: -1.45,
+    },
+  ];
+  const [loading, setLoading] = useState(false);
+
+  const getPointsTable = async () => {
+    const token = await AsyncStorage.getItem('jwtToken');
+    if (!token) {
+      navigation.navigate('Login');
+    }
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/tournaments/points-table/${id}`,
+        {
+          headers:
+          {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      // setPointsData(response.data);
+      console.log(response.data);
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    // getPointsTable();
+  }, []);
+
+  const renderItem = ({ item }) => (
+    <View style={styles.row}>
+      <Text style={styles.cell}>{item.team.name}</Text>
+      <Text style={styles.cell}>{item.matchesPlayed}</Text>
+      <Text style={styles.cell}>{item.matchesWon}</Text>
+      <Text style={styles.cell}>{item.matchesLost}</Text>
+      <Text style={styles.cell}>{item.matchesDrawn}</Text>
+      <Text style={styles.cell}>{item.points}</Text>
+      <Text style={styles.cell}>{item.netRunRate.toFixed(2)}</Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.pointsTable}>
+      {loading && <ActivityIndicator color='blue' />}
+      {!loading &&
+        <ScrollView style={styles.pointsTableContainer}>
+          <Text style={styles.title}>Points Table</Text>
+          <View style={[styles.row, styles.headerRow]}>
+            <Text style={styles.headerCell}>Name</Text>
+            <Text style={styles.headerCell}>Played</Text>
+            <Text style={styles.headerCell}>Won</Text>
+            <Text style={styles.headerCell}>Loss</Text>
+            <Text style={styles.headerCell}>Draw</Text>
+            <Text style={styles.headerCell}>Points</Text>
+            <Text style={styles.headerCell}>NRR</Text>
+          </View>
+          <FlatList
+            data={pointsData}
+            renderItem={renderItem}
+            keyExtractor={(item, index) => `${item.team.id}-${index}`}
+          />
+        </ScrollView>
+      }
+    </View>
+  )
+}

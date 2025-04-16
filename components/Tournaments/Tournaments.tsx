@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    // backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
     overflow: 'hidden',
     marginVertical: 10,
@@ -225,17 +225,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tournamentName: {
-    color: '#333',
+    color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
   },
   tournamentContent: {
-    color: '#555',
+    color: 'white',
     fontSize: 16,
     marginVertical: 2,
   },
   contentSubHeading: {
-    color: '#333',
+    color: 'white',
+  },
+  cardButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#FFF",
+    marginVertical: 10,
+  },
+  cardButtonText: {
+    textAlign: 'center',
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 14,
   },
   contentCols: {
     flexDirection: 'row',
@@ -262,6 +277,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
 });
+
 export const OthersTournaments = ({ tournaments }) => {
   const [expandedCards, setExpandedCards] = useState({});
 
@@ -280,7 +296,7 @@ export const OthersTournaments = ({ tournaments }) => {
           'https://'
         );
         return (
-          <View key={tournament.id} style={styles.card}>
+          <LinearGradient colors={["#0866AA", "#6BB9F0"]} key={tournament.id} style={styles.card}>
             <View style={styles.tournamentDetails}>
               <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='cover' />
               <View style={styles.cardContent}>
@@ -332,12 +348,20 @@ export const OthersTournaments = ({ tournaments }) => {
                 </Text>
               </>
             )}
-            <Button
+            <TouchableOpacity
+              style={styles.cardButton}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.cardButtonText}>
+                See Schedule
+              </Text>
+            </TouchableOpacity>
+            {/* <Button
               color="#013A50"
               title={expandedCards[tournament.id] ? 'Show Less' : 'Show More'}
               onPress={() => toggleCardExpansion(tournament.id)}
-            />
-          </View>
+            /> */}
+          </LinearGradient>
         );
       })}
       {tournaments.length === 0 && <Text style={styles.errorText}>No matches</Text>}
@@ -439,22 +463,26 @@ export const MyTournaments = ({ tournaments }) => {
           'https://'
         );
         return (
-          <Pressable key={tournament.id} style={styles.card} onPress={() => manageTournamentHandler(tournament.id, tournament)}>
-            <View style={styles.tournamentDetails}>
-              <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='cover' />
-              <View style={styles.cardContent}>
-                <Text style={styles.tournamentName}>{tournament.name}</Text>
-                <Icon name="delete" size={24} color="#555" onPress={() => deleteTournamentHandler(tournament.id)} />
+          <Pressable key={tournament.id} onPress={() => manageTournamentHandler(tournament.id, tournament)}>
+            <LinearGradient
+              colors={["#0866AA", "#6BB9F0"]}
+              style={styles.card}>
+              <View style={styles.tournamentDetails}>
+                <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='cover' />
+                <View style={styles.cardContent}>
+                  <Text style={styles.tournamentName}>{tournament.name}</Text>
+                  <Icon name="delete" size={24} color="white" onPress={() => deleteTournamentHandler(tournament.id)} />
+                </View>
               </View>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-              <Text style={styles.tournamentContent}><Icon name="calendar-month" color="#555" size={20} /> From:  {tournament.startDate[2]}-{tournament.startDate[1]}-{tournament.startDate[0]}</Text>
-              <Text style={styles.tournamentContent}>Overs:  {tournament.type}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={styles.tournamentContent}><Icon name="calendar-month" color="#555" size={20} /> To: {tournament.endDate[2]}-{tournament.endDate[1]}-{tournament.endDate[0]}</Text>
-              <Text style={styles.tournamentContent}><Icon name="sports-baseball" color="#555" size={20} />: {tournament.ballType}</Text>
-            </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                <Text style={styles.tournamentContent}><Icon name="calendar-month" color="white" size={20} /> From:  {tournament.startDate[2]}-{tournament.startDate[1]}-{tournament.startDate[0]}</Text>
+                <Text style={styles.tournamentContent}>Overs:  {tournament.type}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.tournamentContent}><Icon name="calendar-month" color="white" size={20} /> To: {tournament.endDate[2]}-{tournament.endDate[1]}-{tournament.endDate[0]}</Text>
+                <Text style={styles.tournamentContent}><Icon name="sports-baseball" color="white" size={20} />: {tournament.ballType}</Text>
+              </View>
+            </LinearGradient>
           </Pressable>
         );
       })}
