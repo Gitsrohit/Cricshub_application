@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, Alert, Dimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,7 +13,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 
 export default function ManageTournaments({ route }) {
-  const [activeTab, setActiveTab] = useState('INFO');
+  const [activeTab, setActiveTab] = useState(route.params.tab);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tournamentDetails, setTournamentsDetails] = useState(null);
@@ -496,7 +496,8 @@ const styles = StyleSheet.create({
   //points table
   pointsTable: {},
   pointsTableContainer: {
-    margin: 16,
+    marginVertical: 16,
+    marginHorizontal: 6,
   },
   title: {
     fontSize: 22,
@@ -516,12 +517,10 @@ const styles = StyleSheet.create({
     borderTopColor: '#ccc',
   },
   cell: {
-    flex: 1,
     textAlign: 'center',
     fontSize: 14,
   },
   headerCell: {
-    flex: 1,
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: 15,
@@ -1027,6 +1026,7 @@ export const Matches = ({ id, isCreator }) => {
   const [manualMatchShowDatePicker, setManualMatchShowDatePicker] = useState(false);
   const [manualMatchShowTimePicker, setManualMatchShowTimePicker] = useState(false);
   const [manualMatchVenue, setManualMatchVenue] = useState('');
+  const navigation = useNavigation();
 
   // Fetch Match Details
   const fetchMatchDetails = async (id) => {
@@ -1209,6 +1209,23 @@ export const Matches = ({ id, isCreator }) => {
     }
   };
 
+  const matchPressHandler = (match) => {
+    const matchDetails = {
+      overs: null,
+      venue: match.venue,
+      team1Id: match.team1.id,
+      team1Name: match.team1.name,
+      team1Logo: match.team1.logoPath,
+      team2Id: match.team2.id,
+      team2Name: match.team2.name,
+      team2Logo: match.team2.logoPath,
+    };
+    if (isCreator)
+      navigation.navigate('SelectPlayingII', { matchDetails, matchId: match.id });
+    else
+      navigation.navigate('CommentaryScorecard', { matchId: match.id });
+  }
+
   return (
     <View style={styles.matchTab}>
       {loading && <ActivityIndicator />}
@@ -1226,47 +1243,49 @@ export const Matches = ({ id, isCreator }) => {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.matchCard}>
-                    <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'space-between', borderBottomColor: 'white', borderBottomWidth: 1, paddingBottom: 4 }}>
-                      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', rowGap: 10, paddingBottom: 4 }}>
-                        <Image source={{ uri: match.team1.logoPath }} style={styles.logo} />
-                        <Text style={styles.matchTeamName}>
-                          {getInitials(match.team1?.name)}
-                        </Text>
-                        <Text style={styles.vs}>VS</Text>
-                        <Text style={styles.matchTeamName}>
-                          {getInitials(match.team2?.name)}
-                        </Text>
-                        <Image source={{ uri: match.team2.logoPath }} style={styles.logo} />
+                    <Pressable onPress={() => matchPressHandler(match)} >
+                      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'space-between', borderBottomColor: 'white', borderBottomWidth: 1, paddingBottom: 4 }}>
+                        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', rowGap: 10, paddingBottom: 4 }}>
+                          <Image source={{ uri: match.team1.logoPath }} style={styles.logo} />
+                          <Text style={styles.matchTeamName}>
+                            {getInitials(match.team1?.name)}
+                          </Text>
+                          <Text style={styles.vs}>VS</Text>
+                          <Text style={styles.matchTeamName}>
+                            {getInitials(match.team2?.name)}
+                          </Text>
+                          <Image source={{ uri: match.team2.logoPath }} style={styles.logo} />
+                        </View>
+                        <Icon
+                          name="edit"
+                          size={18}
+                          color="white"
+                          onPress={() => {
+                            setSelectedMatch(match);
+                            setMatchDate(new Date(match.matchDate[0], match.matchDate[1] - 1, match.matchDate[2]));
+                            setMatchTime(new Date());
+                            setVenue(match.venue || '');
+                            setModalVisible(true);
+                          }}
+                        />
                       </View>
-                      <Icon
-                        name="edit"
-                        size={18}
-                        color="white"
-                        onPress={() => {
-                          setSelectedMatch(match);
-                          setMatchDate(new Date(match.matchDate[0], match.matchDate[1] - 1, match.matchDate[2]));
-                          setMatchTime(new Date());
-                          setVenue(match.venue || '');
-                          setModalVisible(true);
-                        }}
-                      />
-                    </View>
-                    <Text style={styles.matchStage}>{match.stage}</Text>
-                    <Text style={[styles.matchText, { textTransform: 'uppercase' }]}>
-                      <Icon name="location-on" color="white" size={18} />
-                      Venue: {match.venue}
-                    </Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                      <Text style={styles.matchText}>
-                        <Icon name="calendar-today" color="white" size={18} />
-                        Date: {match.matchDate !== null ? `${match.matchDate[2]} - ${match.matchDate[1]} - ${match.matchDate[0]}` : 'Date not decided'
-                        }</Text>
-                      <Text style={styles.matchText}>
-                        <Icon name="emoji-events" color="white" size={18} />
-                        Winner:
-                        {match.winner || 'N/A'}
+                      <Text style={styles.matchStage}>{match.stage}</Text>
+                      <Text style={[styles.matchText, { textTransform: 'uppercase' }]}>
+                        <Icon name="location-on" color="white" size={18} />
+                        Venue: {match.venue}
                       </Text>
-                    </View>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                        <Text style={styles.matchText}>
+                          <Icon name="calendar-today" color="white" size={18} />
+                          Date: {match.matchDate !== null ? `${match.matchDate[2]} - ${match.matchDate[1]} - ${match.matchDate[0]}` : 'Date not decided'
+                          }</Text>
+                        <Text style={styles.matchText}>
+                          <Icon name="emoji-events" color="white" size={18} />
+                          Winner:
+                          {match.winner || 'N/A'}
+                        </Text>
+                      </View>
+                    </Pressable>
                   </LinearGradient>
                 ))
                 }
@@ -1486,6 +1505,12 @@ export const Matches = ({ id, isCreator }) => {
 
 export const PointsTable = ({ id }) => {
   const navigation = useNavigation();
+  const screenWidth = Dimensions.get('window').width;
+
+  const columnStyles = {
+    name: screenWidth * 0.33,
+    others: screenWidth * 0.6 / 6, // divide remaining width into 6 columns
+  };
   // const [pointsData, setPointsData] = useState(null);
   const pointsData = [
     {
@@ -1572,13 +1597,13 @@ export const PointsTable = ({ id }) => {
 
   const renderItem = ({ item }) => (
     <View style={styles.row}>
-      <Text style={styles.cell}>{item.team.name}</Text>
-      <Text style={styles.cell}>{item.matchesPlayed}</Text>
-      <Text style={styles.cell}>{item.matchesWon}</Text>
-      <Text style={styles.cell}>{item.matchesLost}</Text>
-      <Text style={styles.cell}>{item.matchesDrawn}</Text>
-      <Text style={styles.cell}>{item.points}</Text>
-      <Text style={styles.cell}>{item.netRunRate.toFixed(2)}</Text>
+      <Text style={[styles.cell, { width: columnStyles.name }]}>{item.team.name}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.matchesPlayed}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.matchesWon}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.matchesLost}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.matchesDrawn}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.points}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.netRunRate.toFixed(2)}</Text>
     </View>
   );
 
@@ -1589,13 +1614,13 @@ export const PointsTable = ({ id }) => {
         <ScrollView style={styles.pointsTableContainer}>
           <Text style={styles.title}>Points Table</Text>
           <View style={[styles.row, styles.headerRow]}>
-            <Text style={styles.headerCell}>Name</Text>
-            <Text style={styles.headerCell}>Played</Text>
-            <Text style={styles.headerCell}>Won</Text>
-            <Text style={styles.headerCell}>Loss</Text>
-            <Text style={styles.headerCell}>Draw</Text>
-            <Text style={styles.headerCell}>Points</Text>
-            <Text style={styles.headerCell}>NRR</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.name }]}>Name</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>P</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>W</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>L</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>D</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>Pt</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>NRR</Text>
           </View>
           <FlatList
             data={pointsData}

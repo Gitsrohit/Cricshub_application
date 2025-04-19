@@ -101,7 +101,7 @@ const Tournaments = () => {
           ) : error ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : (
-            activeTab !== 'MY' ? <OthersTournaments tournaments={tournaments} /> : <MyTournaments tournaments={tournaments} />
+            activeTab !== 'MY' ? <OthersTournaments tournaments={tournaments} tournamentTimeStatus={activeTab} /> : <MyTournaments tournaments={tournaments} />
           )}
         </View>
       </LinearGradient>
@@ -278,15 +278,35 @@ const styles = StyleSheet.create({
   },
 });
 
-export const OthersTournaments = ({ tournaments }) => {
-  const [expandedCards, setExpandedCards] = useState({});
-
-  const toggleCardExpansion = (cardId) => {
-    setExpandedCards((prev) => ({
-      ...prev,
-      [cardId]: !prev[cardId],
-    }));
+export const OthersTournaments = ({ tournaments, tournamentTimeStatus }) => {
+  const navigation = useNavigation();
+  const checkIsCreator = async (tournament) => {
+    try {
+      const creatorId = tournament.creatorName.id;
+      const userId = await AsyncStorage.getItem('userUUID');
+      if (creatorId === userId) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error("Error in checkIsCreator:", error);
+      return false;
+    }
   };
+  const scheduleClickHandler = async (tournament) => {
+    const isCreator = await checkIsCreator(tournament);
+    const tab = 'MATCHES';
+    const id = tournament.id;
+    navigation.navigate('ManageTournaments', { id, isCreator, tab })
+  }
+
+  const pointsTableClickHandler = async (tournament) => {
+    const isCreator = await checkIsCreator(tournament);
+    const tab = 'POINTS TABLE';
+    const id = tournament.id;
+    navigation.navigate('ManageTournaments', { id, isCreator, tab })
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.cardContainer}>
@@ -306,61 +326,44 @@ export const OthersTournaments = ({ tournaments }) => {
             {/* Combined Start Date and End Date */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
               <Text style={styles.tournamentContent}>
-                <Icon name="calendar-month" color="#555" size={20} />{' '}
+                <Icon name="calendar-month" color="white" size={20} />{' '}
                 {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]} - ${tournament.endDate[2]}/${tournament.endDate[1]}/${tournament.endDate[0]}`}
               </Text>
               <Text style={styles.tournamentContent}>Overs: {tournament.type}</Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={styles.tournamentContent}>
-                <Icon name="sports-baseball" color="#555" size={20} />: {tournament.ballType}
+                <Icon name="sports-baseball" color="white" size={20} />: {tournament.ballType}
               </Text>
             </View>
-            {expandedCards[tournament.id] && (
-              <>
-                <View style={styles.contentCols}>
-                  <Text style={styles.tournamentContent}>Matches/Day: {tournament.matchesPerDay}</Text>
-                  <Text style={styles.tournamentContent}>
-                    <Text style={styles.contentSubHeading}>Teams:</Text>
-                    {tournament.noOfTeams}
-                  </Text>
-                </View>
-                <View style={styles.contentCols}>
-                  <Text style={styles.tournamentContent}>{tournament.format}</Text>
-                  <Text style={styles.tournamentContent}>
-                    <Text style={styles.contentSubHeading}>Matches:</Text>
-                    {tournament.numberOfMatches}
-                  </Text>
-                </View>
-                <Text style={[styles.tournamentContent, styles.maintainPadding]} numberOfLines={2}>
-                  Teams: {tournament.teamNames && Array.isArray(tournament.teamNames)
-                    ? tournament.teamNames.map((teamName) => teamName.name).join(', ')
-                    : 'No teams'}
-                </Text>
-                <Text style={[styles.tournamentContent, styles.maintainPadding]}>
-                  <Text style={styles.contentSubHeading}>Venues:</Text>
-                  {tournament.venues.map((venue, index) => (
-                    <Text key={index}>
-                      {index > 0 && ', '}
-                      {`\u00A0${venue}`}
+            <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 10, justifyContent: 'flex-end' }}>
+              {(tournamentTimeStatus === 'LIVE' || tournamentTimeStatus === 'UPCOMING') &&
+                <>
+                  <TouchableOpacity
+                    style={styles.cardButton}
+                    activeOpacity={0.8}
+                    onPress={() => scheduleClickHandler(tournament)}
+                  >
+                    <Text style={styles.cardButtonText}>
+                      Schedule
                     </Text>
-                  ))}
-                </Text>
-              </>
-            )}
-            <TouchableOpacity
-              style={styles.cardButton}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.cardButtonText}>
-                See Schedule
-              </Text>
-            </TouchableOpacity>
-            {/* <Button
-              color="#013A50"
-              title={expandedCards[tournament.id] ? 'Show Less' : 'Show More'}
-              onPress={() => toggleCardExpansion(tournament.id)}
-            /> */}
+                  </TouchableOpacity>
+                </>
+              }
+              {(tournamentTimeStatus === 'LIVE' || tournamentTimeStatus === 'PAST') &&
+                <>
+                  <TouchableOpacity
+                    style={styles.cardButton}
+                    activeOpacity={0.8}
+                    onPress={() => pointsTableClickHandler(tournament)}
+                  >
+                    <Text style={styles.cardButtonText}>
+                      Points Table
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              }
+            </View>
           </LinearGradient>
         );
       })}
@@ -392,7 +395,8 @@ export const MyTournaments = ({ tournaments }) => {
 
   const manageTournamentHandler = async (id: string, tournament) => {
     const isCreator = await checkIsCreator(tournament);
-    navigation.navigate('ManageTournaments', { id, isCreator });
+    const tab = 'INFO';
+    navigation.navigate('ManageTournaments', { id, isCreator, tab });
   };
 
   const fetchTournaments = async (status) => {
