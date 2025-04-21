@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, Alert, Dimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,9 +10,10 @@ const backgroundImage = require('../../assets/images/cricsLogo.png');
 // import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { Picker } from '@react-native-picker/picker';
+import { useNavigation } from '@react-navigation/native';
 
 export default function ManageTournaments({ route }) {
-  const [activeTab, setActiveTab] = useState('INFO');
+  const [activeTab, setActiveTab] = useState(route.params.tab);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tournamentDetails, setTournamentsDetails] = useState(null);
@@ -86,6 +87,7 @@ export default function ManageTournaments({ route }) {
             {activeTab === 'INFO' && <Info id={id} isCreator={isCreator} />}
             {activeTab === 'TEAMS' && <Teams id={id} isCreator={isCreator} />}
             {activeTab === 'MATCHES' && <Matches id={id} isCreator={isCreator} />}
+            {activeTab === 'POINTS TABLE' && <PointsTable id={id} />}
           </View>
         </ImageBackground>
       </LinearGradient>
@@ -489,6 +491,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 400,
     color: 'white'
+  },
+
+  //points table
+  pointsTable: {},
+  pointsTableContainer: {
+    marginVertical: 16,
+    marginHorizontal: 6,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  row: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    backgroundColor: 'white'
+  },
+  headerRow: {
+    backgroundColor: '#eee',
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
+  },
+  cell: {
+    textAlign: 'center',
+    fontSize: 14,
+  },
+  headerCell: {
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
 });
 
@@ -991,6 +1026,7 @@ export const Matches = ({ id, isCreator }) => {
   const [manualMatchShowDatePicker, setManualMatchShowDatePicker] = useState(false);
   const [manualMatchShowTimePicker, setManualMatchShowTimePicker] = useState(false);
   const [manualMatchVenue, setManualMatchVenue] = useState('');
+  const navigation = useNavigation();
 
   // Fetch Match Details
   const fetchMatchDetails = async (id) => {
@@ -1173,6 +1209,23 @@ export const Matches = ({ id, isCreator }) => {
     }
   };
 
+  const matchPressHandler = (match) => {
+    const matchDetails = {
+      overs: null,
+      venue: match.venue,
+      team1Id: match.team1.id,
+      team1Name: match.team1.name,
+      team1Logo: match.team1.logoPath,
+      team2Id: match.team2.id,
+      team2Name: match.team2.name,
+      team2Logo: match.team2.logoPath,
+    };
+    if (isCreator)
+      navigation.navigate('SelectPlayingII', { matchDetails, matchId: match.id });
+    else
+      navigation.navigate('CommentaryScorecard', { matchId: match.id });
+  }
+
   return (
     <View style={styles.matchTab}>
       {loading && <ActivityIndicator />}
@@ -1190,47 +1243,49 @@ export const Matches = ({ id, isCreator }) => {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.matchCard}>
-                    <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'space-between', borderBottomColor: 'white', borderBottomWidth: 1, paddingBottom: 4 }}>
-                      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', rowGap: 10, paddingBottom: 4 }}>
-                        <Image source={{ uri: match.team1.logoPath }} style={styles.logo} />
-                        <Text style={styles.matchTeamName}>
-                          {getInitials(match.team1?.name)}
-                        </Text>
-                        <Text style={styles.vs}>VS</Text>
-                        <Text style={styles.matchTeamName}>
-                          {getInitials(match.team2?.name)}
-                        </Text>
-                        <Image source={{ uri: match.team2.logoPath }} style={styles.logo} />
+                    <Pressable onPress={() => matchPressHandler(match)} >
+                      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'space-between', borderBottomColor: 'white', borderBottomWidth: 1, paddingBottom: 4 }}>
+                        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', rowGap: 10, paddingBottom: 4 }}>
+                          <Image source={{ uri: match.team1.logoPath }} style={styles.logo} />
+                          <Text style={styles.matchTeamName}>
+                            {getInitials(match.team1?.name)}
+                          </Text>
+                          <Text style={styles.vs}>VS</Text>
+                          <Text style={styles.matchTeamName}>
+                            {getInitials(match.team2?.name)}
+                          </Text>
+                          <Image source={{ uri: match.team2.logoPath }} style={styles.logo} />
+                        </View>
+                        <Icon
+                          name="edit"
+                          size={18}
+                          color="white"
+                          onPress={() => {
+                            setSelectedMatch(match);
+                            setMatchDate(new Date(match.matchDate[0], match.matchDate[1] - 1, match.matchDate[2]));
+                            setMatchTime(new Date());
+                            setVenue(match.venue || '');
+                            setModalVisible(true);
+                          }}
+                        />
                       </View>
-                      <Icon
-                        name="edit"
-                        size={18}
-                        color="white"
-                        onPress={() => {
-                          setSelectedMatch(match);
-                          setMatchDate(new Date(match.matchDate[0], match.matchDate[1] - 1, match.matchDate[2]));
-                          setMatchTime(new Date());
-                          setVenue(match.venue || '');
-                          setModalVisible(true);
-                        }}
-                      />
-                    </View>
-                    <Text style={styles.matchStage}>{match.stage}</Text>
-                    <Text style={[styles.matchText, { textTransform: 'uppercase' }]}>
-                      <Icon name="location-on" color="white" size={18} />
-                      Venue: {match.venue}
-                    </Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                      <Text style={styles.matchText}>
-                        <Icon name="calendar-today" color="white" size={18} />
-                        Date: {match.matchDate !== null ? `${match.matchDate[2]} - ${match.matchDate[1]} - ${match.matchDate[0]}` : 'Date not decided'
-                        }</Text>
-                      <Text style={styles.matchText}>
-                        <Icon name="emoji-events" color="white" size={18} />
-                        Winner:
-                        {match.winner || 'N/A'}
+                      <Text style={styles.matchStage}>{match.stage}</Text>
+                      <Text style={[styles.matchText, { textTransform: 'uppercase' }]}>
+                        <Icon name="location-on" color="white" size={18} />
+                        Venue: {match.venue}
                       </Text>
-                    </View>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                        <Text style={styles.matchText}>
+                          <Icon name="calendar-today" color="white" size={18} />
+                          Date: {match.matchDate !== null ? `${match.matchDate[2]} - ${match.matchDate[1]} - ${match.matchDate[0]}` : 'Date not decided'
+                          }</Text>
+                        <Text style={styles.matchText}>
+                          <Icon name="emoji-events" color="white" size={18} />
+                          Winner:
+                          {match.winner || 'N/A'}
+                        </Text>
+                      </View>
+                    </Pressable>
                   </LinearGradient>
                 ))
                 }
@@ -1447,3 +1502,133 @@ export const Matches = ({ id, isCreator }) => {
     </View>
   );
 };
+
+export const PointsTable = ({ id }) => {
+  const navigation = useNavigation();
+  const screenWidth = Dimensions.get('window').width;
+
+  const columnStyles = {
+    name: screenWidth * 0.33,
+    others: screenWidth * 0.6 / 6, // divide remaining width into 6 columns
+  };
+  // const [pointsData, setPointsData] = useState(null);
+  const pointsData = [
+    {
+      tournamentId: "t1",
+      team: { id: "team1", name: "Mumbai Warriors" },
+      matchesPlayed: 5,
+      matchesWon: 4,
+      matchesLost: 1,
+      matchesDrawn: 0,
+      points: 8,
+      netRunRate: 1.12,
+    },
+    {
+      tournamentId: "t1",
+      team: { id: "team2", name: "Delhi Dynamos" },
+      matchesPlayed: 5,
+      matchesWon: 3,
+      matchesLost: 1,
+      matchesDrawn: 1,
+      points: 7,
+      netRunRate: 0.87,
+    },
+    {
+      tournamentId: "t1",
+      team: { id: "team3", name: "Chennai Chargers" },
+      matchesPlayed: 5,
+      matchesWon: 2,
+      matchesLost: 2,
+      matchesDrawn: 1,
+      points: 5,
+      netRunRate: -0.14,
+    },
+    {
+      tournamentId: "t1",
+      team: { id: "team4", name: "Kolkata Knights" },
+      matchesPlayed: 5,
+      matchesWon: 1,
+      matchesLost: 3,
+      matchesDrawn: 1,
+      points: 3,
+      netRunRate: -0.89,
+    },
+    {
+      tournamentId: "t1",
+      team: { id: "team5", name: "Bangalore Blasters" },
+      matchesPlayed: 5,
+      matchesWon: 0,
+      matchesLost: 5,
+      matchesDrawn: 0,
+      points: 0,
+      netRunRate: -1.45,
+    },
+  ];
+  const [loading, setLoading] = useState(false);
+
+  const getPointsTable = async () => {
+    const token = await AsyncStorage.getItem('jwtToken');
+    if (!token) {
+      navigation.navigate('Login');
+    }
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/tournaments/points-table/${id}`,
+        {
+          headers:
+          {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      // setPointsData(response.data);
+      console.log(response.data);
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    // getPointsTable();
+  }, []);
+
+  const renderItem = ({ item }) => (
+    <View style={styles.row}>
+      <Text style={[styles.cell, { width: columnStyles.name }]}>{item.team.name}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.matchesPlayed}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.matchesWon}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.matchesLost}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.matchesDrawn}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.points}</Text>
+      <Text style={[styles.cell, { width: columnStyles.others }]}>{item.netRunRate.toFixed(2)}</Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.pointsTable}>
+      {loading && <ActivityIndicator color='blue' />}
+      {!loading &&
+        <ScrollView style={styles.pointsTableContainer}>
+          <Text style={styles.title}>Points Table</Text>
+          <View style={[styles.row, styles.headerRow]}>
+            <Text style={[styles.headerCell, { width: columnStyles.name }]}>Name</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>P</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>W</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>L</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>D</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>Pt</Text>
+            <Text style={[styles.headerCell, { width: columnStyles.others }]}>NRR</Text>
+          </View>
+          <FlatList
+            data={pointsData}
+            renderItem={renderItem}
+            keyExtractor={(item, index) => `${item.team.id}-${index}`}
+          />
+        </ScrollView>
+      }
+    </View>
+  )
+}

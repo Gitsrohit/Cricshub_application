@@ -498,6 +498,10 @@ const ScoringScreen = ({ route }) => {
     {
       key: 'W',
       value: 'Wicket',
+    },
+    {
+      key: 'Undo',
+      value: 'Undo',
     }
   ];
 
@@ -514,6 +518,28 @@ const ScoringScreen = ({ route }) => {
   //   }
   // };
 
+  const undoHandler = async () => {
+    const token = await AsyncStorage.getItem('jwtToken');
+    if (!token) {
+      navigation.navigate('Login');
+    }
+    try {
+      const response = await axios.post(
+        `https://score360-7.onrender.com/api/v1/matches/${matchId}/undo-last-ball`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+        },
+      );
+      console.log(response);
+    } catch (err) {
+      console.log(err);
+    }
+    getMatchState();
+  }
+
   const handleExtrasWicketSelection = (value) => {
     if (value === 'Wide') {
       setModals({ ...modals, wide: true });
@@ -523,6 +549,8 @@ const ScoringScreen = ({ route }) => {
       setModals({ ...modals, noBall: true });
     } else if (value === 'Wicket') {
       setModals({ ...modals, wicket: true });
+    } else if (value === 'Undo') {
+      undoHandler();
     } else {
       setSelectedRun(value);
       submitScore({ runs: parseInt(value), wide: false, noBall: false, bye: false, legBye: false, wicket: false });

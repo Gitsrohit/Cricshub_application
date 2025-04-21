@@ -64,8 +64,8 @@ const Tournaments = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <LinearGradient 
-        colors={['#1a73e8', '#0d47a1']} 
+      <LinearGradient
+        colors={['#1a73e8', '#0d47a1']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -74,10 +74,10 @@ const Tournaments = () => {
           <Icon name="search" size={24} color="#fff" style={styles.searchIcon} />
           <Text style={styles.searchText}>Search for matches...</Text>
         </View>
-        
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabContainer}
         >
           {['MY', 'LIVE', 'UPCOMING', 'PAST'].map((tab) => (
@@ -112,257 +112,160 @@ const Tournaments = () => {
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : (
-          activeTab !== 'MY' ? 
-            <OthersTournaments tournaments={tournaments} /> : 
-            <MyTournaments tournaments={tournaments} />
+          activeTab !== 'MY' ? <OthersTournaments tournaments={tournaments} tournamentTimeStatus={activeTab} /> : <MyTournaments tournaments={tournaments} />
         )}
       </View>
     </View>
   );
 };
 
-const OthersTournaments = ({ tournaments }) => {
-  const [expandedCards, setExpandedCards] = useState({});
-  const navigation = useNavigation();
-
-  const toggleCardExpansion = (cardId) => {
-    setExpandedCards((prev) => ({
-      ...prev,
-      [cardId]: !prev[cardId],
-    }));
-  };
-
-  const navigateToTournament = (tournament) => {
-    navigation.navigate('TournamentDetails', { tournament });
-  };
-
-  return (
-    <ScrollView contentContainerStyle={styles.tournamentsContainer}>
-      {tournaments.map((tournament) => {
-        const sanitizedBannerUrl = tournament.banner.replace(
-          'https://score360-7.onrender.com/api/v1/files/http:/',
-          'https://'
-        );
-        
-        return (
-          <Pressable 
-            key={tournament.id} 
-            style={styles.tournamentCard}
-            onPress={() => navigateToTournament(tournament)}
-          >
-            <Image 
-              source={{ uri: sanitizedBannerUrl }} 
-              style={styles.tournamentBanner} 
-              resizeMode='cover'
-            />
-            
-            <LinearGradient
-              colors={['rgba(0,0,0,0.7)', 'transparent']}
-              style={styles.bannerOverlay}
-            />
-            
-            <View style={styles.tournamentContent}>
-              <Text style={styles.tournamentName}>{tournament.name}</Text>
-              
-              <View style={styles.tournamentMeta}>
-                <View style={styles.metaItem}>
-                  <Icon name="calendar-today" size={16} color="#666" />
-                  <Text style={styles.metaText}>
-                    {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]}`}
-                  </Text>
-                </View>
-                
-                <View style={styles.metaItem}>
-                  <Icon name="sports-cricket" size={16} color="#666" />
-                  <Text style={styles.metaText}>{tournament.type} overs</Text>
-                </View>
-              </View>
-              
-              <View style={styles.tournamentMeta}>
-                <View style={styles.metaItem}>
-                  <Icon name="flag" size={16} color="#666" />
-                  <Text style={styles.metaText}>{tournament.format}</Text>
-                </View>
-                
-                <View style={styles.metaItem}>
-                  <Icon name="groups" size={16} color="#666" />
-                  <Text style={styles.metaText}>{tournament.noOfTeams} teams</Text>
-                </View>
-              </View>
-              
-              {expandedCards[tournament.id] && (
-                <>
-                  <View style={styles.divider} />
-                  
-                  <View style={styles.expandedContent}>
-                    <Text style={styles.sectionTitle}>Teams</Text>
-                    <Text style={styles.teamList}>
-                      {tournament.teamNames && Array.isArray(tournament.teamNames)
-                        ? tournament.teamNames.map((teamName) => teamName.name).join(', ')
-                        : 'No teams'}
-                    </Text>
-                    
-                    <Text style={styles.sectionTitle}>Venues</Text>
-                    <Text style={styles.venueList}>
-                      {tournament.venues.map((venue, index) => (
-                        <Text key={index}>
-                          {index > 0 && ', '}
-                          {venue}
-                        </Text>
-                      ))}
-                    </Text>
-                  </View>
-                </>
-              )}
-              
-              <TouchableOpacity 
-                style={styles.showMoreButton}
-                onPress={() => toggleCardExpansion(tournament.id)}
-              >
-                <Text style={styles.showMoreText}>
-                  {expandedCards[tournament.id] ? 'SHOW LESS' : 'SHOW MORE'}
-                </Text>
-                <Icon 
-                  name={expandedCards[tournament.id] ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-                  size={20} 
-                  color="#1a73e8" 
-                />
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        );
-      })}
-      
-      {tournaments.length === 0 && (
-        <View style={styles.emptyState}>
-          <Icon name="emoji-events" size={60} color="#ddd" />
-          <Text style={styles.emptyText}>No tournaments available</Text>
-        </View>
-      )}
-    </ScrollView>
-  );
-};
-
-const MyTournaments = ({ tournaments }) => {
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const navigation = useNavigation();
-
-  const checkIsCreator = async (tournament) => {
-    try {
-      const creatorId = tournament.creatorName.id;
-      const userId = await AsyncStorage.getItem('userUUID');
-      return creatorId === userId;
-    } catch (error) {
-      console.error("Error in checkIsCreator:", error);
-      return false;
-    }
-  };
-
-  const manageTournamentHandler = async (id, tournament) => {
-    const isCreator = await checkIsCreator(tournament);
-    navigation.navigate('ManageTournaments', { id, isCreator });
-  };
-
-  const deleteTournamentHandler = async (id) => {
-    Alert.alert(
-      'Delete Tournament',
-      'Are you sure you want to delete this tournament?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          onPress: async () => {
-            const token = await AsyncStorage.getItem('jwtToken');
-            if (!token) {
-              Alert.alert('Error', 'Please log in again.');
-              return;
-            }
-            try {
-              await axios.delete(`https://score360-7.onrender.com/api/v1/tournaments/${id}`, {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              });
-              Alert.alert('Success', 'Tournament deleted successfully.');
-            } catch (error) {
-              console.error('Error deleting tournament:', error?.response?.data || error.message);
-              Alert.alert('Error', 'Failed to delete the tournament.');
-            }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
-  };
-
-  return (
-    <ScrollView contentContainerStyle={styles.tournamentsContainer}>
-      {tournaments.map((tournament) => {
-        const sanitizedBannerUrl = tournament.banner.replace(
-          'https://score360-7.onrender.com/api/v1/files/http:/',
-          'https://'
-        );
-        
-        return (
-          <Pressable 
-            key={tournament.id} 
-            style={styles.myTournamentCard}
-            onPress={() => manageTournamentHandler(tournament.id, tournament)}
-          >
-            <Image 
-              source={{ uri: sanitizedBannerUrl }} 
-              style={styles.myTournamentImage} 
-              resizeMode='cover'
-            />
-            
-            <View style={styles.myTournamentContent}>
-              <View style={styles.myTournamentHeader}>
-                <Text style={styles.myTournamentName}>{tournament.name}</Text>
-                <TouchableOpacity onPress={() => deleteTournamentHandler(tournament.id)}>
-                  <Icon name="delete" size={24} color="#ff4444" />
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.myTournamentDetails}>
-                <View style={styles.detailRow}>
-                  <Icon name="calendar-today" size={16} color="#1a73e8" />
-                  <Text style={styles.detailText}>
-                    {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]} - ${tournament.endDate[2]}/${tournament.endDate[1]}/${tournament.endDate[0]}`}
-                  </Text>
-                </View>
-                
-                <View style={styles.detailRow}>
-                  <Icon name="sports-cricket" size={16} color="#1a73e8" />
-                  <Text style={styles.detailText}>{tournament.type} overs • {tournament.ballType}</Text>
-                </View>
-              </View>
-              
-              <TouchableOpacity 
-                style={styles.manageButton}
-                onPress={() => manageTournamentHandler(tournament.id, tournament)}
-              >
-                <Text style={styles.manageButtonText}>MANAGE TOURNAMENT</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        );
-      })}
-      
-      {tournaments.length === 0 && (
-        <View style={styles.emptyState}>
-          <Icon name="emoji-events" size={60} color="#ddd" />
-          <Text style={styles.emptyText}>You haven't joined any tournaments yet</Text>
-          <TouchableOpacity style={styles.exploreButton}>
-            <Text style={styles.exploreButtonText}>EXPLORE TOURNAMENTS</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </ScrollView>
-  );
-};
+export default Tournaments;
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  gradientOverlay: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  glassHeader: {
+    padding: 20,
+    overflow: 'hidden',
+    backgroundColor: '#34B8FF',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  searchBarContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 15,
+  },
+  searchBar: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    marginTop: 10,
+  },
+  toggleButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginHorizontal: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeToggleButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  toggleText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  activeToggleText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  contentContainer: {
+    flex: 1,
+    marginTop: 140,
+    paddingHorizontal: 10,
+  },
+  cardContainer: {
+    width: '100%',
+    padding: 10,
+    overflow: 'hidden',
+  },
+  card: {
+    // backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginVertical: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 3 },
+    padding: 15,
+  },
+  tournamentDetails: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    gap: 10,
+    paddingBottom: 10,
+    borderBottomColor: '#E0E0E0',
+    borderBottomWidth: 1,
+  },
+  cardImage: {
+    overflow: 'hidden',
+    borderRadius: 50,
+    justifyContent: 'flex-end',
+    height: 50,
+    width: 50,
+  },
+  cardContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  tournamentContent: {
+    color: 'white',
+    fontSize: 16,
+    marginVertical: 2,
+  },
+  contentSubHeading: {
+    color: 'white',
+  },
+  cardButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#FFF",
+    marginVertical: 10,
+  },
+  cardButtonText: {
+    textAlign: 'center',
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  contentCols: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 6,
+  },
+  maintainPadding: {
+    paddingHorizontal: 6,
+  },
+  loader: {
+    marginTop: 60,
+  },
+  myTournamentButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 10,
+    paddingHorizontal: 6,
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f7fa',
@@ -465,9 +368,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 60,
-  },
-  tournamentContent: {
-    padding: 15,
   },
   tournamentName: {
     fontSize: 18,
@@ -602,4 +502,223 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Tournaments;
+export const OthersTournaments = ({ tournaments, tournamentTimeStatus }) => {
+  const navigation = useNavigation();
+  const checkIsCreator = async (tournament) => {
+    try {
+      const creatorId = tournament.creatorName.id;
+      const userId = await AsyncStorage.getItem('userUUID');
+      if (creatorId === userId) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error("Error in checkIsCreator:", error);
+      return false;
+    }
+  };
+  const scheduleClickHandler = async (tournament) => {
+    const isCreator = await checkIsCreator(tournament);
+    const tab = 'MATCHES';
+    const id = tournament.id;
+    navigation.navigate('ManageTournaments', { id, isCreator, tab })
+  }
+
+  const pointsTableClickHandler = async (tournament) => {
+    const isCreator = await checkIsCreator(tournament);
+    const tab = 'POINTS TABLE';
+    const id = tournament.id;
+    navigation.navigate('ManageTournaments', { id, isCreator, tab })
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.tournamentsContainer}>
+      {tournaments.map((tournament) => {
+        const sanitizedBannerUrl = tournament.banner.replace(
+          'https://score360-7.onrender.com/api/v1/files/http:/',
+          'https://'
+        );
+
+        return (
+          <LinearGradient colors={["#0866AA", "#6BB9F0"]} key={tournament.id} style={styles.card}>
+            <View style={styles.tournamentDetails}>
+              <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='cover' />
+              <View style={styles.cardContent}>
+                <Text style={styles.tournamentName}>{tournament.name}</Text>
+              </View>
+            </View>
+            {/* Combined Start Date and End Date */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+              <Text style={styles.tournamentContent}>
+                <Icon name="calendar-month" color="white" size={20} />{' '}
+                {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]} - ${tournament.endDate[2]}/${tournament.endDate[1]}/${tournament.endDate[0]}`}
+              </Text>
+              <Text style={styles.tournamentContent}>Overs: {tournament.type}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={styles.tournamentContent}>
+                <Icon name="sports-baseball" color="white" size={20} />: {tournament.ballType}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 10, justifyContent: 'flex-end' }}>
+              {(tournamentTimeStatus === 'LIVE' || tournamentTimeStatus === 'UPCOMING') &&
+                <>
+                  <TouchableOpacity
+                    style={styles.cardButton}
+                    activeOpacity={0.8}
+                    onPress={() => scheduleClickHandler(tournament)}
+                  >
+                    <Text style={styles.cardButtonText}>
+                      Schedule
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              }
+              {(tournamentTimeStatus === 'LIVE' || tournamentTimeStatus === 'PAST') &&
+                <>
+                  <TouchableOpacity
+                    style={styles.cardButton}
+                    activeOpacity={0.8}
+                    onPress={() => pointsTableClickHandler(tournament)}
+                  >
+                    <Text style={styles.cardButtonText}>
+                      Points Table
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              }
+            </View>
+          </LinearGradient>
+        );
+      })}
+
+      {tournaments.length === 0 && (
+        <View style={styles.emptyState}>
+          <Icon name="emoji-events" size={60} color="#ddd" />
+          <Text style={styles.emptyText}>No tournaments available</Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+};
+
+const MyTournaments = ({ tournaments }) => {
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const navigation = useNavigation();
+
+  const checkIsCreator = async (tournament) => {
+    try {
+      const creatorId = tournament.creatorName.id;
+      const userId = await AsyncStorage.getItem('userUUID');
+      return creatorId === userId;
+    } catch (error) {
+      console.error("Error in checkIsCreator:", error);
+      return false;
+    }
+  };
+
+  const manageTournamentHandler = async (id, tournament) => {
+    const isCreator = await checkIsCreator(tournament);
+    const tab = 'INFO';
+    navigation.navigate('ManageTournaments', { id, isCreator, tab });
+  };
+
+  const deleteTournamentHandler = async (id) => {
+    Alert.alert(
+      'Delete Tournament',
+      'Are you sure you want to delete this tournament?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            const token = await AsyncStorage.getItem('jwtToken');
+            if (!token) {
+              Alert.alert('Error', 'Please log in again.');
+              return;
+            }
+            try {
+              await axios.delete(`https://score360-7.onrender.com/api/v1/tournaments/${id}`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              Alert.alert('Success', 'Tournament deleted successfully.');
+            } catch (error) {
+              console.error('Error deleting tournament:', error?.response?.data || error.message);
+              Alert.alert('Error', 'Failed to delete the tournament.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.tournamentsContainer}>
+      {tournaments.map((tournament) => {
+        const sanitizedBannerUrl = tournament.banner.replace(
+          'https://score360-7.onrender.com/api/v1/files/http:/',
+          'https://'
+        );
+
+        return (
+          <Pressable
+            key={tournament.id}
+            style={styles.myTournamentCard}
+            onPress={() => manageTournamentHandler(tournament.id, tournament)}
+          >
+            <Image
+              source={{ uri: sanitizedBannerUrl }}
+              style={styles.myTournamentImage}
+              resizeMode='cover'
+            />
+
+            <View style={styles.myTournamentContent}>
+              <View style={styles.myTournamentHeader}>
+                <Text style={styles.myTournamentName}>{tournament.name}</Text>
+                <TouchableOpacity onPress={() => deleteTournamentHandler(tournament.id)}>
+                  <Icon name="delete" size={24} color="#ff4444" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.myTournamentDetails}>
+                <View style={styles.detailRow}>
+                  <Icon name="calendar-today" size={16} color="#1a73e8" />
+                  <Text style={styles.detailText}>
+                    {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]} - ${tournament.endDate[2]}/${tournament.endDate[1]}/${tournament.endDate[0]}`}
+                  </Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Icon name="sports-cricket" size={16} color="#1a73e8" />
+                  <Text style={styles.detailText}>{tournament.type} overs • {tournament.ballType}</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.manageButton}
+                onPress={() => manageTournamentHandler(tournament.id, tournament)}
+              >
+                <Text style={styles.manageButtonText}>MANAGE TOURNAMENT</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        );
+      })}
+
+      {tournaments.length === 0 && (
+        <View style={styles.emptyState}>
+          <Icon name="emoji-events" size={60} color="#ddd" />
+          <Text style={styles.emptyText}>You haven't joined any tournaments yet</Text>
+          <TouchableOpacity style={styles.exploreButton}>
+            <Text style={styles.exploreButtonText}>EXPLORE TOURNAMENTS</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ScrollView>
+  );
+};
