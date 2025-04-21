@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+// import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -186,7 +186,7 @@ const CreateTournament = ({ navigation }) => {
                 </Text>
               </TouchableOpacity>
 
-              {showStartDatePicker && (
+              {/* {showStartDatePicker && (
                 <DateTimePicker
                   minimumDate={moment().toDate()}
                   value={startDate}
@@ -197,7 +197,7 @@ const CreateTournament = ({ navigation }) => {
                     if (selectedDate) setStartDate(selectedDate);
                   }}
                 />
-              )}
+              )} */}
 
               {/* End Date Input */}
               <TouchableOpacity
@@ -209,7 +209,7 @@ const CreateTournament = ({ navigation }) => {
                 </Text>
               </TouchableOpacity>
 
-              {showEndDatePicker && (
+              {/* {showEndDatePicker && (
                 <DateTimePicker
                   value={endDate}
                   mode="date"
@@ -219,7 +219,7 @@ const CreateTournament = ({ navigation }) => {
                     if (selectedDate) setEndDate(selectedDate);
                   }}
                 />
-              )}
+              )} */}
 
               {/* Format Picker */}
               <View style={styles.pickerContainer}>

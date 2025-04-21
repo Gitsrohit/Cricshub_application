@@ -25,6 +25,7 @@ import SelectRoles2ndInnings from './components/My matches/SelectRoles2ndInnings
 import AllMatches from './components/My matches/AllMatches/AllMatches';
 import ScheduleMatch from './components/My matches/ScheduleMatch/ScheduleMatch';
 import CommentaryScorecard from './components/My matches/CommentaryScorecard';
+import FantasyCricketScreen from './components/Fantasy/FantasyHome';
 
 // import Performance from './components/Settings/Performance';
 
@@ -80,6 +81,7 @@ const MainScreens = () => {
           <Stack.Screen name="MatchScoreCard" component={ScoreCard} />
           <Stack.Screen name="ScheduleMatch" component={ScheduleMatch} />
           <Stack.Screen name="CommentaryScorecard" component={CommentaryScorecard} />
+          <Stack.Screen name="FantasyCricketScreen" component={FantasyCricketScreen} />
         </Stack.Navigator>
         <Footer style={styles.footer} />
       </View>
