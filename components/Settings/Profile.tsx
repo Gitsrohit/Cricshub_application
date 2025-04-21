@@ -438,7 +438,6 @@ const Settings = () => {
               </TouchableOpacity>
 
               <View style={styles.infoContainer}>
-                {/* Name Field */}
                 <View style={styles.infoItem}>
                   {editField === "name" ? (
                     <View style={styles.editContainer}>
@@ -482,8 +481,6 @@ const Settings = () => {
                     </View>
                   )}
                 </View>
-
-                {/* Phone Field */}
                 <View style={styles.infoItem}>
                   {editField === "phone" ? (
                     <View style={styles.editContainer}>
