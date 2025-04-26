@@ -10,6 +10,7 @@ import {
   Animated,
   Easing,
   ImageBackground,
+  StatusBar,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -95,7 +96,7 @@ const Performance = () => {
         email: data.email || "player@example.com",
         logoPath: data.logoPath || null
       });
-      
+
       animateContent();
     } catch (err) {
       setError(err.message || "Failed to load player data");
@@ -363,6 +364,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    marginTop: StatusBar?.currentHeight || 0,
   },
   backgroundImage: {
     opacity: 0.8,

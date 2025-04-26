@@ -10,7 +10,7 @@ import Home from './components/Home/Home';
 import Teams from './components/Teams/Teams';
 import Profile from './components/Settings/Profile';
 import Performance from './components/Settings/Performance';
-import Footer from './components/Footer'; // Footer component
+import Footer from './components/Utilities/Footer'; // Footer component
 import CreateTeam from './components/Teams/CreateTeam';
 import CreateTournaments from './components/Tournaments/CreateTournaments';
 import ManageTournaments from './components/Tournaments/ManageTournaments';
@@ -30,8 +30,6 @@ import FantasyCricketScreen from './components/Fantasy/FantasyHome';
 // import Performance from './components/Settings/Performance';
 
 import ScoreCard from './components/My matches/ScoreCard';
-import SideBar from './components/Sidebar';
-
 
 const Stack = createStackNavigator();
 
@@ -57,35 +55,34 @@ const App = () => {
 
 const MainScreens = () => {
   return (
-    <SideBar>
-      <View style={{ flex: 1 }}>
-        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
-          <Stack.Screen name="Home" component={Home} />
-          <Stack.Screen name="Login" component={Login} />
-          <Stack.Screen name="MyMatches" component={AllMatches} />
-          <Stack.Screen name="Tournaments" component={Tournaments} />
-          <Stack.Screen name="Teams" component={Teams} />
-          <Stack.Screen name="Profile" component={Profile} />
-          <Stack.Screen name="Performance" component={Performance} />
-          <Stack.Screen name="CreateTeam" component={CreateTeam} />
-          <Stack.Screen name="CreateTournaments" component={CreateTournaments} />
-          <Stack.Screen name="ManageTournaments" component={ManageTournaments} />
-          <Stack.Screen name="TeamDetailsScreen" component={TeamDetailsScreen} />
-          <Stack.Screen name="InstantMatch" component={InstantMatch} />
-          <Stack.Screen name="SelectPlayingII" component={SelectPlayingII} />
-          <Stack.Screen name="Toss" component={Toss} />
-          <Stack.Screen name="Scoring" component={Scoring} />
-          <Stack.Screen name="SelectRoles" component={SelectRoles} />
-          <Stack.Screen name="AddPlayersToTeam" component={AddPlayersToTeam} />
-          <Stack.Screen name="SelectRoles2ndInnings" component={SelectRoles2ndInnings} />
-          <Stack.Screen name="MatchScoreCard" component={ScoreCard} />
-          <Stack.Screen name="ScheduleMatch" component={ScheduleMatch} />
-          <Stack.Screen name="CommentaryScorecard" component={CommentaryScorecard} />
-          <Stack.Screen name="FantasyCricketScreen" component={FantasyCricketScreen} />
-        </Stack.Navigator>
-        <Footer style={styles.footer} />
-      </View>
-    </SideBar>
+    <View style={{ flex: 1 }}>
+      <StatusBar />
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
+        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Login" component={Login} />
+        <Stack.Screen name="MyMatches" component={AllMatches} />
+        <Stack.Screen name="Tournaments" component={Tournaments} />
+        <Stack.Screen name="Teams" component={Teams} />
+        <Stack.Screen name="Profile" component={Profile} />
+        <Stack.Screen name="Performance" component={Performance} />
+        <Stack.Screen name="CreateTeam" component={CreateTeam} />
+        <Stack.Screen name="CreateTournaments" component={CreateTournaments} />
+        <Stack.Screen name="ManageTournaments" component={ManageTournaments} />
+        <Stack.Screen name="TeamDetailsScreen" component={TeamDetailsScreen} />
+        <Stack.Screen name="InstantMatch" component={InstantMatch} />
+        <Stack.Screen name="SelectPlayingII" component={SelectPlayingII} />
+        <Stack.Screen name="Toss" component={Toss} />
+        <Stack.Screen name="Scoring" component={Scoring} />
+        <Stack.Screen name="SelectRoles" component={SelectRoles} />
+        <Stack.Screen name="AddPlayersToTeam" component={AddPlayersToTeam} />
+        <Stack.Screen name="SelectRoles2ndInnings" component={SelectRoles2ndInnings} />
+        <Stack.Screen name="MatchScoreCard" component={ScoreCard} />
+        <Stack.Screen name="ScheduleMatch" component={ScheduleMatch} />
+        <Stack.Screen name="CommentaryScorecard" component={CommentaryScorecard} />
+        <Stack.Screen name="FantasyCricketScreen" component={FantasyCricketScreen} />
+      </Stack.Navigator>
+      <Footer style={styles.footer} />
+    </View>
   );
 };
 

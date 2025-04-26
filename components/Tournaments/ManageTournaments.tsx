@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, Alert, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, Alert, Dimensions, StatusBar } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,7 @@ const backgroundImage = require('../../assets/images/cricsLogo.png');
 import moment from 'moment';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
+import Header from '../Utilities/Header';
 
 export default function ManageTournaments({ route }) {
   const [activeTab, setActiveTab] = useState(route.params.tab);
@@ -53,24 +54,34 @@ export default function ManageTournaments({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradientOverlay}>
+      <Header />
+      <View style={{ flex: 1, height: '100%', width: '100%' }}>
         <ImageBackground source={backgroundImage} style={styles.background} resizeMode="cover">
           {/* Toggle Buttons */}
-          <View style={{ height: 60 }}>
-            <ScrollView style={styles.toggleContainer} horizontal={true}>
+          <LinearGradient
+            colors={['#1a73e8', '#0d47a1']}
+            style={[styles.header]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabContainer}
+            >
               {['INFO', 'TEAMS', 'MATCHES', 'POINTS TABLE'].map((tab) => (
                 <TouchableOpacity
                   key={tab}
                   style={[
-                    styles.toggleButton,
-                    activeTab === tab && styles.activeToggleButton,
+                    styles.tabButton,
+                    activeTab === tab && styles.activeTabButton,
                   ]}
                   onPress={() => setActiveTab(tab)}
                 >
                   <Text
                     style={[
-                      styles.toggleText,
-                      activeTab === tab && styles.activeToggleText,
+                      styles.tabText,
+                      activeTab === tab && styles.activeTabText,
                     ]}
                   >
                     {tab}
@@ -78,7 +89,7 @@ export default function ManageTournaments({ route }) {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </LinearGradient>
           <View style={{ marginVertical: 10, width: '100%', flexDirection: 'row', justifyContent: 'center' }}>
             {loading ? <View style={[styles.cardImage, { backgroundColor: 'grey' }]}></View> : <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='contain' />
             }
@@ -90,7 +101,7 @@ export default function ManageTournaments({ route }) {
             {activeTab === 'POINTS TABLE' && <PointsTable id={id} />}
           </View>
         </ImageBackground>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 };
@@ -103,42 +114,45 @@ const styles = StyleSheet.create({
     height: '100%',
     opacity: 0.8
   },
-  gradientOverlay: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
+  header: {
+    paddingTop: 10,
+    paddingBottom: 15,
+    paddingHorizontal: 15,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 1,
   },
   container: {
-    height: '100%',
+    flex: 1,
+    backgroundColor: '#f5f7fa',
   },
-  toggleContainer: {
-    // marginTop: 10,
-    paddingVertical: 6,
-    backgroundColor: '#34B8FF',
-    // height: 66,
-    // borderBottomColor: '#0866AA',
-    // borderBottomWidth: 1
+  tabContainer: {
+    paddingBottom: 5,
   },
-  toggleButton: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    marginHorizontal: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+  tabButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    marginRight: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  activeToggleButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+  activeTabButton: {
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    borderWidth: 1,
+    borderColor: '#fff',
   },
-  toggleText: {
+  tabText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+  },
+  activeTabText: {
     color: '#fff',
     fontWeight: 'bold',
-  },
-  activeToggleText: {
-    color: '#FFF', fontSize: 16, fontWeight: 'bold'
   },
 
   // Info

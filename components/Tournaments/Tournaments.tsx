@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import Header from '../Utilities/Header';
 
 const { width } = Dimensions.get('window');
 
@@ -64,6 +65,7 @@ const Tournaments = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
+      <Header />
       <LinearGradient
         colors={['#1a73e8', '#0d47a1']}
         style={styles.header}
@@ -271,7 +273,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f7fa',
   },
   header: {
-    paddingTop: 50,
+    paddingTop: 10,
     paddingBottom: 15,
     paddingHorizontal: 15,
     borderBottomLeftRadius: 20,
