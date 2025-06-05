@@ -10,6 +10,9 @@ import {
   Pressable,
   ActivityIndicator,
   FlatList,
+  Dimensions,
+  Animated,
+  Easing
 } from 'react-native';
 import backgroundImage from '../../../assets/images/cricsLogo.png';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,22 +21,41 @@ import axios from 'axios';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 
+const { width } = Dimensions.get('window');
+
 const AllMatches = () => {
   const [activeTab, setActiveTab] = useState('MY');
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      easing: Easing.ease,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
   return (
     <ImageBackground source={backgroundImage} style={styles.backgroundImage} resizeMode="cover">
-      <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradientOverlay}>
-        <View style={styles.header}>
+      <LinearGradient colors={['rgba(0, 0, 0, 0.5)', 'rgba(54, 176, 303, 0.2)']} style={styles.gradientOverlay}>
+        <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
           <LinearGradient
-            colors={['#34B8FF', '#34B8FF']}
+            colors={['rgba(52, 184, 255, 0.9)', 'rgba(52, 184, 255, 0.95)']}
             style={styles.glassHeader}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.searchBarContainer}>
+              <Icon name="search" size={20} color="#fff" style={styles.searchIcon} />
               <Text style={styles.searchBar}>Search for matches...</Text>
             </View>
-            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.toggleContainer}>
+            <ScrollView 
+              horizontal={true} 
+              showsHorizontalScrollIndicator={false} 
+              style={styles.toggleContainer}
+              contentContainerStyle={styles.toggleContentContainer}
+            >
               {['MY', 'LIVE', 'UPCOMING', 'PAST'].map((tab) => (
                 <TouchableOpacity
                   key={tab}
@@ -41,7 +63,13 @@ const AllMatches = () => {
                     styles.toggleButton,
                     activeTab === tab && styles.activeToggleButton,
                   ]}
-                  onPress={() => setActiveTab(tab)}
+                  onPress={() => {
+                    Animated.spring(new Animated.Value(0), {
+                      toValue: 1,
+                      friction: 3,
+                      useNativeDriver: true,
+                    }).start(() => setActiveTab(tab));
+                  }}
                 >
                   <Text
                     style={[
@@ -51,11 +79,12 @@ const AllMatches = () => {
                   >
                     {tab}
                   </Text>
+                  {activeTab === tab && <View style={styles.activeIndicator} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </LinearGradient>
-        </View>
+        </Animated.View>
         <View style={styles.contentContainer}>
           {activeTab === 'MY' && <MyMatch />}
           {activeTab === 'LIVE' && <LiveMatch />}
@@ -87,86 +116,104 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1,
     height: 140,
-    // paddingTop: StatusBar.currentHeight || 0,
     backgroundColor: 'transparent',
   },
   glassHeader: {
     padding: 20,
     overflow: 'hidden',
-    backgroundColor: '#34B8FF',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    backgroundColor: 'rgba(52, 184, 255, 0.9)',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
   },
   searchBarContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 10,
-    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchIcon: {
+    marginRight: 10,
   },
   searchBar: {
     color: '#fff',
     fontSize: 16,
+    opacity: 0.8,
   },
   toggleContainer: {
     flexDirection: 'row',
     marginTop: 5,
   },
+  toggleContentContainer: {
+    paddingHorizontal: 5,
+  },
   toggleButton: {
-    paddingVertical: 5,
-    paddingHorizontal: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 22,
     marginHorizontal: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    height: 40,
   },
   activeToggleButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    position: 'relative',
   },
   toggleText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12
+    fontWeight: '600',
+    fontSize: 14,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   activeToggleText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    height: 3,
+    width: '60%',
+    backgroundColor: '#fff',
+    borderRadius: 3,
   },
   contentContainer: {
     flex: 1,
     marginTop: 140,
-    paddingHorizontal: 10,
+    paddingHorizontal: 15,
   },
   cardContainer: {
-    width: '100%',
-    paddingTop: 50,
-    padding: 10,
-    overflow: 'hidden',
+    paddingTop: 10,
+    paddingBottom: 20,
   },
   activityIndicator: {
-    paddingTop: 50,
-    padding: 10,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
     overflow: 'hidden',
-    margin: 10,
     marginBottom: 15,
     elevation: 5,
     shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 3 },
-    padding: 15,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    padding: 0,
   },
   tournamentDetails: {
     flexDirection: 'row',
@@ -174,7 +221,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingBottom: 10,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
     borderBottomWidth: 1,
   },
   cardImage: {
@@ -192,33 +239,59 @@ const styles = StyleSheet.create({
   },
   tournamentName: {
     color: '#333',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   tournamentContent: {
     color: '#555',
-    fontSize: 16,
+    fontSize: 14,
     marginVertical: 2,
   },
   contentSubHeading: {
     color: '#333',
   },
   errorText: {
-    color: 'red',
+    color: '#ff6b6b',
     textAlign: 'center',
     marginTop: 20,
+    fontSize: 16,
   },
   winnerText: {
-    color: '#007BFF',
+    color: '#34B8FF',
     fontSize: 16,
-    fontWeight: 600,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 10,
   },
-})
+  noMatchText: {
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+  },
+  cardHeader: {
+    backgroundColor: 'rgba(52, 184, 255, 0.1)',
+    padding: 15,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  cardBody: {
+    padding: 15,
+  },
+  cardFooter: {
+    backgroundColor: 'rgba(52, 184, 255, 0.05)',
+    padding: 12,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    alignItems: 'center',
+  },
+});
 
 const MyMatch = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -229,73 +302,95 @@ const MyMatch = () => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
       const playerId = await AsyncStorage.getItem('userUUID');
-      if (!token)
-        throw new Error('Please Login Again');
+      if (!token) throw new Error('Please Login Again');
+      
       setLoading(true);
-      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/player/${playerId}`,
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/matches/player/${playerId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMatches(response.data);
-
+      setError(null);
     } catch (err) {
-      setError('Failed to my matches');
+      setError('Failed to load your matches. Pull down to refresh.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }
+  };
 
-  const checkIsCreator = async (match) => {
-    try {
-      const creatorId = match.tournamentResponse.creatorName.id;
-      const userId = await AsyncStorage.getItem('userUUID');
-      if (creatorId === userId) {
-        return true;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      console.error("Error in checkIsCreator:", error);
-      return false;
-    }
+  const onRefresh = () => {
+    setRefreshing(true);
+    getMyMatches();
   };
 
   const matchCardClickHandler = (item) => {
     const matchId = item?.id;
-    navigation.navigate('MatchScoreCard', { matchId })
-  }
+    navigation.navigate('MatchScoreCard', { matchId });
+  };
 
   const renderMatchItem = ({ item }) => {
     const matchDate = item?.matchDate ? `${item?.matchDate[2]}-${item?.matchDate[1]}-${item?.matchDate[0]}` : 'N/A';
+    const isWinnerDeclared = item?.winner;
 
     return (
       <Pressable
         key={item?.id}
-        style={styles.card}
         onPress={() => matchCardClickHandler(item)}
+        style={({ pressed }) => [
+          styles.card,
+          { transform: [{ scale: pressed ? 0.98 : 1 }] },
+        ]}
       >
-        <View style={liveMatchStyles.teamRow}>
-          <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
-          <View>
-            <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
+        <LinearGradient 
+          colors={['rgba(52, 184, 255, 0.1)', 'rgba(52, 184, 255, 0.05)']}
+          style={styles.cardHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Text style={[styles.tournamentName, { textAlign: 'center' }]}>
+            {item?.tournamentResponse?.name || 'Tournament Match'}
+          </Text>
+        </LinearGradient>
+        
+        <View style={styles.cardBody}>
+          <View style={liveMatchStyles.teamRow}>
+            <View style={{ alignItems: 'center' }}>
+              <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
+              <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+              <Text style={liveMatchStyles.teamScore}>{item?.team1Score || 'N/A'}</Text>
+            </View>
+            
+            <View style={liveMatchStyles.vsContainer}>
+              <Text style={liveMatchStyles.vs}>VS</Text>
+              <Text style={liveMatchStyles.matchStatus}>{item?.status}</Text>
+            </View>
+            
+            <View style={{ alignItems: 'center' }}>
+              <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
+              <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+              <Text style={liveMatchStyles.teamScore}>{item?.team2Score || 'N/A'}</Text>
+            </View>
           </View>
-          <Text style={liveMatchStyles.vs}>VS</Text>
-          <View>
-            <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
+
+          <View style={{ marginTop: 15 }}>
+            <View style={styles.tournamentDetails}>
+              <Icon name="calendar-month" size={18} color="#555" />
+              <Text style={styles.tournamentContent}> {matchDate}</Text>
+            </View>
+            <View style={styles.tournamentDetails}>
+              <Icon name="location-on" size={18} color="#555" />
+              <Text style={styles.tournamentContent}> {item?.venue || 'Venue not specified'}</Text>
+            </View>
           </View>
-          <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
         </View>
 
-        <View style={{ borderWidth: 0.5, borderColor: '#34B8FF' }}></View>
-
-        <View style={{ marginTop: 5 }}>
-          <Text style={styles.tournamentContent}><Icon name="calendar-month" size={18} color="#555" /> Date: {matchDate}</Text>
-          <Text style={styles.tournamentContent}><Icon name="flag" size={18} color="#555" /> Venue: {item?.venue}</Text>
-        </View>
-
-        <View style={{ alignItems: 'center', marginTop: 10 }}>
-          <Text style={styles.winnerText}>{item?.winner ? `Winner: ${item?.winner}` : 'Match Result Pending'}</Text>
+        <View style={styles.cardFooter}>
+          {isWinnerDeclared ? (
+            <Text style={styles.winnerText}>🏆 {item?.winner} won the match!</Text>
+          ) : (
+            <Text style={styles.tournamentContent}>Match in progress...</Text>
+          )}
         </View>
       </Pressable>
     );
@@ -303,173 +398,235 @@ const MyMatch = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
-      {!loading && error && <Text style={[styles.errorText, styles.activityIndicator]}>{error}</Text>}
-      {!loading && matches?.length === 0 && <Text style={[styles.noMatchText, styles.activityIndicator]}>No matches found</Text>}
+      {loading && !refreshing && (
+        <ActivityIndicator size="large" color="#34B8FF" style={styles.activityIndicator} />
+      )}
+      
+      {error && (
+        <Text style={styles.errorText}>{error}</Text>
+      )}
+      
+      {!loading && matches?.length === 0 && (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Icon name="info-outline" size={40} color="#888" />
+          <Text style={styles.noMatchText}>No matches found</Text>
+          <TouchableOpacity 
+            onPress={getMyMatches}
+            style={{ marginTop: 10, padding: 10 }}
+          >
+            <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {!loading && matches?.length !== 0 && <FlatList
-        data={matches}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMatchItem}
-        contentContainerStyle={styles.cardContainer}
-      />
-      }
+      {!loading && matches?.length !== 0 && (
+        <FlatList
+          data={matches}
+          keyExtractor={(item) => item.id}
+          renderItem={renderMatchItem}
+          contentContainerStyle={styles.cardContainer}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          ListEmptyComponent={
+            <Text style={styles.noMatchText}>No matches found</Text>
+          }
+        />
+      )}
     </View>
   );
 };
+
+const liveMatchStyles = StyleSheet.create({
+  teamRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  logo: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginBottom: 5,
+  },
+  teamName: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    maxWidth: 100,
+  },
+  teamScore: {
+    color: '#34B8FF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  vsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vs: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ff4757',
+  },
+  matchStatus: {
+    fontSize: 12,
+    color: '#34B8FF',
+    fontWeight: '600',
+    marginTop: 5,
+    backgroundColor: 'rgba(52, 184, 255, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  venue: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 5,
+  },
+  date: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 2,
+  },
+  winner: {
+    fontSize: 16,
+    color: '#34B8FF',
+    fontWeight: 'bold',
+    marginTop: 10,
+  },
+  errorText: {
+    color: '#ff6b6b',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+});
 
 const LiveMatch = () => {
   const navigation = useNavigation();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
-  const [isCreator, setIsCreator] = useState(false);
-  const [strikerId, setStrikerId] = useState(null);
-  const [nonStrikerId, setNonStrikerId] = useState(null);
-  const [bowler, setBowler] = useState(null);
-  const [selectedStrikerName, setSelectedStrikerName] = useState(null);
-  const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(null);
-  const [selectedBowlerName, setSelectedBowlerName] = useState(null);
-  const [battingTeamName, setBattingTeamName] = useState('');
-  const [score, setScore] = useState(0);
-  const [extras, setExtras] = useState(0);
-  const [bowlingTeamName, setBowlingTeamName] = useState('');
-  const [wicket, setWicket] = useState(0);
-  const [battingTeamII, setBattingTeamII] = useState([]);
-  const [bowlingTeamII, setBowlingTeamII] = useState([]);
-  const [completedOvers, setCompletedOvers] = useState(0);
-  const [currentBowlerName, setCurrentBowlerName] = useState(selectedBowlerName);
-  const [strikerName, setStrikerName] = useState(selectedStrikerName);
-  const [nonStrikerName, setNonStrikerName] = useState(selectedNonStrikerName);
-  const [currentOver, setCurrentOver] = useState([]);
-  const [availableBowlers, setAvailableBowlers] = useState([]);
-  const [availableBatsmen, setAvailableBatsmen] = useState(battingTeamII?.filter(
-    (player) => player?.ballsFaced === 0 && player?.playerId !== strikerId && player?.playerId !== nonStrikerId
-  ).map(({ playerId, name }) => ({ playerId, name })));
-  const [nonStrikerStats, setNonStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
-  const [strikerStats, setStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
-  const [bowlerStats, setBowlerStats] = useState({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
-  const [overDetails, setOverDetails] = useState(null);
-  const [legalDeliveries, setLegalDeliveries] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   const getLiveMatches = async () => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      const userId = await AsyncStorage.getItem('userUUID');
-      if (!token)
-        throw new Error('Please Login Again');
+      if (!token) throw new Error('Please Login Again');
+      
       setLoading(true);
-      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/status`, {
-        params: { status: 'Live' },
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/matches/status`,
+        {
+          params: { status: 'Live' },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setMatches(response.data);
-      if (userId === response.data.creatorName.id) {
-        setIsCreator(true);
-      } else {
-        setIsCreator(false);
-      }
+      setError(null);
     } catch (err) {
-      console.log(err);
+      setError('Failed to load live matches. Pull down to refresh.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }
+  };
 
   useEffect(() => {
     getLiveMatches();
   }, []);
 
-  const liveMatchClickHandler = async (matchId: string, match: any) => {
+  const onRefresh = () => {
+    setRefreshing(true);
+    getLiveMatches();
+  };
+
+  const liveMatchClickHandler = async (matchId, match) => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
       const userId = (await AsyncStorage.getItem('userUUID')).trim();
       const creatorId = match.creatorName.id;
+      
       if (userId === creatorId) {
-        const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
-        const data = response.data;
-        console.log(data);
-        setStrikerId(data.currentStriker?.playerId || null);
-        setNonStrikerId(data.currentNonStriker?.playerId || null);
-        setBowler(data.currentBowler?.playerId || null);
-        setSelectedStrikerName(data.currentStriker?.name || "Unknown");
-        setSelectedNonStrikerName(data.currentNonStriker?.name || "Unknown");
-        setSelectedBowlerName(data.currentBowler?.name || "Unknown");
-        setBattingTeamName(data.battingTeam?.name || "Unknown");
-        setScore(data.battingTeam?.score || 0);
-        setBowlingTeamName(data.bowlingTeam?.name || "Unknown");
-        setWicket(data.battingTeam?.wickets || 0);
-        setExtras(data.battingTeam?.extras || 0);
-        setBattingTeamII(data.battingTeamPlayingXI || []);
-        setBowlingTeamII(data.bowlingTeamPlayingXI || []);
-        setCompletedOvers(data.completedOvers || 0);
-        setCurrentOver(data.currentOver || []);
-
-
-        const filteredBowlers = data.bowlingTeamPlayingXI?.filter((player) => player.playerId !== data.currentBowler?.playerId)
-          .map(({ playerId, name }) => ({ playerId, name })) || [];
-        setAvailableBowlers(filteredBowlers);
-
-        const available = data.battingTeamPlayingXI?.filter(
-          (player) => player.ballsFaced === 0 && player.playerId !== data.currentStriker?.playerId && player.playerId !== data.currentNonStriker?.playerId
-        ).map(({ playerId, name }) => ({ playerId, name })) || [];
-        setAvailableBatsmen(available);
-
-        const strikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentStriker?.name) || { runs: 0, ballsFaced: 0 };
-        const nonStrikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentNonStriker?.name) || { runs: 0, ballsFaced: 0 };
-        const bowlerStats = data.bowlingTeamPlayingXI?.find(player => player?.name === data.currentBowler?.name) || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 };
-
-        setStrikerStats(strikerStats);
-        setNonStrikerStats(nonStrikerStats);
-        setBowlerStats(bowlerStats);
-
-        const formattedOverDetails = data.currentOver?.map((ball) => {
-          let event = ball.runs.toString();
-          if (ball.wicket) event += 'W';
-          if (ball.noBall) event += 'NB';
-          if (ball.wide) event += 'Wd';
-          if (ball.bye) event += 'B';
-          if (ball.legBye) event += 'LB';
-          return event;
-        }) || [];
-
-        setOverDetails(formattedOverDetails);
-
-        const deliveryCount = data.currentOver?.reduce((count, ball) => {
-          return count + (ball.noBall || ball.wide ? 0 : 1);
-        }, 0) || 0;
-        setLegalDeliveries(deliveryCount);
-        navigation.navigate('Scoring', { matchId, strikerId, nonStrikerId, bowler, selectedStrikerName, selectedNonStrikerName, selectedBowlerName, battingTeamName, score, bowlingTeamName, wicket, battingTeamII, bowlingTeamII, completedOvers });
-      }
-      else {
-        navigation.navigate('CommentaryScorecard', { matchId })
+        navigation.navigate('Scoring', { matchId });
+      } else {
+        navigation.navigate('CommentaryScorecard', { matchId });
       }
     } catch (error) {
-
+      console.error('Navigation error:', error);
     }
-  }
+  };
 
   const renderMatchItem = ({ item }) => (
-    <Pressable onPress={() => liveMatchClickHandler(item?.id, item)}>
-      <View style={liveMatchStyles.card}>
-        <View style={liveMatchStyles.teamRow}>
-          <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
-          <View>
-            <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
-          </View>
-          <Text style={liveMatchStyles.vs}>VS</Text>
-          <View>
-            <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
-          </View>
-          <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
+    <Pressable 
+      onPress={() => liveMatchClickHandler(item?.id, item)}
+      style={({ pressed }) => [
+        styles.card,
+        { transform: [{ scale: pressed ? 0.98 : 1 }] },
+      ]}
+    >
+      <View style={{ 
+        backgroundColor: '#ff475710',
+        padding: 15,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: '#ff4757',
+            marginRight: 8,
+          }} />
+          <Text style={{ color: '#ff4757', fontWeight: 'bold' }}>LIVE</Text>
         </View>
-        <Text style={liveMatchStyles.venue}>Venue: {item?.venue}</Text>
-        <Text style={liveMatchStyles.date}>
-          Date: {item?.matchDate[2]}-{item?.matchDate[1]}-{item?.matchDate[0]}
+        <Text style={{ color: '#555', fontSize: 12 }}>
+          {item?.tournamentResponse?.name || 'Tournament Match'}
+        </Text>
+      </View>
+      
+      <View style={styles.cardBody}>
+        <View style={liveMatchStyles.teamRow}>
+          <View style={{ alignItems: 'center' }}>
+            <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
+            <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+            <Text style={[liveMatchStyles.teamScore, { color: '#ff4757' }]}>
+              {item?.team1Score || 'N/A'}
+            </Text>
+          </View>
+          
+          <View style={liveMatchStyles.vsContainer}>
+            <Text style={liveMatchStyles.vs}>VS</Text>
+            <Text style={liveMatchStyles.matchStatus}>In Progress</Text>
+          </View>
+          
+          <View style={{ alignItems: 'center' }}>
+            <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
+            <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+            <Text style={[liveMatchStyles.teamScore, { color: '#ff4757' }]}>
+              {item?.team2Score || 'N/A'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={{ marginTop: 15 }}>
+          <View style={styles.tournamentDetails}>
+            <Icon name="location-on" size={18} color="#555" />
+            <Text style={styles.tournamentContent}> {item?.venue || 'Venue not specified'}</Text>
+          </View>
+        </View>
+      </View>
+      
+      <View style={[styles.cardFooter, { backgroundColor: '#ff475710' }]}>
+        <Text style={[styles.tournamentContent, { color: '#ff4757' }]}>
+          Tap to {item?.creatorName?.id === AsyncStorage.getItem('userUUID')?.trim() ? 'score' : 'view'} match
         </Text>
       </View>
     </Pressable>
@@ -477,309 +634,340 @@ const LiveMatch = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
-      {error && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>{error}</Text>}
-      {!loading && matches?.length === 0 && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>No matches</Text>}
-      {!loading && matches?.length !== 0 && <FlatList
-        data={matches}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMatchItem}
-        contentContainerStyle={styles.cardContainer}
-      />
-      }
-    </View>
-  )
-};
+      {loading && !refreshing && (
+        <ActivityIndicator size="large" color="#34B8FF" style={styles.activityIndicator} />
+      )}
+      
+      {error && (
+        <Text style={styles.errorText}>{error}</Text>
+      )}
+      
+      {!loading && matches?.length === 0 && (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Icon name="sports-cricket" size={40} color="#888" />
+          <Text style={styles.noMatchText}>No live matches right now</Text>
+          <TouchableOpacity 
+            onPress={getLiveMatches}
+            style={{ marginTop: 10, padding: 10 }}
+          >
+            <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-const liveMatchStyles = StyleSheet.create({
-  cardContainer: {
-    padding: 10,
-    alignItems: 'center'
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 20
-  },
-  card: {
-    width: '100%',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 3,
-    marginBottom: 10,
-  },
-  teamRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  logo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20
-  },
-  teamName: {
-    fontSize: 16,
-    fontWeight: 'bold'
-  },
-  vs: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ff0000'
-  },
-  venue: {
-    fontSize: 14,
-    color: '#555'
-  },
-  date: {
-    fontSize: 14,
-    color: '#555'
-  },
-  winner: {
-    fontSize: 14,
-    color: '#007BFF',
-    fontWeight: 'bold'
-  },
-})
+      {!loading && matches?.length !== 0 && (
+        <FlatList
+          data={matches}
+          keyExtractor={(item) => item.id}
+          renderItem={renderMatchItem}
+          contentContainerStyle={styles.cardContainer}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      )}
+    </View>
+  );
+};
 
 const UpcomingMatch = () => {
   const navigation = useNavigation();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
-  const [strikerId, setStrikerId] = useState(null);
-  const [nonStrikerId, setNonStrikerId] = useState(null);
-  const [bowler, setBowler] = useState(null);
-  const [selectedStrikerName, setSelectedStrikerName] = useState(null);
-  const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(null);
-  const [selectedBowlerName, setSelectedBowlerName] = useState(null);
-  const [battingTeamName, setBattingTeamName] = useState('');
-  const [score, setScore] = useState(0);
-  const [extras, setExtras] = useState(0);
-  const [bowlingTeamName, setBowlingTeamName] = useState('');
-  const [wicket, setWicket] = useState(0);
-  const [battingTeamII, setBattingTeamII] = useState([]);
-  const [bowlingTeamII, setBowlingTeamII] = useState([]);
-  const [completedOvers, setCompletedOvers] = useState(0);
-  const [currentBowlerName, setCurrentBowlerName] = useState(selectedBowlerName);
-  const [strikerName, setStrikerName] = useState(selectedStrikerName);
-  const [nonStrikerName, setNonStrikerName] = useState(selectedNonStrikerName);
-  const [currentOver, setCurrentOver] = useState([]);
-  const [availableBowlers, setAvailableBowlers] = useState([]);
-  const [availableBatsmen, setAvailableBatsmen] = useState(battingTeamII?.filter(
-    (player) => player?.ballsFaced === 0 && player?.playerId !== strikerId && player?.playerId !== nonStrikerId
-  ).map(({ playerId, name }) => ({ playerId, name })));
-  const [nonStrikerStats, setNonStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
-  const [strikerStats, setStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
-  const [bowlerStats, setBowlerStats] = useState({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
-  const [overDetails, setOverDetails] = useState(null);
-  const [legalDeliveries, setLegalDeliveries] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   const getUpcomingMatches = async () => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      if (!token)
-        throw new Error('Please Login Again');
+      if (!token) throw new Error('Please Login Again');
+      
       setLoading(true);
-      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/status`, {
-        params: { status: 'Upcoming' },
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/matches/status`,
+        {
+          params: { status: 'Upcoming' },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setMatches(response.data);
-
+      setError(null);
     } catch (err) {
-      setError('Failed to load upcoming matches');
+      setError('Failed to load upcoming matches. Pull down to refresh.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }
+  };
 
   useEffect(() => {
     getUpcomingMatches();
   }, []);
 
-  const liveMatchClickHandler = async (matchId: string, match: any) => {
+  const onRefresh = () => {
+    setRefreshing(true);
+    getUpcomingMatches();
+  };
+
+  const upcomingMatchClickHandler = async (matchId, match) => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
       const userId = (await AsyncStorage.getItem('userUUID')).trim();
       const creatorId = match.creatorName.id;
+      
       if (userId === creatorId) {
-        const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
-        const data = response.data;
-        console.log(data);
-        setStrikerId(data.currentStriker?.playerId || null);
-        setNonStrikerId(data.currentNonStriker?.playerId || null);
-        setBowler(data.currentBowler?.playerId || null);
-        setSelectedStrikerName(data.currentStriker?.name || "Unknown");
-        setSelectedNonStrikerName(data.currentNonStriker?.name || "Unknown");
-        setSelectedBowlerName(data.currentBowler?.name || "Unknown");
-        setBattingTeamName(data.battingTeam?.name || "Unknown");
-        setScore(data.battingTeam?.score || 0);
-        setBowlingTeamName(data.bowlingTeam?.name || "Unknown");
-        setWicket(data.battingTeam?.wickets || 0);
-        setExtras(data.battingTeam?.extras || 0);
-        setBattingTeamII(data.battingTeamPlayingXI || []);
-        setBowlingTeamII(data.bowlingTeamPlayingXI || []);
-        setCompletedOvers(data.completedOvers || 0);
-        setCurrentOver(data.currentOver || []);
-
-
-        const filteredBowlers = data.bowlingTeamPlayingXI?.filter((player) => player.playerId !== data.currentBowler?.playerId)
-          .map(({ playerId, name }) => ({ playerId, name })) || [];
-        setAvailableBowlers(filteredBowlers);
-
-        const available = data.battingTeamPlayingXI?.filter(
-          (player) => player.ballsFaced === 0 && player.playerId !== data.currentStriker?.playerId && player.playerId !== data.currentNonStriker?.playerId
-        ).map(({ playerId, name }) => ({ playerId, name })) || [];
-        setAvailableBatsmen(available);
-
-        const strikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentStriker?.name) || { runs: 0, ballsFaced: 0 };
-        const nonStrikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentNonStriker?.name) || { runs: 0, ballsFaced: 0 };
-        const bowlerStats = data.bowlingTeamPlayingXI?.find(player => player?.name === data.currentBowler?.name) || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 };
-
-        setStrikerStats(strikerStats);
-        setNonStrikerStats(nonStrikerStats);
-        setBowlerStats(bowlerStats);
-
-        const formattedOverDetails = data.currentOver?.map((ball) => {
-          let event = ball.runs.toString();
-          if (ball.wicket) event += 'W';
-          if (ball.noBall) event += 'NB';
-          if (ball.wide) event += 'Wd';
-          if (ball.bye) event += 'B';
-          if (ball.legBye) event += 'LB';
-          return event;
-        }) || [];
-
-        setOverDetails(formattedOverDetails);
-
-        const deliveryCount = data.currentOver?.reduce((count, ball) => {
-          return count + (ball.noBall || ball.wide ? 0 : 1);
-        }, 0) || 0;
-        setLegalDeliveries(deliveryCount);
-        navigation.navigate('Scoring', { matchId, strikerId, nonStrikerId, bowler, selectedStrikerName, selectedNonStrikerName, selectedBowlerName, battingTeamName, score, bowlingTeamName, wicket, battingTeamII, bowlingTeamII, completedOvers });
-      }
-      else {
-        navigation.navigate('MatchScoreCard', { matchId })
+        navigation.navigate('Scoring', { matchId });
+      } else {
+        navigation.navigate('MatchScoreCard', { matchId });
       }
     } catch (error) {
-
+      console.error('Navigation error:', error);
     }
-  }
+  };
 
-  const renderMatchItem = ({ item }) => (
-    <Pressable onPress={() => liveMatchClickHandler(item?.id, item)}>
-      <View style={liveMatchStyles.card}>
-        <View style={liveMatchStyles.teamRow}>
-          <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
-          <View>
-            <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
+  const renderMatchItem = ({ item }) => {
+    const matchDate = item?.matchDate ? `${item?.matchDate[2]}-${item?.matchDate[1]}-${item?.matchDate[0]}` : 'N/A';
+    
+    return (
+      <Pressable 
+        onPress={() => upcomingMatchClickHandler(item?.id, item)}
+        style={({ pressed }) => [
+          styles.card,
+          { transform: [{ scale: pressed ? 0.98 : 1 }] },
+        ]}
+      >
+        <LinearGradient 
+          colors={['rgba(52, 184, 255, 0.1)', 'rgba(52, 184, 255, 0.05)']}
+          style={styles.cardHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Text style={[styles.tournamentName, { textAlign: 'center' }]}>
+            {item?.tournamentResponse?.name || 'Tournament Match'}
+          </Text>
+        </LinearGradient>
+        
+        <View style={styles.cardBody}>
+          <View style={liveMatchStyles.teamRow}>
+            <View style={{ alignItems: 'center' }}>
+              <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
+              <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+            </View>
+            
+            <View style={liveMatchStyles.vsContainer}>
+              <Text style={[liveMatchStyles.vs, { color: '#34B8FF' }]}>VS</Text>
+              <Text style={[liveMatchStyles.matchStatus, { backgroundColor: '#34B8FF10' }]}>
+                Upcoming
+              </Text>
+            </View>
+            
+            <View style={{ alignItems: 'center' }}>
+              <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
+              <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+            </View>
           </View>
-          <Text style={liveMatchStyles.vs}>VS</Text>
-          <View>
-            <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
-            <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
+
+          <View style={{ marginTop: 15 }}>
+            <View style={styles.tournamentDetails}>
+              <Icon name="calendar-month" size={18} color="#555" />
+              <Text style={styles.tournamentContent}> {matchDate}</Text>
+            </View>
+            <View style={styles.tournamentDetails}>
+              <Icon name="location-on" size={18} color="#555" />
+              <Text style={styles.tournamentContent}> {item?.venue || 'Venue not specified'}</Text>
+            </View>
+            <View style={styles.tournamentDetails}>
+              <Icon name="access-time" size={18} color="#555" />
+              <Text style={styles.tournamentContent}> {item?.matchTime || 'Time not specified'}</Text>
+            </View>
           </View>
-          <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
         </View>
-        <Text style={liveMatchStyles.venue}>Venue: {item?.venue}</Text>
-        <Text style={liveMatchStyles.date}>
-          Date: {item?.matchDate[2]}-{item?.matchDate[1]}-{item?.matchDate[0]}
-        </Text>
-      </View>
-    </Pressable>
-  );
+        
+        <View style={styles.cardFooter}>
+          <Text style={styles.tournamentContent}>
+            Tap to {item?.creatorName?.id === AsyncStorage.getItem('userUUID')?.trim() ? 'setup' : 'view'} match
+          </Text>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
-      {error && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>{error}</Text>}
-      {!loading && matches?.length === 0 && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>No matches</Text>}
+      {loading && !refreshing && (
+        <ActivityIndicator size="large" color="#34B8FF" style={styles.activityIndicator} />
+      )}
+      
+      {error && (
+        <Text style={styles.errorText}>{error}</Text>
+      )}
+      
+      {!loading && matches?.length === 0 && (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Icon name="event-available" size={40} color="#888" />
+          <Text style={styles.noMatchText}>No upcoming matches scheduled</Text>
+          <TouchableOpacity 
+            onPress={getUpcomingMatches}
+            style={{ marginTop: 10, padding: 10 }}
+          >
+            <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {!loading && matches?.length !== 0 && <FlatList
-        data={matches}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMatchItem}
-        contentContainerStyle={styles.cardContainer}
-      />
-      }
+      {!loading && matches?.length !== 0 && (
+        <FlatList
+          data={matches}
+          keyExtractor={(item) => item.id}
+          renderItem={renderMatchItem}
+          contentContainerStyle={styles.cardContainer}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      )}
     </View>
-  )
+  );
 };
 
 const PastMatch = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const navigation = useNavigation();
 
   const getPastMatches = async () => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      if (!token)
-        throw new Error('Please Login Again');
+      if (!token) throw new Error('Please Login Again');
+      
       setLoading(true);
-      const response = await axios.get(`https://score360-7.onrender.com/api/v1/matches/status`, {
-        params: { status: 'Past' },
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(
+        `https://score360-7.onrender.com/api/v1/matches/status`,
+        {
+          params: { status: 'Past' },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setMatches(response.data);
-
+      setError(null);
     } catch (err) {
-      setError('Failed to load live matches');
+      setError('Failed to load past matches. Pull down to refresh.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }
+  };
 
   useEffect(() => {
     getPastMatches();
   }, []);
 
-  const renderMatchItem = ({ item }) => (
-    <View style={liveMatchStyles.card}>
-      <View style={liveMatchStyles.teamRow}>
-        <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
-        <View>
-          <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
-          <Text style={{ color: '#555', fontSize: 12 }}>{item?.team1Score || 'N/A'}</Text>
+  const onRefresh = () => {
+    setRefreshing(true);
+    getPastMatches();
+  };
+
+  const pastMatchClickHandler = (matchId) => {
+    navigation.navigate('MatchScoreCard', { matchId });
+  };
+
+  const renderMatchItem = ({ item }) => {
+    const matchDate = item?.matchDate ? `${item?.matchDate[2]}-${item?.matchDate[1]}-${item?.matchDate[0]}` : 'N/A';
+    
+    return (
+      <Pressable 
+        onPress={() => pastMatchClickHandler(item?.id)}
+        style={({ pressed }) => [
+          styles.card,
+          { transform: [{ scale: pressed ? 0.98 : 1 }] },
+        ]}
+      >
+        <View style={[styles.cardHeader, { backgroundColor: 'rgba(0, 0, 0, 0.03)' }]}>
+          <Text style={[styles.tournamentName, { textAlign: 'center' }]}>
+            {item?.tournamentResponse?.name || 'Tournament Match'}
+          </Text>
         </View>
-        <Text style={liveMatchStyles.vs}>VS</Text>
-        <View>
-          <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
-          <Text style={{ color: '#555', fontSize: 12 }}>{item?.team2Score || 'N/A'}</Text>
+        
+        <View style={styles.cardBody}>
+          <View style={liveMatchStyles.teamRow}>
+            <View style={{ alignItems: 'center' }}>
+              <Image source={{ uri: item?.team1?.logoPath }} style={liveMatchStyles.logo} />
+              <Text style={liveMatchStyles.teamName}>{item?.team1?.name}</Text>
+              <Text style={[liveMatchStyles.teamScore, { color: '#555' }]}>
+                {item?.team1Score || 'N/A'}
+              </Text>
+            </View>
+            
+            <View style={liveMatchStyles.vsContainer}>
+              <Text style={[liveMatchStyles.vs, { color: '#888' }]}>VS</Text>
+              <Text style={[liveMatchStyles.matchStatus, { backgroundColor: 'rgba(0, 0, 0, 0.05)' }]}>
+                Completed
+              </Text>
+            </View>
+            
+            <View style={{ alignItems: 'center' }}>
+              <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
+              <Text style={liveMatchStyles.teamName}>{item?.team2?.name}</Text>
+              <Text style={[liveMatchStyles.teamScore, { color: '#555' }]}>
+                {item?.team2Score || 'N/A'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ marginTop: 15 }}>
+            <View style={styles.tournamentDetails}>
+              <Icon name="calendar-month" size={18} color="#555" />
+              <Text style={styles.tournamentContent}> {matchDate}</Text>
+            </View>
+            <View style={styles.tournamentDetails}>
+              <Icon name="location-on" size={18} color="#555" />
+              <Text style={styles.tournamentContent}> {item?.venue || 'Venue not specified'}</Text>
+            </View>
+          </View>
         </View>
-        <Image source={{ uri: item?.team2?.logoPath }} style={liveMatchStyles.logo} />
-      </View>
-      <Text style={liveMatchStyles.venue}>Venue: {item?.venue}</Text>
-      <Text style={liveMatchStyles.date}>
-        Date: {item?.matchDate[2]}-{item?.matchDate[1]}-{item?.matchDate[0]}
-      </Text>
-      <Text style={liveMatchStyles.winner}>{item?.winner} won the match!</Text>
-    </View>
-  );
+        
+        <View style={[styles.cardFooter, { backgroundColor: 'rgba(0, 0, 0, 0.03)' }]}>
+          <Text style={[styles.winnerText, { color: '#2ecc71' }]}>
+            🏆 {item?.winner} won the match!
+          </Text>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <View style={{ flex: 1 }}>
-      {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />}
-      {error && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>{error}</Text>}
-      {!loading && matches?.length === 0 && <Text style={[liveMatchStyles.errorText, styles.activityIndicator]}>No matches</Text>}
+      {loading && !refreshing && (
+        <ActivityIndicator size="large" color="#34B8FF" style={styles.activityIndicator} />
+      )}
+      
+      {error && (
+        <Text style={styles.errorText}>{error}</Text>
+      )}
+      
+      {!loading && matches?.length === 0 && (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Icon name="history" size={40} color="#888" />
+          <Text style={styles.noMatchText}>No past matches found</Text>
+          <TouchableOpacity 
+            onPress={getPastMatches}
+            style={{ marginTop: 10, padding: 10 }}
+          >
+            <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {!loading && matches?.length !== 0 && <FlatList
-        data={matches}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMatchItem}
-        contentContainerStyle={styles.cardContainer}
-      />
-      }
+      {!loading && matches?.length !== 0 && (
+        <FlatList
+          data={matches}
+          keyExtractor={(item) => item.id}
+          renderItem={renderMatchItem}
+          contentContainerStyle={styles.cardContainer}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      )}
     </View>
   );
 };

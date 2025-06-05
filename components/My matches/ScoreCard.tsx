@@ -1,194 +1,655 @@
-import { StyleSheet, Text, View, FlatList, ImageBackground, TouchableOpacity } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ImageBackground,
+  StatusBar,
+  TouchableOpacity,
+  ScrollView,
+  Dimensions,
+  ActivityIndicator,
+  RefreshControl
+} from 'react-native';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
+const { width } = Dimensions.get('window');
 const background = require('../../assets/images/cricsLogo.png');
-const cardGradientColors = ['#4A90E2', '#6BB9F0'];
 
-const ScoreCard = ({ route }) => {
+const ScoreCard = ({ route, navigation }) => {
   const { matchId } = route.params;
   const [team, setTeam] = useState(null);
   const [matchState, setMatchState] = useState(null);
+  const [activeTab, setActiveTab] = useState('batting');
+  const [loadingError, setLoadingError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const getMatchState = async () => {
     try {
+      setIsLoading(true);
+      setRefreshing(true);
+      setLoadingError(null);
+      
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) {
-        console.error('No token found');
+        setLoadingError('Authentication required. Please login again.');
+        setIsLoading(false);
+        setRefreshing(false);
         return;
       }
 
       const response = await axios.get(
         `https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 15000
+        }
       );
-      setMatchState(response.data);
-      setTeam(response.data.team1.name);
-      console.log(response.data);
-
+      
+      if (response.data) {
+        setMatchState(response.data);
+        setTeam(response.data.team1.name);
+      } else {
+        setLoadingError('No match data received');
+      }
+      
     } catch (error) {
-      console.error('Error fetching match state:', error);
+      let errorMessage = 'Failed to load match data';
+      
+      if (error.response) {
+        errorMessage = `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'No response from server. Check your connection.';
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      setLoadingError(errorMessage);
+      setMatchState({ error: true });
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
-  useEffect(() => {
+  const onRefresh = () => {
     getMatchState();
-  }, []);
+  };
 
-  if (!matchState) {
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      getMatchState();
+    });
+    
+    return unsubscribe;
+  }, [navigation]);
+
+  const renderBattingTable = (teamData, battingOrder) => {
+    const orderedBatting = [
+      ...battingOrder,
+      ...teamData?.playingXI.filter(
+        (player) => !battingOrder?.some((b) => b?.playerId === player?.playerId)
+      ),
+    ];
+
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.sectionTitle}>Batting</Text>
+          <View style={styles.teamIndicator}>
+            <Text style={styles.teamIndicatorText}>{teamData.name}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.statsHeader}>
+          <Text style={[styles.nameCol, styles.headerText]}>Batsman</Text>
+          <Text style={[styles.statCol, styles.headerText]}>R</Text>
+          <Text style={[styles.statCol, styles.headerText]}>B</Text>
+          <Text style={[styles.statCol, styles.headerText]}>4s</Text>
+          <Text style={[styles.statCol, styles.headerText]}>6s</Text>
+          <Text style={[styles.statCol, styles.headerText]}>SR</Text>
+        </View>
+        
+        {orderedBatting.map((item, index) => {
+          const playerStats = teamData.playingXI.find((p) => p.playerId === item.playerId) || {};
+          const isBatted = battingOrder.some((b) => b.playerId === item.playerId);
+
+          return (
+            <View 
+              key={item.playerId} 
+              style={[
+                styles.statsRow,
+                index % 2 === 0 && styles.evenRow
+              ]}
+            >
+              <View style={styles.nameCol}>
+                <View style={styles.playerInfo}>
+                  <Text style={styles.playerName}>{item.name}</Text>
+                  {isBatted && (
+                    <Ionicons 
+                      name={item.dismissalInfo ? 'close-circle' : 'checkmark-circle'} 
+                      size={16} 
+                      color={item.dismissalInfo ? '#ff4444' : '#4CAF50'} 
+                    />
+                  )}
+                </View>
+                <Text style={styles.dismissal}>
+                  {isBatted ? item.dismissalInfo || 'Not out' : 'Yet to bat'}
+                </Text>
+              </View>
+              <Text style={[styles.statCol, styles.statText]}>{playerStats.runs || 0}</Text>
+              <Text style={[styles.statCol, styles.statText]}>{playerStats.ballsFaced || 0}</Text>
+              <Text style={[styles.statCol, styles.statText]}>{playerStats.fours || 0}</Text>
+              <Text style={[styles.statCol, styles.statText]}>{playerStats.sixes || 0}</Text>
+              <Text style={[styles.statCol, styles.statText]}>
+                {playerStats.strikeRate ? playerStats.strikeRate.toFixed(1) : '0.0'}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const renderBowlingTable = (bowlingTeamData) => {
+    const bowlers = bowlingTeamData.playingXI.filter(bowler => bowler.overs);
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.sectionTitle}>Bowling</Text>
+          <View style={styles.teamIndicator}>
+            <Text style={styles.teamIndicatorText}>{bowlingTeamData.name}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.statsHeader}>
+          <Text style={[styles.nameCol, styles.headerText]}>Bowler</Text>
+          <Text style={[styles.statCol, styles.headerText]}>O</Text>
+          <Text style={[styles.statCol, styles.headerText]}>M</Text>
+          <Text style={[styles.statCol, styles.headerText]}>R</Text>
+          <Text style={[styles.statCol, styles.headerText]}>W</Text>
+          <Text style={[styles.statCol, styles.headerText]}>Econ</Text>
+        </View>
+        
+        {bowlers.map((bowler, index) => (
+          <View 
+            key={bowler.playerId} 
+            style={[
+              styles.statsRow,
+              index % 2 === 0 && styles.evenRow
+            ]}
+          >
+            <Text style={[styles.nameCol, styles.playerName]}>
+              {bowler.name}
+            </Text>
+            <Text style={[styles.statCol, styles.statText]}>{bowler.overs}</Text>
+            <Text style={[styles.statCol, styles.statText]}>{bowler.maidens || 0}</Text>
+            <Text style={[styles.statCol, styles.statText]}>{bowler.runsConceded || 0}</Text>
+            <Text style={[styles.statCol, styles.statText]}>{bowler.wickets || 0}</Text>
+            <Text style={[styles.statCol, styles.statText]}>
+              {bowler.economy ? bowler.economy.toFixed(1) : '0.0'}
+            </Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  if (isLoading || !matchState) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LinearGradient
+          colors={['#0A5A9C', '#1a73e8']}
+          style={styles.loadingGradient}
+        >
+          <MaterialCommunityIcons name="cricket" size={40} color="#fff" />
+          {loadingError ? (
+            <>
+              <Text style={styles.loadingText}>Failed to load match data</Text>
+              <Text style={styles.errorText}>{loadingError}</Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={getMatchState}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.retryButtonText}>Try Again</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={styles.loadingText}>Loading match details...</Text>
+              <ActivityIndicator size="large" color="#fff" style={styles.spinner} />
+            </>
+          )}
+        </LinearGradient>
       </View>
     );
   }
 
-  const renderBattingOrder = (team, battingOrder) => {
-    const orderedBatting = [
-      ...battingOrder,
-      ...team?.playingXI.filter(player => !battingOrder?.some(b => b?.playerId === player?.playerId))
-    ];
-
-    return (
-      <FlatList
-        data={orderedBatting}
-        keyExtractor={(item) => item.playerId}
-        renderItem={({ item }) => {
-          const playerStats = team.playingXI.find(p => p.playerId === item.playerId) || {};
-          return (
-            <View style={styles.playerRow}>
-              <Text style={styles.playerName}>{item.name}</Text>
-              <Text style={styles.stats}>Runs: {playerStats.runs || 0}, Balls: {playerStats.ballsFaced || 0}</Text>
-              <Text style={styles.stats}>4s: {playerStats.fours || 0}, 6s: {playerStats.sixes || 0}, SR: {playerStats.strikeRate ? playerStats.strikeRate.toFixed(2) : 0}</Text>
-              <Text style={styles.stats}>Bowling: Wickets-{playerStats.wicketsTaken || 0}, Runs conceded- {playerStats.runsConceded || 0}</Text>
-            </View>
-          );
-        }}
-      />
-    );
-  };
-
   return (
-    <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
-      <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
-        <LinearGradient colors={cardGradientColors} style={styles.teamButton}>
-          <View style={styles.teamContainer}>
-            <Text style={styles.teamName}>{matchState.team1.name}</Text>
-            <Text style={styles.runsWicket}>{matchState.team1.score}-{matchState.team1.wickets}</Text>
+    <ImageBackground
+      source={background}
+      style={styles.background}
+      imageStyle={styles.backgroundImage}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="#0A5A9C" />
+      
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#0A5A9C']}
+            tintColor="#0A5A9C"
+          />
+        }
+      >
+        {/* Match Header */}
+        <LinearGradient
+          colors={['#0A5A9C', '#1a73e8']}
+          style={styles.matchHeader}
+        >
+          <View style={styles.matchTitleContainer}>
+            <MaterialCommunityIcons name="cricket" size={24} color="#fff" style={styles.cricketIcon} />
+            <Text style={styles.matchTitle}>
+              {matchState.team1.name} vs {matchState.team2.name}
+            </Text>
           </View>
-          <View style={styles.teamContainer}>
-            <Text style={styles.teamName}>{matchState.team2.name}</Text>
-            <Text style={styles.runsWicket}>{matchState.team2.score}-{matchState.team2.wickets}</Text>
+          <Text style={styles.matchSubtitle}>{matchState.tournament || 'Cricket Match'}</Text>
+          <View style={styles.matchStatusContainer}>
+            <Ionicons name="time" size={16} color="#fff" />
+            <Text style={styles.matchStatusText}>{matchState.status || 'In Progress'}</Text>
           </View>
         </LinearGradient>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={() => setTeam(matchState.team1.name)}>
-            <Text style={styles.buttonText}>{matchState.team1.name}</Text>
+        {/* Team Scores */}
+        <View style={styles.scoreContainer}>
+          <View style={styles.teamScore}>
+            <Text style={styles.teamName}>{matchState.team1.name}</Text>
+            <Text style={styles.teamRuns}>
+              {matchState.team1.score}/{matchState.team1.wickets}
+            </Text>
+            {matchState.team1.overs && (
+              <Text style={styles.teamOvers}>{matchState.team1.overs} overs</Text>
+            )}
+          </View>
+          
+          <View style={styles.vsContainer}>
+            <Text style={styles.vsText}>vs</Text>
+          </View>
+          
+          <View style={styles.teamScore}>
+            <Text style={styles.teamName}>{matchState.team2.name}</Text>
+            <Text style={styles.teamRuns}>
+              {matchState.team2.score}/{matchState.team2.wickets}
+            </Text>
+            {matchState.team2.overs && (
+              <Text style={styles.teamOvers}>{matchState.team2.overs} overs</Text>
+            )}
+          </View>
+        </View>
+
+        {/* Team Selector */}
+        <View style={styles.teamSelector}>
+          {[matchState.team1, matchState.team2].map((t) => (
+            <TouchableOpacity
+              key={t.name}
+              style={[
+                styles.teamButton,
+                team === t.name && styles.activeButton,
+              ]}
+              onPress={() => setTeam(t.name)}
+            >
+              <Text style={[
+                styles.buttonText,
+                team === t.name && styles.activeButtonText
+              ]}>
+                {t.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Stats Tabs */}
+        <View style={styles.statsTabs}>
+          <TouchableOpacity
+            style={[
+              styles.statsTab,
+              activeTab === 'batting' && styles.activeStatsTab
+            ]}
+            onPress={() => setActiveTab('batting')}
+          >
+            <MaterialCommunityIcons 
+              name="cricket" 
+              size={20} 
+              color={activeTab === 'batting' ? '#fff' : '#0A5A9C'} 
+            />
+            <Text 
+              style={[
+                styles.statsTabText,
+                activeTab === 'batting' && styles.activeStatsTabText
+              ]}
+            >
+              Batting
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => setTeam(matchState.team2.name)}>
-            <Text style={styles.buttonText}>{matchState.team2.name}</Text>
+          
+          <TouchableOpacity
+            style={[
+              styles.statsTab,
+              activeTab === 'bowling' && styles.activeStatsTab
+            ]}
+            onPress={() => setActiveTab('bowling')}
+          >
+            <MaterialCommunityIcons 
+              name="bowling" 
+              size={20} 
+              color={activeTab === 'bowling' ? '#fff' : '#0A5A9C'} 
+            />
+            <Text 
+              style={[
+                styles.statsTabText,
+                activeTab === 'bowling' && styles.activeStatsTabText
+              ]}
+            >
+              Bowling
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Batting Orders */}
-        {team === matchState.team1.name && (
-          <View style={styles.orderContainer}>
-            <Text style={styles.title}>Batting Order - {matchState.team1.name}</Text>
-            {renderBattingOrder(matchState.team1, matchState.team1BattingOrder)}
-          </View>
-        )}
+        {/* Stats Content */}
+        {activeTab === 'batting' && team === matchState.team1.name &&
+          renderBattingTable(matchState.team1, matchState.team1BattingOrder)}
+        {activeTab === 'batting' && team === matchState.team2.name &&
+          renderBattingTable(matchState.team2, matchState.team2BattingOrder)}
 
-        {team === matchState.team2.name && (
-          <View style={styles.orderContainer}>
-            <Text style={styles.title}>Batting Order - {matchState.team2.name}</Text>
-            {renderBattingOrder(matchState.team2, matchState.team2BattingOrder)}
-          </View>
-        )}
-      </ImageBackground>
-    </LinearGradient>
+        {activeTab === 'bowling' && team === matchState.team1.name &&
+          renderBowlingTable(matchState.team2)}
+        {activeTab === 'bowling' && team === matchState.team2.name &&
+          renderBowlingTable(matchState.team1)}
+      </ScrollView>
+    </ImageBackground>
   );
 };
 
-export default ScoreCard;
-
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
   background: {
     flex: 1,
-    alignItems: 'center',
+    backgroundColor: '#f4f8fc',
   },
   backgroundImage: {
     resizeMode: 'cover',
-    opacity: 0.8,
+    opacity: 0.05,
   },
-  teamButton: {
-    width: '100%',
-    padding: 10,
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  teamContainer: {
-    flexDirection: 'row',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
   },
-  teamName: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
+  loadingGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  runsWicket: {
-    fontSize: 14,
-    color: 'white',
+  loadingText: {
+    fontSize: 18,
+    color: '#fff',
+    marginTop: 10,
     fontWeight: '500',
   },
-  orderContainer: {
+  spinner: {
     marginTop: 20,
-    padding: 10,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    width: '90%',
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'black',
+  errorText: {
+    fontSize: 14,
+    color: '#ffdddd',
+    marginTop: 10,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  retryButton: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  scrollContainer: {
+    paddingBottom: 20,
+  },
+  matchHeader: {
+    padding: 20,
+    paddingTop: StatusBar.currentHeight + 20 || 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  matchTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cricketIcon: {
+    marginRight: 10,
+  },
+  matchTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  matchSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 5,
+  },
+  matchStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  matchStatusText: {
+    fontSize: 14,
+    color: '#fff',
+    marginLeft: 5,
+  },
+  scoreContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 20,
+    marginTop: 20,
     marginBottom: 10,
   },
-  playerRow: {
-    paddingVertical: 5,
+  teamScore: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
   },
-  playerName: {
+  teamName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: 'black',
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 5,
   },
-  stats: {
+  teamRuns: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#0A5A9C',
+  },
+  teamOvers: {
     fontSize: 14,
-    color: 'black',
+    color: '#666',
+    marginTop: 5,
   },
-  buttonContainer: {
+  vsContainer: {
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  vsText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#666',
+  },
+  teamSelector: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginVertical: 10,
+    marginHorizontal: 16,
+    marginBottom: 15,
+    borderRadius: 25,
+    backgroundColor: '#e3f2fd',
+    padding: 5,
   },
-  button: {
-    backgroundColor: '#6BB9F0',
-    padding: 10,
-    marginHorizontal: 10,
-    borderRadius: 8,
+  teamButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeButton: {
+    backgroundColor: '#0A5A9C',
+    elevation: 3,
+    shadowColor: '#0A5A9C',
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
   },
   buttonText: {
+    color: '#0A5A9C',
+    fontWeight: '600',
+  },
+  activeButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
+  },
+  statsTabs: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 15,
+    borderRadius: 10,
+    backgroundColor: '#e3f2fd',
+    padding: 5,
+  },
+  statsTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  activeStatsTab: {
+    backgroundColor: '#0A5A9C',
+  },
+  statsTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0A5A9C',
+    marginLeft: 8,
+  },
+  activeStatsTabText: {
+    color: '#fff',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: '#aaa',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0A5A9C',
+  },
+  teamIndicator: {
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  teamIndicatorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0A5A9C',
+  },
+  statsHeader: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#f5f9ff',
+  },
+  headerText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0A5A9C',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  evenRow: {
+    backgroundColor: '#fafcff',
+  },
+  nameCol: {
+    flex: 2.2,
+    paddingRight: 4,
+  },
+  statCol: {
+    flex: 0.8,
+    textAlign: 'center',
+  },
+  playerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  playerName: {
+    fontWeight: '600',
+    fontSize: 14,
+    color: '#1a1a1a',
+  },
+  statText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  dismissal: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 3,
   },
 });
+
+export default ScoreCard;
