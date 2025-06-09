@@ -7,7 +7,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 const backgroundImage = require('../../assets/images/cricsLogo.png');
-// import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';

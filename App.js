@@ -26,7 +26,9 @@ import AllMatches from './components/My matches/AllMatches/AllMatches';
 import ScheduleMatch from './components/My matches/ScheduleMatch/ScheduleMatch';
 import CommentaryScorecard from './components/My matches/CommentaryScorecard';
 import FantasyCricketScreen from './components/Fantasy/FantasyHome';
-
+import Contests from './components/Fantasy/Contests';
+import ContestDetails from './components/Fantasy/ContestDetails';
+import CreateContestTeam from './components/Fantasy/CreateContestTeam';
 // import Performance from './components/Settings/Performance';
 
 import ScoreCard from './components/My matches/ScoreCard';
@@ -82,6 +84,9 @@ const MainScreens = () => {
           <Stack.Screen name="ScheduleMatch" component={ScheduleMatch} />
           <Stack.Screen name="CommentaryScorecard" component={CommentaryScorecard} />
           <Stack.Screen name="FantasyCricketScreen" component={FantasyCricketScreen} />
+          <Stack.Screen name="Contests" component={Contests} />
+          <Stack.Screen name="ContestDetails" component={ContestDetails} />
+          <Stack.Screen name="CreateContestTeam" component={CreateContestTeam} />
         </Stack.Navigator>
         <Footer style={styles.footer} />
       </View>

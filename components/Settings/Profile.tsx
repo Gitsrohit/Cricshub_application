@@ -330,8 +330,8 @@ const Settings = () => {
   const renderPlaceholderField = (widthPercent = 70) => {
     return (
       <View style={styles.placeholderField}>
-        <PlaceholderAnimation 
-          style={{ width: `${widthPercent}%` }} 
+        <PlaceholderAnimation
+          style={{ width: `${widthPercent}%` }}
           shouldAnimate={loading}
         />
       </View>
@@ -355,8 +355,8 @@ const Settings = () => {
                 {/* Profile Image Placeholder */}
                 <View style={styles.profileImageContainer}>
                   <View style={[styles.profileImagePlaceholder, styles.placeholderImage]}>
-                    <PlaceholderAnimation 
-                      style={styles.placeholderImageAnimation} 
+                    <PlaceholderAnimation
+                      style={styles.placeholderImageAnimation}
                       shouldAnimate={loading}
                     />
                   </View>
