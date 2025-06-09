@@ -157,6 +157,64 @@ const Home = () => {
       >
         <SafeAreaView style={styles.container}>
 
+          <View style={{ backgroundColor: 'white' }}>
+            {/* Top Bar Trigger */}
+            <View style={styles.topBar}>
+              <TouchableOpacity onPress={toggleSidebar}>
+                <Ionicons name="menu" size={30} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Sidebar Overlay */}
+            {isSidebarVisible && (
+              <TouchableWithoutFeedback onPress={closeSidebar}>
+                <Animated.View style={[styles.overlay, { opacity: overlayAnim }]} />
+              </TouchableWithoutFeedback>
+            )}
+          </View>
+
+          {/* Sidebar */}
+          <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}>
+            <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <Ionicons name="close" color='black' size={24} onPress={closeSidebar} />
+            </View>
+            <View style={styles.sidebarHeader}>
+              <Image source={require("../../assets/defaultLogo.png")} style={styles.userImage} />
+              <Text style={styles.sidebarTitle} numberOfLines={1}>{userName}</Text>
+            </View>
+
+            {/* Sidebar Links */}
+            {[
+              { icon: "person-outline", text: "Profile", screen: "Profile" },
+              { icon: "stats-chart-outline", text: "Performance", screen: "Performance" },
+              { icon: "help-circle-outline", text: "Support", screen: "Support" },
+              { icon: "star-outline", text: "Rate Us", screen: "RateUs" },
+              { icon: "settings-outline", text: "Settings", screen: "Settings" },
+            ].map(({ icon, text, screen }) => (
+              <TouchableOpacity
+                key={screen}
+                style={styles.sidebarItem}
+                onPress={() => {
+                  navigation.navigate(screen);
+                  closeSidebar();
+                }}
+              >
+                <Ionicons name={icon} size={24} color="#333" />
+                <Text style={styles.sidebarItemText}>{text}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity style={styles.sidebarItem} onPress={LogOutHandler}>
+              <Ionicons name="log-out-outline" size={24} color="#333" />
+              <Text style={styles.sidebarItemText}>Logout</Text>
+            </TouchableOpacity>
+
+            <View style={styles.sidebarFooter}>
+              <Text style={styles.footerText}>cricshub @2025</Text>
+            </View>
+          </Animated.View>
+
+
           {/* Main Content */}
           <View style={styles.mainContent}>
 
@@ -281,15 +339,85 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   topBar: {
+    paddingTop: StatusBar.currentHeight || 40,
+    paddingHorizontal: 15,
+    paddingBottom: 10,
+    backgroundColor: "white",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    paddingTop: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+  },
+  topBarTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginLeft: 10,
+  },
+  sidebar: {
+    position: "absolute",
+    top: StatusBar?.currentHeight || 0,
+    left: 0,
+    width: width * 0.7,
+    height: "100%",
+    backgroundColor: "#FFF",
+    zIndex: 100,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#000",
+    zIndex: 50,
+  },
+  sidebarHeader: {
+    marginBottom: 20,
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    width: '100%',
+  },
+  userImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 10,
+  },
+  sidebarTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 10,
+    maxWidth: '100%',
+  },
+  sidebarItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
+  },
+  sidebarItemText: {
+    fontSize: 16,
+    color: "#333",
+    marginLeft: 10,
+  },
+  sidebarFooter: {
+    position: "absolute",
+    bottom: 10,
+    left: 20,
+    right: 20,
+    alignItems: "center",
+  },
+  footerText: {
+    fontSize: 14,
+    color: "#888",
   },
   content: {
     flex: 1,
