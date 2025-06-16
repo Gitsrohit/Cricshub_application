@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as MediaLibrary from 'expo-media-library';
 import { useNavigation } from '@react-navigation/native';
 
 const background = require('../../assets/images/cricsLogo.png');
@@ -20,9 +21,13 @@ const CreateTeam = () => {
   const [teamName, setTeamName] = useState('');
   const [logoUri, setLogoUri] = useState(null);
   const navigation = useNavigation();
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResponse.status !== 'granted') {
+      await requestPermission();
+    }
     if (status === 'granted') {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,

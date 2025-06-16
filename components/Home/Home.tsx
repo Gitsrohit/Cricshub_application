@@ -12,6 +12,7 @@ import {
   Dimensions,
   Image,
   TouchableWithoutFeedback,
+  Alert,
 } from "react-native";
 import { MaterialIcons, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -254,9 +255,13 @@ const Home = () => {
                               style={styles.cardButton}
                               onPressIn={() => handlePressIn(index)}
                               onPressOut={() => handlePressOut(index)}
-                              onPress={() =>
-                                navigation.navigate(item.navigateTo)
-                              }
+                              onPress={() => {
+                                if (item.title === "Fantasy Cricket") {
+                                  Alert.alert('Coming Soon', 'Fantasy Cricket will be launched soon.', [{ text: 'Ok' }]);
+                                } else {
+                                  navigation.navigate(item.navigateTo);
+                                }
+                              }}
                               activeOpacity={0.8}
                             >
                               <Text style={styles.cardButtonText}>
@@ -294,7 +299,13 @@ const Home = () => {
                             style={styles.cardButton}
                             onPressIn={() => handlePressIn(index)}
                             onPressOut={() => handlePressOut(index)}
-                            onPress={() => navigation.navigate(item.navigateTo)}
+                            onPress={() => {
+                              if (item.title === "Fantasy Cricket") {
+                                Alert.alert('Coming Soon', 'Fantasy Cricket will be launched soon.', [{ text: 'Ok' }]);
+                              } else {
+                                navigation.navigate(item.navigateTo);
+                              }
+                            }}
                             activeOpacity={0.8}
                           >
                             <Text style={styles.cardButtonText}>

@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import moment from "moment";
 import axios from 'axios';
+import * as MediaLibrary from 'expo-media-library';
 
 const background = require('../../assets/images/cricsLogo.png');
 const { height } = Dimensions.get('window');
@@ -35,6 +36,7 @@ const CreateTournament = ({ navigation }) => {
   const [overs, setOvers] = useState('');
   const [banner, setBanner] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
 
   const getToken = async () => {
     try {
@@ -126,6 +128,9 @@ const CreateTournament = ({ navigation }) => {
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResponse.status !== 'granted') {
+      await requestPermission();
+    }
     if (status === 'granted') {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,

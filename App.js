@@ -32,7 +32,7 @@ import CreateContestTeam from './components/Fantasy/CreateContestTeam';
 // import Performance from './components/Settings/Performance';
 
 import ScoreCard from './components/My matches/ScoreCard';
-
+import InternetConnectivityCheck from './components/InternetConnectivity';
 
 const Stack = createStackNavigator();
 
@@ -40,17 +40,19 @@ const App = () => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="Login"
-          screenOptions={{ headerShown: false }}
-        >
-          {/* Authentication Screens */}
-          <Stack.Screen name="Login" component={Login} />
-          <Stack.Screen name="Registration" component={Registration} />
+        <InternetConnectivityCheck>
+          <Stack.Navigator
+            initialRouteName="Login"
+            screenOptions={{ headerShown: false }}
+          >
+            {/* Authentication Screens */}
+            <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="Registration" component={Registration} />
 
-          {/* Main App Screens */}
-          <Stack.Screen name="Main" component={MainScreens} />
-        </Stack.Navigator>
+            {/* Main App Screens */}
+            <Stack.Screen name="Main" component={MainScreens} />
+          </Stack.Navigator>
+        </InternetConnectivityCheck>
       </NavigationContainer>
     </SafeAreaView>
   );
