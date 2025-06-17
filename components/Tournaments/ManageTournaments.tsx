@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, Alert, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, Alert, Dimensions, StatusBar } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -53,6 +53,11 @@ export default function ManageTournaments({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#34B8FF"
+        translucent={true}
+      />
       <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradientOverlay}>
         <ImageBackground source={backgroundImage} style={styles.background} resizeMode="cover">
           {/* Toggle Buttons */}
@@ -110,6 +115,7 @@ const styles = StyleSheet.create({
   },
   container: {
     height: '100%',
+    marginTop: StatusBar.currentHeight || 0,
   },
   toggleContainer: {
     // marginTop: 10,
@@ -203,11 +209,70 @@ const styles = StyleSheet.create({
     color: 'black',
     width: '80%'
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    width: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    elevation: 10,
+  },
   modalTitle: {
-    fontWeight: 'bold',
     fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
     textAlign: 'center',
+    color: '#333',
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
     marginTop: 12,
+    marginBottom: 4,
+    color: '#444',
+  },
+  detailsModalInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    backgroundColor: '#f9f9f9',
+  },
+  inputText: {
+    fontSize: 14,
+    color: '#000',
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  column: {
+    flex: 1,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   modalInput: {
     borderWidth: 1,
@@ -245,7 +310,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   addButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  modalOverlay: {
+  teamsModalOverlay: {
     height: '100%',
     justifyContent: "flex-end",
     backgroundColor: "rgba(0,0,0,0.5)"
@@ -487,10 +552,46 @@ const styles = StyleSheet.create({
   inputTextContainer: {
 
   },
+  matchUpdateModalText: {
+    fontSize: 14,
+    textAlign: 'left',
+    color: 'white',
+    marginTop: 10
+  },
   inputModalText: {
     fontSize: 16,
     fontWeight: 400,
     color: 'white'
+  },
+  pickerContainer: {
+    borderBottomColor: '#e5e5e5',
+    borderBottomWidth: 1
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16
+  },
+  primaryButton: {
+    borderWidth: 1,
+    borderColor: 'white',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  cancelButton: {
+    borderWidth: 1,
+    borderColor: 'white',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  matchUpdateModalButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500'
   },
 
   //points table
@@ -503,13 +604,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 10,
-  },
-  row: {
-    flexDirection: 'row',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    backgroundColor: 'white'
   },
   headerRow: {
     backgroundColor: '#eee',
@@ -525,6 +619,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 15,
   },
+  placeholderText: {
+    color: '#ccc',
+    fontSize: 16,
+  },
 });
 
 export const Info = ({ id, isCreator }) => {
@@ -533,10 +631,12 @@ export const Info = ({ id, isCreator }) => {
   const [tournamentDetails, setTournamentsDetails] = useState(null);
   const [sanitizedBannerUrl, setSanitizedBannerUrl] = useState('');
   const [editingTournament, setEditingTournament] = useState(false);
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [editedDetails, setEditedDetails] = useState({
     name: '',
-    startDate: '',
-    endDate: '',
     type: '',
     ballType: '',
     venues: [''],
@@ -580,8 +680,8 @@ export const Info = ({ id, isCreator }) => {
 
       const dataToSend = {
         name: editedDetails.name,
-        startDate: editedDetails.startDate,
-        endDate: editedDetails.endDate,
+        startDate: startDate,
+        endDate: endDate,
         type: editedDetails.type,
         ballType: editedDetails.ballType,
         venues: editedDetails.venues,
@@ -672,82 +772,112 @@ export const Info = ({ id, isCreator }) => {
             transparent={true}
             onRequestClose={() => setEditingTournament(false)}
           >
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Edit Tournament Details</Text>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Edit Tournament</Text>
 
-                <Text style={styles.modalInputLabel}>Name</Text>
+                {/* Name */}
+                <Text style={styles.label}>Tournament Name</Text>
                 <TextInput
-                  style={styles.modalInput}
-                  placeholder="Tournament Name"
+                  style={styles.detailsModalInput}
+                  placeholder="Enter name"
                   value={editedDetails.name || ''}
                   onChangeText={(text) => setEditedDetails({ ...editedDetails, name: text })}
                 />
 
-                <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flexDirection: 'column' }}>
-                    <Text style={styles.modalInputLabel}>Start Date</Text>
-                    <TextInput
-                      style={styles.modalInput}
-                      placeholder="Start Date"
-                      value={editedDetails.startDate || ''}
-                      onChangeText={(text) => setEditedDetails({ ...editedDetails, startDate: text })}
-                    />
+                {/* Dates */}
+                <View style={styles.row}>
+                  <View style={styles.column}>
+                    <Text style={styles.label}>Start Date</Text>
+                    <TouchableOpacity style={styles.detailsModalInput} onPress={() => setShowStartDatePicker(true)}>
+                      <Text style={styles.inputText}>
+                        {startDate ? startDate.toDateString() : 'Select start date'}
+                      </Text>
+                    </TouchableOpacity>
+                    {showStartDatePicker && (
+                      <DateTimePicker
+                        minimumDate={moment().toDate()}
+                        value={startDate}
+                        mode="date"
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                          setShowStartDatePicker(false);
+                          if (selectedDate) setStartDate(selectedDate);
+                        }}
+                      />
+                    )}
                   </View>
 
-                  <View style={{ flexDirection: 'column' }}>
-                    <Text style={styles.modalInputLabel}>End Date</Text>
-                    <TextInput
-                      style={styles.modalInput}
-                      placeholder="End Date"
-                      value={editedDetails.endDate || ''}
-                      onChangeText={(text) => setEditedDetails({ ...editedDetails, endDate: text })}
-                    />
+                  <View style={styles.column}>
+                    <Text style={styles.label}>End Date</Text>
+                    <TouchableOpacity style={styles.detailsModalInput} onPress={() => setShowEndDatePicker(true)}>
+                      <Text style={styles.inputText}>
+                        {endDate ? endDate.toDateString() : 'Select end date'}
+                      </Text>
+                    </TouchableOpacity>
+                    {showEndDatePicker && (
+                      <DateTimePicker
+                        value={endDate}
+                        mode="date"
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                          setShowEndDatePicker(false);
+                          if (selectedDate) setEndDate(selectedDate);
+                        }}
+                      />
+                    )}
                   </View>
                 </View>
 
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flexDirection: 'column' }}>
-                    <Text style={styles.modalInputLabel}>Overs</Text>
+                {/* Overs & Ball */}
+                <View style={styles.row}>
+                  <View style={styles.column}>
+                    <Text style={styles.label}>Overs</Text>
                     <TextInput
-                      style={styles.modalInput}
-                      placeholder="Type"
+                      style={styles.detailsModalInput}
+                      placeholder="e.g. 20"
+                      keyboardType="numeric"
                       value={editedDetails.type || ''}
                       onChangeText={(text) => setEditedDetails({ ...editedDetails, type: text })}
                     />
                   </View>
 
-                  <View style={{ flexDirection: 'column' }}>
-                    <Text style={styles.modalInputLabel}>Ball</Text>
+                  <View style={styles.column}>
+                    <Text style={styles.label}>Ball Type</Text>
                     <TextInput
-                      style={styles.modalInput}
-                      placeholder="Ball Type"
+                      style={styles.detailsModalInput}
+                      placeholder="e.g. Leather"
                       value={editedDetails.ballType || ''}
                       onChangeText={(text) => setEditedDetails({ ...editedDetails, ballType: text })}
                     />
                   </View>
                 </View>
 
-                <Text style={styles.modalInputLabel}>Venues <Text style={{ fontSize: 12, fontWeight: 'light' }}>(, separated)</Text></Text>
+                {/* Venues */}
+                <Text style={styles.label}>Venues <Text style={{ fontSize: 12, fontWeight: '300' }}>(comma-separated)</Text></Text>
                 <TextInput
-                  style={styles.modalInput}
-                  placeholder="Venues (comma-separated)"
-                  value={editedDetails.venues ? editedDetails.venues.join(', ') : ''}
+                  style={styles.detailsModalInput}
+                  placeholder="Enter venues separated by commas"
+                  value={editedDetails.venues?.join(', ') || ''}
                   onChangeText={(text) => {
-                    const updatedVenues = text
-                      .split(',')
-                      .map((venue) => venue.trim())
-                      .filter((venue) => venue);
+                    const updatedVenues = text.split(',').map(v => v.trim()).filter(Boolean);
                     setEditedDetails({ ...editedDetails, venues: updatedVenues });
                   }}
                 />
-                <View style={styles.modalButtonContainer}>
-                  <Button title="Save Changes" onPress={updateTournamentDetails} />
-                  <Button title="Cancel" color="red" onPress={() => setEditingTournament(false)} />
+
+                {/* Buttons */}
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#4CAF50' }]} onPress={updateTournamentDetails}>
+                    <Text style={styles.modalButtonText}>Save</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#f44336' }]} onPress={() => setEditingTournament(false)}>
+                    <Text style={styles.modalButtonText}>Cancel</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
           </Modal>
+
         </>
       ) : (
         <Text>No details available</Text>
@@ -942,7 +1072,7 @@ export const Teams = ({ id, isCreator }) => {
       {/* Modal for adding a team */}
       <Modal visible={modalVisible} transparent animationType="none">
         <TouchableOpacity onPress={closeModal}>
-          <View style={styles.modalOverlay}>
+          <View style={styles.teamsModalOverlay}>
             <Animated.View style={[styles.teamModalContent, { transform: [{ translateY: slideAnim }] }]}>
               <View style={styles.searchBox}>
                 <TextInput
@@ -1343,7 +1473,7 @@ export const Matches = ({ id, isCreator }) => {
               <TouchableOpacity onPress={() => setShowDatePicker(true)} >
                 <Text style={styles.input}>{matchDate ? moment(matchDate).format('YYYY-MM-DD') : 'Select Date'}</Text>
               </TouchableOpacity>
-              {/* {showDatePicker && (
+              {showDatePicker && (
                 <DateTimePicker
                   value={matchDate}
                   mode="date"
@@ -1354,7 +1484,7 @@ export const Matches = ({ id, isCreator }) => {
                     if (selectedDate) setMatchDate(selectedDate);
                   }}
                 />
-              )} */}
+              )}
             </View>
 
             <View style={styles.inputTextContainer}>
@@ -1362,7 +1492,7 @@ export const Matches = ({ id, isCreator }) => {
               <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.input}>
                 <Text style={styles.inputModalText}>{matchTime ? moment(matchTime).format('HH:mm') : 'Select Time'}</Text>
               </TouchableOpacity>
-              {/* {showTimePicker && (
+              {showTimePicker && (
                 <DateTimePicker
                   value={matchTime}
                   mode="time"
@@ -1373,7 +1503,7 @@ export const Matches = ({ id, isCreator }) => {
                     if (selectedTime) setMatchTime(selectedTime);
                   }}
                 />
-              )} */}
+              )}
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: 20 }}>
               <TouchableOpacity style={{ marginVertical: 10, backgroundColor: 'white', padding: 10, borderRadius: 10 }} onPress={handleScheduleSubmit} >
@@ -1397,10 +1527,10 @@ export const Matches = ({ id, isCreator }) => {
         >
           <View style={styles.matchUpdateModalOverlay}>
             <View style={styles.matchUpdateModalContainer}>
-              <Text style={styles.modalTitle}>Schedule Match Manually</Text>
+              <Text style={styles.matchUpdateModalTitle}>Schedule Match Manually</Text>
 
               {/* Team A Dropdown */}
-              <Text style={styles.inputModalText}>Team A</Text>
+              <Text style={styles.matchUpdateModalText}>Team A</Text>
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={manualMatchTeamA}
@@ -1414,7 +1544,7 @@ export const Matches = ({ id, isCreator }) => {
               </View>
 
               {/* Team B Dropdown */}
-              <Text style={styles.inputModalText}>Team B</Text>
+              <Text style={styles.matchUpdateModalText}>Team B</Text>
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={manualMatchTeamB}
@@ -1429,13 +1559,13 @@ export const Matches = ({ id, isCreator }) => {
 
               {/* Date Picker */}
               <View style={styles.inputTeamContainer}>
-                <Text style={styles.inputModalText}>Date</Text>
+                <Text style={styles.matchUpdateModalText}>Date</Text>
                 <TouchableOpacity onPress={() => setManualMatchShowDatePicker(true)}>
                   <Text style={styles.input}>
                     {manualMatchDate ? moment(manualMatchDate).format('YYYY-MM-DD') : 'Select Date'}
                   </Text>
                 </TouchableOpacity>
-                {/* {manualMatchShowDatePicker && (
+                {manualMatchShowDatePicker && (
                   <DateTimePicker
                     value={manualMatchDate || new Date()}
                     mode="date"
@@ -1446,12 +1576,12 @@ export const Matches = ({ id, isCreator }) => {
                       if (selectedDate) setManualMatchDate(selectedDate);
                     }}
                   />
-                )} */}
+                )}
               </View>
 
               {/* Time Picker */}
               <View style={styles.inputTextContainer}>
-                <Text style={styles.inputModalText}>Time</Text>
+                <Text style={styles.matchUpdateModalText}>Time</Text>
                 <TouchableOpacity onPress={() => setManualMatchShowTimePicker(true)} style={styles.input}>
                   <Text style={styles.inputModalText}>
                     {manualMatchTime ? moment(manualMatchTime).format('HH:mm') : 'Select Time'}
@@ -1471,21 +1601,26 @@ export const Matches = ({ id, isCreator }) => {
               </View>
 
               {/* Venue Input */}
-              <Text style={styles.inputModalText}>Venue</Text>
-              <TextInput
-                style={styles.input}
-                value={manualMatchVenue}
-                onChangeText={setManualMatchVenue}
-                placeholder="Enter Venue"
-              />
+              <Text style={styles.matchUpdateModalText}>Venue</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={manualMatchVenue}
+                  onValueChange={(itemValue) => setManualMatchVenue(itemValue)}
+                >
+                  <Picker.Item label="Select Venue" value="" />
+                  {tournamentData.venues.map((venue, index) => (
+                    <Picker.Item key={index} label={venue} value={venue} />
+                  ))}
+                </Picker>
+              </View>
 
               {/* Buttons */}
               <View style={styles.buttonContainer}>
                 <TouchableOpacity style={styles.primaryButton} onPress={manualMatchScheduleHandler}>
-                  <Text style={styles.buttonText}>Schedule</Text>
+                  <Text style={styles.matchUpdateModalButtonText}>Schedule</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setIsManualModalOpen(false)} style={styles.cancelButton}>
-                  <Text style={styles.buttonText}>Cancel</Text>
+                  <Text style={styles.matchUpdateModalButtonText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </View>
