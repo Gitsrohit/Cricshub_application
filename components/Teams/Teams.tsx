@@ -5,6 +5,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
+import Icon from 'react-native-vector-icons/MaterialIcons';
 const backgroundImage = require('../../assets/images/cricsLogo.png');
 
 const TeamPage = () => {
@@ -94,7 +95,18 @@ const TeamPage = () => {
               <FlatList
                 data={teams}
                 keyExtractor={(item) => item.id.toString()}
-                ListHeaderComponent={() => <Text style={styles.heading}>Teams</Text>}
+                ListHeaderComponent={() =>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, marginTop: 30 }}>
+                    <TouchableOpacity
+                      style={{ padding: 5 }}
+                      onPress={() => navigation.goBack()}
+                      activeOpacity={0.7}
+                    >
+                      <Icon name="arrow-back" size={32} color="black" />
+                    </TouchableOpacity>
+                    <Text style={styles.heading}>Teams</Text>
+                  </View>
+                }
                 renderItem={renderTeamCard}
               />
             ) : (
@@ -127,7 +139,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20
   },
-  heading: { fontSize: 22, fontWeight: "bold", color: "#005a7f", textAlign: "center", marginBottom: 10, marginTop: 30 },
+  heading: {
+    width: '75%',
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#005a7f",
+    textAlign: "center",
+  },
   card: {
     flexDirection: "row",
     backgroundColor: "#fff",

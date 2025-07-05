@@ -13,6 +13,7 @@ import {
   Easing,
   ImageBackground,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -116,7 +117,7 @@ const Notification = ({ message, type, visible }) => {
   );
 };
 
-const Settings = () => {
+const Settings = ({ navigation }) => {
   const [profile, setProfile] = useState({
     name: "",
     phone: "",
@@ -392,6 +393,11 @@ const Settings = () => {
         message={notification.message}
         type={notification.type}
       />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#34B8FF"
+        translucent={true}
+      />
       <ImageBackground
         source={backgroundImage}
         style={styles.backgroundImage}
@@ -402,6 +408,13 @@ const Settings = () => {
           style={styles.gradientOverlay}
         >
           <ScrollView contentContainerStyle={styles.scrollContent}>
+            <TouchableOpacity
+              style={{ padding: 5 }}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+            >
+              <Icon name="arrow-left" size={24} color="black" />
+            </TouchableOpacity>
             <View style={styles.profileContainer}>
               <TouchableOpacity
                 style={styles.profileImageContainer}
@@ -554,6 +567,7 @@ const Settings = () => {
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: StatusBar.currentHeight || 0,
     flex: 1,
   },
   backgroundImage: {
@@ -569,6 +583,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 20,
+    paddingTop: 0,
   },
   profileContainer: {
     alignItems: "center",

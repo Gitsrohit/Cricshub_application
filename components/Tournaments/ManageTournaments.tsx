@@ -20,6 +20,7 @@ export default function ManageTournaments({ route }) {
   const [sanitizedBannerUrl, setSanitizedBannerUrl] = useState('');
   const { id } = route.params;
   const { isCreator } = route.params;
+  const navigation = useNavigation();
 
   const fetchTournamentDetails = async (id) => {
     try {
@@ -84,7 +85,14 @@ export default function ManageTournaments({ route }) {
               ))}
             </ScrollView>
           </View>
-          <View style={{ marginVertical: 10, width: '100%', flexDirection: 'row', justifyContent: 'center' }}>
+          <TouchableOpacity
+            style={{ padding: 5 }}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Icon name="arrow-back" size={24} color="black" />
+          </TouchableOpacity>
+          <View style={{ marginBottom: 10, width: '100%', flexDirection: 'row', justifyContent: 'center' }}>
             {loading ? <View style={[styles.cardImage, { backgroundColor: 'grey' }]}></View> : <Image source={{ uri: sanitizedBannerUrl }} style={styles.cardImage} resizeMode='contain' />
             }
           </View>

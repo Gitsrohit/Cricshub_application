@@ -27,6 +27,8 @@ const Tournaments = () => {
   const [error, setError] = useState(null);
   const [tournaments, setTournaments] = useState([]);
 
+  const navigation = useNavigation();
+
   const fetchTournaments = async (status) => {
     setLoading(true);
     setError(null);
@@ -70,9 +72,18 @@ const Tournaments = () => {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <View style={styles.searchContainer}>
-          <Icon name="search" size={24} color="#fff" style={styles.searchIcon} />
-          <Text style={styles.searchText}>Search for matches...</Text>
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity
+            style={{ padding: 5 }}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Icon name="arrow-back" size={32} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.searchContainer}>
+            <Icon name="search" size={24} color="#fff" style={styles.searchIcon} />
+            <Text style={styles.searchText}>Search for matches...</Text>
+          </View>
         </View>
 
         <ScrollView
