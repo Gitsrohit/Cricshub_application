@@ -19,8 +19,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import moment from "moment";
-import axios from 'axios';
 import * as MediaLibrary from 'expo-media-library';
+import apiService from '../APIservices';
 
 const background = require('../../assets/images/cricsLogo.png');
 const { height } = Dimensions.get('window');
@@ -67,7 +67,6 @@ const CreateTournament = ({ navigation }) => {
     }
     try {
       const formData = new FormData();
-
       formData.append("name", tournamentName);
       formData.append("startDate", startDate.toISOString().split('T')[0]);
       formData.append("endDate", endDate.toISOString().split('T')[0]);
@@ -76,7 +75,6 @@ const CreateTournament = ({ navigation }) => {
       formData.append("ballType", ballType);
       formData.append("matchesPerDay", "1");
       formData.append("matchesPerTeam", "1");
-
       formData.append("venues", "Default Venue");
 
       if (banner) {
@@ -91,28 +89,23 @@ const CreateTournament = ({ navigation }) => {
         formData.append("banner", "Default Banner");
       }
 
-      const token = await getToken();
-      if (!token) {
-        Alert.alert('Error', 'Authentication token not found!');
-        setLoading(false);
-        return;
-      }
+      const response = await apiService({
+        endpoint: `tournaments/${userId}`,
+        method: "POST",
+        body: formData,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
-      const response = await axios.post(
-        `https://score360-7.onrender.com/api/v1/tournaments/${userId}`,
-        formData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      if (response.status === 200) {
+      if (response.success) {
         navigation.navigate('Tournaments');
+      } else {
+        console.error("API error:", response.error);
+        Alert.alert('Error', response.error?.message || 'Something went wrong.');
       }
     } catch (error) {
-      console.error(error);
+      console.error("Unexpected error:", error);
       Alert.alert('Error', 'Something went wrong.');
     } finally {
       setLoading(false);

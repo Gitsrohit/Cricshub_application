@@ -1,11 +1,11 @@
 import { Alert, FlatList, ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import stadiumBG from '../../assets/images/stadiumBG.jpg';
 import { BlurView } from 'expo-blur';
 import { useNavigation } from '@react-navigation/native';
+import apiService from '../APIservices';
 
 const SelectRoles2ndInnings = ({ route }) => {
   const { battingTeamII, bowlingTeamII, matchId } = route.params;
@@ -57,15 +57,32 @@ const SelectRoles2ndInnings = ({ route }) => {
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error("Please login again");
 
-      await axios.post(
-        `https://score360-7.onrender.com/api/v1/matches/${matchId}/players/update`,
-        { striker: strikerId, nonStriker: nonStrikerId, bowler },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await apiService({
+        endpoint: `matches/${matchId}/players/update`,
+        method: 'POST',
+        body: {
+          striker: strikerId,
+          nonStriker: nonStrikerId,
+          bowler,
+        },
+      });
 
-      Alert.alert('Success', 'Players updated successfully!');
-      navigation.navigate(`Scoring`, { matchId, strikerId, nonStrikerId, bowler, strikerName, nonStrikerName, bowlerName });
+      if (response.success) {
+        Alert.alert('Success', 'Players updated successfully!');
+        navigation.navigate('Scoring', {
+          matchId,
+          strikerId,
+          nonStrikerId,
+          bowler,
+          strikerName,
+          nonStrikerName,
+          bowlerName,
+        });
+      } else {
+        Alert.alert('Error', 'Failed to update players');
+      }
     } catch (err) {
+      console.error(err);
       Alert.alert('Error', 'Failed to update players');
     }
   };

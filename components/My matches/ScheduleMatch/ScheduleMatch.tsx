@@ -17,10 +17,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import apiService from '../../APIservices';
 const moment = require('moment-timezone');
 
 const ScheduleMatch = () => {
@@ -60,14 +60,19 @@ const ScheduleMatch = () => {
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error('Please login again');
       setLoading(true);
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/teams/search/name`,
-        {
-          params: { name },
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setTeamResults(response.data.data);
+
+      const response = await apiService({
+        endpoint: 'teams/search/name',
+        method: 'GET',
+        params: { name },
+      });
+
+      if (response.success) {
+        setTeamResults(response.data.data);
+      } else {
+        setTeamResults([]);
+        console.error('Search error:', response.error);
+      }
     } catch (err) {
       console.error('Failed to search for teams', err);
       setTeamResults([]);
@@ -134,15 +139,12 @@ const ScheduleMatch = () => {
 
       setLoading(true);
 
-      const now = moment(); // Current Date and Time
-
-      // Combine startDate and startTime into a single moment object
-      const selectedDateTime = moment(startDate)
-        .set({
-          hour: moment(startTime).hour(),
-          minute: moment(startTime).minute(),
-          second: 0,
-        });
+      const now = moment();
+      const selectedDateTime = moment(startDate).set({
+        hour: moment(startTime).hour(),
+        minute: moment(startTime).minute(),
+        second: 0,
+      });
 
       console.log(`Selected date time: ${selectedDateTime}`);
       console.log(`Now: ${now}`);
@@ -151,8 +153,8 @@ const ScheduleMatch = () => {
       // Check if selected date and time is in the past
       if (selectedDateTime.isBefore(now)) {
         Alert.alert("Error", "Please enter a future date and time.");
-        setStartDate(new Date()); // Reset Date
-        setStartTime(new Date()); // Reset Time
+        setStartDate(new Date());
+        setStartTime(new Date());
         setLoading(false);
         return;
       }
@@ -167,14 +169,19 @@ const ScheduleMatch = () => {
         venue,
       };
 
-      const response = await axios.post(
-        `https://score360-7.onrender.com/api/v1/matches/schedule`,
-        requestBody,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await apiService({
+        endpoint: 'matches/schedule',
+        method: 'POST',
+        body: requestBody,
+      });
 
-      const matchId = response.data.id;
-      navigation.navigate("SelectPlayingII", { matchDetails, matchId });
+      if (response.success) {
+        const matchId = response.data.id;
+        navigation.navigate("MyMatches");
+      } else {
+        console.error(response.error);
+        Alert.alert("Error", "Failed to schedule match.");
+      }
     } catch (err) {
       console.error(err);
       Alert.alert("Error", "Failed to schedule match.");
@@ -273,7 +280,7 @@ const ScheduleMatch = () => {
                       </Text>
                     </TouchableOpacity>
 
-                    {/* {showStartDatePicker && (
+                    {showStartDatePicker && (
                       <DateTimePicker
                         minimumDate={moment().toDate()}
                         value={startDate}
@@ -284,7 +291,7 @@ const ScheduleMatch = () => {
                           if (selectedDate) setStartDate(selectedDate);
                         }}
                       />
-                    )} */}
+                    )}
                   </View>
                 </View>
                 <View style={styles.inputField}>
@@ -300,7 +307,7 @@ const ScheduleMatch = () => {
                       </Text>
                     </TouchableOpacity>
 
-                    {/* {showStartTimePicker && (
+                    {showStartTimePicker && (
                       <DateTimePicker
                         value={startTime} // Now correctly a Date object
                         mode="time"
@@ -310,7 +317,7 @@ const ScheduleMatch = () => {
                           if (selectedTime) setStartTime(selectedTime);
                         }}
                       />
-                    )} */}
+                    )}
                   </View>
                 </View>
               </View>

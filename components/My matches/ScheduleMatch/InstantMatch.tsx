@@ -13,15 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import stadiumBG from '../../../assets/images/stadiumBG.jpg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AntDesign } from '@expo/vector-icons';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import apiService from '../../APIservices';
 const moment = require('moment-timezone');
 
 const InstantMatch = () => {
@@ -58,14 +56,19 @@ const InstantMatch = () => {
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error('Please login again');
       setLoading(true);
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/teams/search/name`,
-        {
-          params: { name },
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setTeamResults(response.data.data);
+
+      const response = await apiService({
+        endpoint: 'teams/search/name',
+        method: 'GET',
+        params: { name },
+      });
+
+      if (response.success) {
+        setTeamResults(response.data.data);
+      } else {
+        setTeamResults([]);
+        console.error('Search error:', response.error);
+      }
     } catch (err) {
       console.error('Failed to search for teams', err);
       setTeamResults([]);
@@ -120,36 +123,39 @@ const InstantMatch = () => {
       venue,
       team1Id,
       team1Name,
-      team1Logo, // Include team1 logo in match details
+      team1Logo,
       team2Id,
       team2Name,
-      team2Logo, // Include team2 logo in match details
+      team2Logo,
     };
 
     try {
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error('Please login again');
       setLoading(true);
-      const matchDate = new Date().toISOString().split('T')[0];
-      const now = new Date();
-      const matchTime = now.toTimeString().slice(0, 5);
       const requestBody = {
         tournamentName: null,
         team1Id,
         team2Id,
         overs: matchDetails.overs,
-        matchDate: istDateTime.format("YYYY-MM-DD"),
-        matchTime: istDateTime.format("HH:mm"),
+        matchDate: istDateTime.format('YYYY-MM-DD'),
+        matchTime: istDateTime.format('HH:mm'),
         venue,
       };
 
-      const response = await axios.post(
-        `https://score360-7.onrender.com/api/v1/matches/schedule`,
-        requestBody,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const matchId = response.data.id;
-      navigation.navigate('SelectPlayingII', { matchDetails, matchId });
+      const response = await apiService({
+        endpoint: 'matches/schedule',
+        method: 'POST',
+        body: requestBody,
+      });
+
+      if (response.success) {
+        const matchId = response.data.id;
+        navigation.navigate('SelectPlayingII', { matchDetails, matchId });
+      } else {
+        console.error(response.error);
+        Alert.alert('Error', 'Failed to schedule match.');
+      }
     } catch (err) {
       console.error(err);
       Alert.alert('Error', 'Failed to schedule match.');

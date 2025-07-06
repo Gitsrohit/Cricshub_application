@@ -11,11 +11,11 @@ import {
   RefreshControl
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import apiService from '../APIservices';
 
 const { width } = Dimensions.get('window');
 const background = require('../../assets/images/cricsLogo.png');
@@ -34,7 +34,6 @@ const ScoreCard = ({ route, navigation }) => {
       setIsLoading(true);
       setRefreshing(true);
       setLoadingError(null);
-      
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) {
         setLoadingError('Authentication required. Please login again.');
@@ -43,24 +42,22 @@ const ScoreCard = ({ route, navigation }) => {
         return;
       }
 
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
-        { 
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 15000
-        }
-      );
-      
-      if (response.data) {
+      const response = await apiService({
+        endpoint: `matches/matchstate/${matchId}`,
+        method: 'GET',
+        headers: { timeout: 15000 },
+      });
+
+      if (response.success && response.data) {
         setMatchState(response.data);
         setTeam(response.data.team1.name);
       } else {
         setLoadingError('No match data received');
+        setMatchState({ error: true });
       }
-      
     } catch (error) {
       let errorMessage = 'Failed to load match data';
-      
+
       if (error.response) {
         errorMessage = `Server error: ${error.response.status}`;
       } else if (error.request) {
@@ -68,7 +65,7 @@ const ScoreCard = ({ route, navigation }) => {
       } else {
         errorMessage = error.message || errorMessage;
       }
-      
+
       setLoadingError(errorMessage);
       setMatchState({ error: true });
     } finally {
@@ -76,6 +73,7 @@ const ScoreCard = ({ route, navigation }) => {
       setRefreshing(false);
     }
   };
+
 
   const onRefresh = () => {
     getMatchState();
@@ -85,7 +83,7 @@ const ScoreCard = ({ route, navigation }) => {
     const unsubscribe = navigation.addListener('focus', () => {
       getMatchState();
     });
-    
+
     return unsubscribe;
   }, [navigation]);
 
@@ -105,7 +103,7 @@ const ScoreCard = ({ route, navigation }) => {
             <Text style={styles.teamIndicatorText}>{teamData.name}</Text>
           </View>
         </View>
-        
+
         <View style={styles.statsHeader}>
           <Text style={[styles.nameCol, styles.headerText]}>Batsman</Text>
           <Text style={[styles.statCol, styles.headerText]}>R</Text>
@@ -114,14 +112,14 @@ const ScoreCard = ({ route, navigation }) => {
           <Text style={[styles.statCol, styles.headerText]}>6s</Text>
           <Text style={[styles.statCol, styles.headerText]}>SR</Text>
         </View>
-        
+
         {orderedBatting.map((item, index) => {
           const playerStats = teamData.playingXI.find((p) => p.playerId === item.playerId) || {};
           const isBatted = battingOrder.some((b) => b.playerId === item.playerId);
 
           return (
-            <View 
-              key={item.playerId} 
+            <View
+              key={item.playerId}
               style={[
                 styles.statsRow,
                 index % 2 === 0 && styles.evenRow
@@ -131,10 +129,10 @@ const ScoreCard = ({ route, navigation }) => {
                 <View style={styles.playerInfo}>
                   <Text style={styles.playerName}>{item.name}</Text>
                   {isBatted && (
-                    <Ionicons 
-                      name={item.dismissalInfo ? 'close-circle' : 'checkmark-circle'} 
-                      size={16} 
-                      color={item.dismissalInfo ? '#ff4444' : '#4CAF50'} 
+                    <Ionicons
+                      name={item.dismissalInfo ? 'close-circle' : 'checkmark-circle'}
+                      size={16}
+                      color={item.dismissalInfo ? '#ff4444' : '#4CAF50'}
                     />
                   )}
                 </View>
@@ -167,7 +165,7 @@ const ScoreCard = ({ route, navigation }) => {
             <Text style={styles.teamIndicatorText}>{bowlingTeamData.name}</Text>
           </View>
         </View>
-        
+
         <View style={styles.statsHeader}>
           <Text style={[styles.nameCol, styles.headerText]}>Bowler</Text>
           <Text style={[styles.statCol, styles.headerText]}>O</Text>
@@ -176,10 +174,10 @@ const ScoreCard = ({ route, navigation }) => {
           <Text style={[styles.statCol, styles.headerText]}>W</Text>
           <Text style={[styles.statCol, styles.headerText]}>Econ</Text>
         </View>
-        
+
         {bowlers.map((bowler, index) => (
-          <View 
-            key={bowler.playerId} 
+          <View
+            key={bowler.playerId}
             style={[
               styles.statsRow,
               index % 2 === 0 && styles.evenRow
@@ -213,7 +211,7 @@ const ScoreCard = ({ route, navigation }) => {
             <>
               <Text style={styles.loadingText}>Failed to load match data</Text>
               <Text style={styles.errorText}>{loadingError}</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.retryButton}
                 onPress={getMatchState}
               >
@@ -242,8 +240,8 @@ const ScoreCard = ({ route, navigation }) => {
       imageStyle={styles.backgroundImage}
     >
       <StatusBar barStyle="light-content" backgroundColor="#0A5A9C" />
-      
-      <ScrollView 
+
+      <ScrollView
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
           <RefreshControl
@@ -283,11 +281,11 @@ const ScoreCard = ({ route, navigation }) => {
               <Text style={styles.teamOvers}>{matchState.team1.overs} overs</Text>
             )}
           </View>
-          
+
           <View style={styles.vsContainer}>
             <Text style={styles.vsText}>vs</Text>
           </View>
-          
+
           <View style={styles.teamScore}>
             <Text style={styles.teamName}>{matchState.team2.name}</Text>
             <Text style={styles.teamRuns}>
@@ -329,12 +327,12 @@ const ScoreCard = ({ route, navigation }) => {
             ]}
             onPress={() => setActiveTab('batting')}
           >
-            <MaterialCommunityIcons 
-              name="cricket" 
-              size={20} 
-              color={activeTab === 'batting' ? '#fff' : '#0A5A9C'} 
+            <MaterialCommunityIcons
+              name="cricket"
+              size={20}
+              color={activeTab === 'batting' ? '#fff' : '#0A5A9C'}
             />
-            <Text 
+            <Text
               style={[
                 styles.statsTabText,
                 activeTab === 'batting' && styles.activeStatsTabText
@@ -343,7 +341,7 @@ const ScoreCard = ({ route, navigation }) => {
               Batting
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.statsTab,
@@ -351,12 +349,12 @@ const ScoreCard = ({ route, navigation }) => {
             ]}
             onPress={() => setActiveTab('bowling')}
           >
-            <MaterialCommunityIcons 
-              name="bowling" 
-              size={20} 
-              color={activeTab === 'bowling' ? '#fff' : '#0A5A9C'} 
+            <MaterialCommunityIcons
+              name="bowling"
+              size={20}
+              color={activeTab === 'bowling' ? '#fff' : '#0A5A9C'}
             />
-            <Text 
+            <Text
               style={[
                 styles.statsTabText,
                 activeTab === 'bowling' && styles.activeStatsTabText

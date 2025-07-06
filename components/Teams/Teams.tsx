@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator, ImageBackground, StatusBar } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import apiService from "../APIservices";
 const backgroundImage = require('../../assets/images/cricsLogo.png');
 
 const TeamPage = () => {
@@ -19,25 +19,27 @@ const TeamPage = () => {
 
   const fetchTeams = async () => {
     try {
-      const userId = await AsyncStorage.getItem('userUUID');
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) {
-        throw new Error("Authentication token not found.");
-      }
+      setLoading(true);
+      const userId = await AsyncStorage.getItem("userUUID");
 
-      const response = await axios.get("https://score360-7.onrender.com/api/v1/teams", {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await apiService({
+        endpoint: "teams",
+        method: "GET",
       });
 
-      const filteredTeams = response.data.data.filter((team) =>
-        team.creator.id === userId ||
-        team.captain.id === userId ||
-        team.players.some((player) => player?.id === userId)
-      );
-
-      setTeams(filteredTeams);
+      if (response.success && response.data?.data) {
+        const filteredTeams = response.data.data.filter(
+          (team) =>
+            team.creator?.id === userId ||
+            team.captain?.id === userId ||
+            team.players?.some((player) => player?.id === userId)
+        );
+        setTeams(filteredTeams);
+      } else {
+        console.error("Failed to fetch teams:", response.error);
+      }
     } catch (err) {
-      console.error("Error fetching teams:", err.response?.data || err.message);
+      console.error("Error fetching teams:", err);
     } finally {
       setLoading(false);
     }
@@ -45,18 +47,18 @@ const TeamPage = () => {
 
   const handleTeamPress = async (teamId) => {
     try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) {
-        throw new Error("Authentication token not found.");
-      }
-
-      const response = await axios.get(`https://score360-7.onrender.com/api/v1/teams/${teamId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await apiService({
+        endpoint: `teams/${teamId}`,
+        method: "GET",
       });
 
-      navigation.navigate("TeamDetailsScreen", { team: response.data.data });
+      if (response.success && response.data?.data) {
+        navigation.navigate("TeamDetailsScreen", { team: response.data.data });
+      } else {
+        console.error("Failed to fetch team details:", response.error);
+      }
     } catch (err) {
-      console.error("Error fetching team details:", err.response?.data || err.message);
+      console.error("Error fetching team details:", err);
     }
   };
 

@@ -13,11 +13,10 @@ import {
   Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import apiService from '../APIservices';
 
 const { width } = Dimensions.get('window');
 
@@ -36,23 +35,29 @@ const Tournaments = () => {
       const token = await AsyncStorage.getItem('jwtToken');
       const userUUID = await AsyncStorage.getItem('userUUID');
 
-      if (!token || (status === 'my' && !userUUID)) {
+      if (!token || (status === 'MY' && !userUUID)) {
         throw new Error('Please login again');
       }
 
       const endpoint =
         status === 'MY'
-          ? `https://score360-7.onrender.com/api/v1/tournaments/tournaments-play`
-          : `https://score360-7.onrender.com/api/v1/tournaments/status`;
+          ? `tournaments/tournaments-play`
+          : `tournaments/status`;
 
-      const response = await axios.get(endpoint, {
+      const { success, data, error } = await apiService({
+        endpoint,
+        method: 'GET',
         params: status !== 'MY' ? { status } : {},
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
-      setTournaments(response.data);
+
+      if (success) {
+        setTournaments(data);
+      } else {
+        console.error('Fetch tournaments error:', error);
+        setError('Failed to load tournaments');
+      }
     } catch (err) {
+      console.error('Unexpected error:', err);
       setError('Failed to load tournaments');
     } finally {
       setLoading(false);
@@ -645,21 +650,21 @@ const MyTournaments = ({ tournaments }) => {
         {
           text: 'Delete',
           onPress: async () => {
-            const token = await AsyncStorage.getItem('jwtToken');
-            if (!token) {
-              Alert.alert('Error', 'Please log in again.');
-              return;
-            }
             try {
-              await axios.delete(`https://score360-7.onrender.com/api/v1/tournaments/${id}`, {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
+              const { success, error } = await apiService({
+                endpoint: `tournaments/${id}`,
+                method: 'DELETE',
               });
-              Alert.alert('Success', 'Tournament deleted successfully.');
-            } catch (error) {
-              console.error('Error deleting tournament:', error?.response?.data || error.message);
-              Alert.alert('Error', 'Failed to delete the tournament.');
+
+              if (success) {
+                Alert.alert('Success', 'Tournament deleted successfully.');
+              } else {
+                console.error('Delete error:', error);
+                Alert.alert('Error', 'Failed to delete the tournament.');
+              }
+            } catch (err) {
+              console.error('Unexpected error:', err.message);
+              Alert.alert('Error', 'Something went wrong.');
             }
           },
         },

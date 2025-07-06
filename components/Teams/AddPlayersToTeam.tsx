@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons, FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Animatable from 'react-native-animatable';
+import apiService from '../APIservices';
 
 const AddPlayersToTeam = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,25 +110,27 @@ const AddPlayersToTeam = () => {
   const fetchPlayers = async (query) => {
     try {
       setLoading(true);
-      const token = await getToken();
-      const responses = await Promise.all([
-        fetch(
-          `https://score360-7.onrender.com/api/v1/teams/players/search/name?name=${query}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
-        fetch(
-          `https://score360-7.onrender.com/api/v1/teams/players/search/phone?phone=${query}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
+
+      const [nameRes, phoneRes] = await Promise.all([
+        apiService({
+          endpoint: `teams/players/search/name`,
+          method: 'GET',
+          params: { name: query },
+        }),
+        apiService({
+          endpoint: `teams/players/search/phone`,
+          method: 'GET',
+          params: { phone: query },
+        }),
       ]);
 
-      const [nameData, phoneData] = await Promise.all(
-        responses.map((res) => (res.ok ? res.json() : { data: [] }))
-      );
+      const nameData = nameRes.success ? nameRes.data.data || [] : [];
+      const phoneData = phoneRes.success ? phoneRes.data.data || [] : [];
 
-      setFilteredPlayers([...nameData.data, ...phoneData.data]);
+      setFilteredPlayers([...nameData, ...phoneData]);
     } catch (error) {
       console.error('Error fetching players:', error);
+      setFilteredPlayers([]);
     } finally {
       setLoading(false);
     }
@@ -184,25 +187,23 @@ const AddPlayersToTeam = () => {
 
     try {
       const token = await getToken();
-      const storedCaptainId = captainId;
       const userId = await getUserUUID();
 
-      if (!storedCaptainId) {
+      if (!captainId) {
         setErrorMessage('Please assign a captain before creating the team.');
-        setCreatingTeam(false);
         return;
       }
 
       if (!userId) {
         setErrorMessage('Unable to retrieve the creator’s user ID.');
-        setCreatingTeam(false);
         return;
       }
 
       const formData = new FormData();
       formData.append('name', teamName);
-      formData.append('captainId', storedCaptainId);
-      formData.append('playerIds', Array.isArray(playerId) ? playerId.join(',') : '');
+      formData.append('captainId', captainId);
+      formData.append('playerIds', playerId.join(','));
+
       if (logoUri) {
         const fileName = logoUri.split('/').pop();
         const fileType = fileName.split('.').pop();
@@ -213,26 +214,24 @@ const AddPlayersToTeam = () => {
         });
       }
 
-      const response = await fetch(`https://score360-7.onrender.com/api/v1/teams/${userId}`, {
+      // Make request using apiService
+      const response = await apiService({
+        endpoint: `teams/${userId}`,
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
         body: formData,
+        isMultipart: true,
       });
 
-      if (response.ok) {
+      if (response.success) {
         setTeamPlayers([]);
         setPlayerId([]);
         setCaptainId(null);
         Alert.alert('Success', 'Team created successfully!');
         navigation.navigate('Teams');
       } else {
-        const data = await response.json();
-        console.error('API Error:', data);
-        setErrorMessage(data.message || 'Failed to create team.');
-        Alert.alert('Error', data.message || 'Failed to create team.');
+        const message = response.error?.message || 'Failed to create team.';
+        setErrorMessage(message);
+        Alert.alert('Error', message);
       }
     } catch (error) {
       console.error('Error creating team:', error);
@@ -244,7 +243,7 @@ const AddPlayersToTeam = () => {
   };
 
   const renderPlayerItem = ({ item, index }) => (
-    <Animatable.View 
+    <Animatable.View
       animation="fadeIn"
       duration={500}
       delay={index * 50}
@@ -258,7 +257,7 @@ const AddPlayersToTeam = () => {
         <Text style={styles.dropdownPlayerName}>{item.name}</Text>
         <Text style={styles.dropdownPlayerRole}>{item.role || 'All-rounder'}</Text>
       </View>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.addButton}
         onPress={() => addPlayerToTeam(item)}
       >
@@ -268,7 +267,7 @@ const AddPlayersToTeam = () => {
   );
 
   const renderTeamPlayer = ({ item }) => (
-    <Animatable.View 
+    <Animatable.View
       animation="slideInRight"
       duration={300}
       style={[
@@ -294,13 +293,13 @@ const AddPlayersToTeam = () => {
           ]}
           onPress={() => makeCaptain(item.id)}
         >
-          <FontAwesome 
-            name="star" 
-            size={16} 
-            color={captainId === item.id ? "#FFD700" : "#fff"} 
+          <FontAwesome
+            name="star"
+            size={16}
+            color={captainId === item.id ? "#FFD700" : "#fff"}
           />
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => removePlayerFromTeam(item.id)}
           style={styles.deleteButton}
         >
@@ -321,17 +320,17 @@ const AddPlayersToTeam = () => {
           blurRadius={2}
         >
           <SafeAreaView style={styles.safeArea}>
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.contentContainer,
-                { 
+                {
                   opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }] 
+                  transform: [{ translateY: slideAnim }]
                 }
               ]}
             >
               <View style={styles.header}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.backButton}
                   onPress={() => navigation.goBack()}
                 >
@@ -344,11 +343,11 @@ const AddPlayersToTeam = () => {
               </View>
 
               <View style={styles.searchContainer}>
-                <Ionicons 
-                  name="search" 
-                  size={20} 
-                  color="#4A90E2" 
-                  style={styles.searchIcon} 
+                <Ionicons
+                  name="search"
+                  size={20}
+                  color="#4A90E2"
+                  style={styles.searchIcon}
                 />
                 <TextInput
                   style={styles.input}
@@ -360,7 +359,7 @@ const AddPlayersToTeam = () => {
                   autoCapitalize="none"
                 />
                 {searchQuery !== '' && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.clearButton}
                     onPress={() => setSearchQuery('')}
                   >
@@ -376,7 +375,7 @@ const AddPlayersToTeam = () => {
               )}
 
               {filteredPlayers.length > 0 && (
-                <Animatable.View 
+                <Animatable.View
                   animation="fadeInUp"
                   style={styles.dropdownContainer}
                 >
@@ -421,7 +420,7 @@ const AddPlayersToTeam = () => {
               </View>
 
               {!keyboardOpen && (
-                <Animatable.View 
+                <Animatable.View
                   animation="fadeInUp"
                   duration={500}
                   style={styles.footer}
@@ -429,12 +428,12 @@ const AddPlayersToTeam = () => {
                   {errorMessage && (
                     <Text style={styles.errorMessage}>{errorMessage}</Text>
                   )}
-                  <TouchableOpacity 
-                    onPress={createTeam} 
+                  <TouchableOpacity
+                    onPress={createTeam}
                     style={[
                       styles.createButton,
                       teamPlayers.length === 0 && styles.disabledButton
-                    ]} 
+                    ]}
                     disabled={creatingTeam || teamPlayers.length === 0}
                   >
                     {creatingTeam ? (

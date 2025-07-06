@@ -4,12 +4,12 @@ import {
   TouchableOpacity, Animated, ScrollView, Dimensions
 } from 'react-native';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import EventSource from 'react-native-event-source';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import apiService from '../APIservices';
 
 const { width } = Dimensions.get('window');
 const background = require('../../assets/images/cricsLogo.png');
@@ -43,16 +43,38 @@ const CommentaryScorecard = ({ route, navigation }) => {
       setLoading(true);
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) return console.error('No token found');
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = response.data;
-      setMatchState(data);
-      setMatchId(data.matchId);
-      setStrikerStats(data.battingTeam.playingXI.find(p => p.playerId === data.currentStriker.playerId));
-      setNonStrikerStats(data.battingTeam.playingXI.find(p => p.playerId === data.currentNonStriker.playerId));
-      setBowlerStats(data.bowlingTeam.playingXI.find(p => p.playerId === data.currentBowler.playerId));
+
+      const response = await apiService({
+        endpoint: `matches/matchstate/${matchId}`,
+        method: 'GET',
+      });
+
+      if (response.success) {
+        const data = response.data;
+
+        setMatchState(data);
+        setMatchId(data.matchId);
+
+        setStrikerStats(
+          data.battingTeam.playingXI.find(
+            (p) => p.playerId === data.currentStriker.playerId
+          )
+        );
+
+        setNonStrikerStats(
+          data.battingTeam.playingXI.find(
+            (p) => p.playerId === data.currentNonStriker.playerId
+          )
+        );
+
+        setBowlerStats(
+          data.bowlingTeam.playingXI.find(
+            (p) => p.playerId === data.currentBowler.playerId
+          )
+        );
+      } else {
+        console.error('Failed to fetch match state:', response.error);
+      }
     } catch (error) {
       console.error('Error fetching match state:', error);
     } finally {
@@ -107,7 +129,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
     const isWicket = /out|wicket|bowled|caught|lbw|stumped|run out/i.test(cleanedCommentary);
     const isBoundary = /six|four|boundary/i.test(cleanedCommentary);
     const isImportant = isWicket || isBoundary;
-    
+
     return (
       <View style={[
         styles.commentaryItem,
@@ -150,11 +172,11 @@ const CommentaryScorecard = ({ route, navigation }) => {
           </Text>
           <Text style={styles.runRate}>RR: {matchState?.team1?.runRate || '-'}</Text>
         </View>
-        
+
         <View style={styles.versusContainer}>
           <Text style={styles.versusText}>vs</Text>
         </View>
-        
+
         <View style={styles.teamScore}>
           <Text style={styles.teamName}>{matchState?.team2?.name}</Text>
           <Text style={styles.teamRuns}>
@@ -163,9 +185,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
           <Text style={styles.runRate}>RR: {matchState?.team2?.runRate || '-'}</Text>
         </View>
       </View>
-      
+
       <View style={styles.divider} />
-      
+
       <View style={styles.playerContainer}>
         <View style={styles.playerRow}>
           <View style={styles.playerInfo}>
@@ -175,7 +197,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
           <Text style={styles.playerStats}>{strikerStats?.runs} ({strikerStats?.ballsFaced})</Text>
           <Text style={styles.playerExtra}>SR: {strikerStats?.strikeRate || '-'}</Text>
         </View>
-        
+
         <View style={styles.playerRow}>
           <View style={styles.playerInfo}>
             <View style={[styles.playerIcon, styles.nonStrikerIcon]} />
@@ -184,9 +206,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
           <Text style={styles.playerStats}>{nonStrikerStats?.runs} ({nonStrikerStats?.ballsFaced})</Text>
           <Text style={styles.playerExtra}>SR: {nonStrikerStats?.strikeRate || '-'}</Text>
         </View>
-        
+
         <View style={styles.divider} />
-        
+
         <View style={styles.playerRow}>
           <View style={styles.playerInfo}>
             <View style={[styles.playerIcon, styles.bowlerIcon]} />
@@ -196,7 +218,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
           <Text style={styles.playerExtra}>Econ: {bowlerStats?.economy || '-'}</Text>
         </View>
       </View>
-      
+
       <View style={styles.matchInfoContainer}>
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Partnership</Text>
@@ -204,7 +226,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
             {(strikerStats?.runsInPartnership || 0) + (nonStrikerStats?.runsInPartnership || 0)}
           </Text>
         </View>
-        
+
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Last 5 Overs</Text>
           <Text style={styles.infoValue}>{matchState?.recentOvers?.join(' ') || '-'}</Text>
@@ -219,7 +241,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
-        
+
         <View style={styles.headerContent}>
           <Text style={styles.matchTitle} numberOfLines={1} ellipsizeMode="tail">
             {matchState?.team1?.name} vs {matchState?.team2?.name}
@@ -244,9 +266,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
             scrollEventThrottle={16}
           >
             <View style={styles.topSpacer} />
-            
+
             {renderScorecard()}
-            
+
             <View style={styles.tabContainer}>
               <TouchableOpacity
                 style={[styles.tabButton, activeTab === 'commentary' && styles.activeTab]}
@@ -256,7 +278,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
                   Commentary
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[styles.tabButton, activeTab === 'scorecard' && styles.activeTab]}
                 onPress={() => setActiveTab('scorecard')}
@@ -266,7 +288,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
                 </Text>
               </TouchableOpacity>
             </View>
-            
+
             {activeTab === 'commentary' ? (
               <FlatList
                 data={getAllCommentary()}
@@ -275,8 +297,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
                 scrollEnabled={false}
                 contentContainerStyle={styles.commentaryList}
                 refreshControl={
-                  <RefreshControl 
-                    refreshing={refreshing} 
+                  <RefreshControl
+                    refreshing={refreshing}
                     onRefresh={onRefresh}
                     tintColor="#2ecc71"
                   />

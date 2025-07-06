@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Image, Modal, TextInput, Pressable, FlatList, ScrollView, Animated, Button, ImageBackground, Alert, Dimensions, StatusBar } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -11,6 +10,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
+import apiService from '../APIservices';
 
 export default function ManageTournaments({ route }) {
   const [activeTab, setActiveTab] = useState(route.params.tab);
@@ -25,23 +25,29 @@ export default function ManageTournaments({ route }) {
   const fetchTournamentDetails = async (id) => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
 
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+      const response = await apiService({
+        endpoint: `tournaments/${id}`,
+        method: 'GET',
+      });
+
+      if (response.success) {
+        const data = response.data;
+        setTournamentsDetails(data);
+
+        if (data.banner) {
+          const sanitizedUrl = data.banner.replace(
+            'https://score360-7.onrender.com/api/v1/files/http:/',
+            'https://'
+          );
+          setSanitizedBannerUrl(sanitizedUrl);
         }
-      );
-      setTournamentsDetails(response.data);
-      setSanitizedBannerUrl(
-        response.data.banner.replace(
-          'https://score360-7.onrender.com/api/v1/files/http:/',
-          'https://'
-        )
-      );
+      } else {
+        console.error('Error fetching tournament:', response.error);
+        setError('Failed to fetch tournament details');
+      }
     } catch (err) {
+      console.error('Unexpected error:', err);
       setError('Failed to fetch tournament details');
     } finally {
       setLoading(false);
@@ -653,27 +659,33 @@ export const Info = ({ id, isCreator }) => {
   const fetchTournamentDetails = async (id) => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
+      const response = await apiService({
+        endpoint: `tournaments/${id}`,
+        method: 'GET',
+      });
 
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+      if (response.success) {
+        const data = response.data;
+        setTournamentsDetails(data);
+        setEditedDetails({
+          ...data,
+          venues: data.venues || [],
+        });
+
+        if (data.banner) {
+          setSanitizedBannerUrl(
+            data.banner.replace(
+              'https://score360-7.onrender.com/api/v1/files/http:/',
+              'https://'
+            )
+          );
         }
-      );
-      setTournamentsDetails(response.data);
-      setEditedDetails({
-        ...response.data,
-        venues: response.data.venues || [],
-      }); // Pre-fill modal with current details
-      setSanitizedBannerUrl(
-        response.data.banner.replace(
-          'https://score360-7.onrender.com/api/v1/files/http:/',
-          'https://'
-        )
-      );
+      } else {
+        console.error('Fetch error:', response.error);
+        setError('Failed to fetch tournament details');
+      }
     } catch (err) {
+      console.error('Unexpected error:', err);
       setError('Failed to fetch tournament details');
     } finally {
       setLoading(false);
@@ -683,31 +695,31 @@ export const Info = ({ id, isCreator }) => {
   const updateTournamentDetails = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
 
       const dataToSend = {
         name: editedDetails.name,
-        startDate: startDate,
-        endDate: endDate,
+        startDate,
+        endDate,
         type: editedDetails.type,
         ballType: editedDetails.ballType,
         venues: editedDetails.venues,
       };
 
-      await axios.put(
-        `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
-        dataToSend,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      setEditingTournament(false);
-      await fetchTournamentDetails(id); // Refresh tournament details
+      const response = await apiService({
+        endpoint: `tournaments/${id}`,
+        method: 'PUT',
+        body: dataToSend,
+      });
+
+      if (response.success) {
+        setEditingTournament(false);
+        await fetchTournamentDetails(id); // Refresh tournament details
+      } else {
+        console.error('Update error:', response.error);
+        setError(response.error?.message || 'Failed to update tournament details');
+      }
     } catch (err) {
+      console.error('Unexpected error:', err);
       setError('Failed to update tournament details');
     } finally {
       setLoading(false);
@@ -907,18 +919,22 @@ export const Teams = ({ id, isCreator }) => {
 
   const fetchTeams = async (id) => {
     try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Please login again");
       setLoading({ key: 'All', value: true });
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/tournaments/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setTeams(response.data.teamNames);
+
+      const response = await apiService({
+        endpoint: `tournaments/${id}`,
+        method: 'GET',
+      });
+
+      if (response.success) {
+        setTeams(response.data.teamNames || []);
+      } else {
+        console.error('API Error:', response.error);
+        setError(response.error?.message || 'Failed to fetch Team names');
+      }
     } catch (err) {
-      setError("Failed to fetch Team names");
+      console.error('Unexpected error:', err);
+      setError('Failed to fetch Team names');
     } finally {
       setLoading({ key: 'All', value: false });
     }
@@ -926,19 +942,23 @@ export const Teams = ({ id, isCreator }) => {
 
   const searchTeamsByName = async (name) => {
     try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Please login again");
       setLoading({ key: 'Search', value: true });
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/teams/search/name`,
-        {
-          params: { name },
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setDropdownOptions(response.data.data);
+
+      const response = await apiService({
+        endpoint: 'teams/search/name',
+        method: 'GET',
+        params: { name },
+      });
+
+      if (response.success) {
+        setDropdownOptions(response.data.data || []);
+      } else {
+        console.error('API Error:', response.error);
+        setError(response.error?.message || 'Failed to search for teams');
+      }
     } catch (err) {
-      setError("Failed to search for teams");
+      console.error('Unexpected error:', err);
+      setError('Failed to search for teams');
     } finally {
       setLoading({ key: 'Search', value: false });
     }
@@ -966,55 +986,55 @@ export const Teams = ({ id, isCreator }) => {
 
   const addNewTeam = async (teamid: string, teamname: string) => {
     try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Please login again");
       setLoading({ key: 'Add', value: true });
-      await axios.post(
-        `https://score360-7.onrender.com/api/v1/tournaments/${id}/add-teams`,
-        [teamid.trim()],
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      setEnteredTeamName('');
-      setTeamId('');
-      fetchTeams(id);
-      setError("");
+
+      const response = await apiService({
+        endpoint: `tournaments/${id}/add-teams`,
+        method: 'POST',
+        body: [teamid.trim()],
+      });
+
+      if (response.success) {
+        setEnteredTeamName('');
+        setTeamId('');
+        await fetchTeams(id);
+        setError('');
+      } else {
+        console.error('API Error:', response.error);
+        setError(response.error?.message || 'Failed to add team');
+      }
     } catch (err) {
-      setError("Failed to add team");
+      console.error('Unexpected Error:', err);
+      setError('Failed to add team');
     } finally {
       setLoading({ key: 'All', value: false });
     }
   };
 
-  const handleDeleteTeamHandler = async (teamId) => {
-    const token = await AsyncStorage.getItem('jwtToken');
-    setLoading({ key: 'All', value: true })
-    if (!token) {
-      throw new Error("Login Again");
-      return;
-    }
+  const deleteTeamHandler = async (teamId) => {
+    setLoading({ key: 'All', value: true });
+
     try {
-      await axios.post(
-        `https://score360-7.onrender.com/api/v1/tournaments/${id}/remove-teams`,
-        [teamId.trim()],
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await apiService({
+        endpoint: `tournaments/${id}/remove-teams`,
+        method: 'POST',
+        body: [teamId.trim()],
+      });
+
+      if (!response.success) {
+        console.error('API Error:', response.error);
+        setError(response.error?.message || "Couldn't delete team");
+      } else {
+        setError('');
+      }
     } catch (err) {
+      console.error('Unexpected Error:', err);
       setError("Couldn't delete team");
     } finally {
       setLoading({ key: 'All', value: false });
       fetchTeams(id);
     }
-  }
+  };
 
   useEffect(() => {
     fetchTeams(id);
@@ -1061,7 +1081,7 @@ export const Teams = ({ id, isCreator }) => {
                 </View>
               </View>
               {isCreator &&
-                <Pressable onPress={() => handleDeleteTeamHandler(team.id)}>
+                <Pressable onPress={() => deleteTeamHandler(team.id)}>
                   <Icon name="delete" size={24} color="black" />
                 </Pressable>
               }
@@ -1177,18 +1197,19 @@ export const Matches = ({ id, isCreator }) => {
     }
 
     try {
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/tournaments/${id}/matches`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      setMatchDetails(response.data);
+      const response = await apiService({
+        endpoint: `tournaments/${id}/matches`,
+        method: 'GET',
+      });
+
+      if (response.success) {
+        setMatchDetails(response.data);
+      } else {
+        setError('Failed to fetch matches');
+        console.error('Error fetching matches:', response.error);
+      }
     } catch (error) {
-      console.error('Error fetching matches:', error?.response?.data || error.message);
+      console.error('Unexpected error fetching matches:', error);
       setError('Failed to fetch matches');
     } finally {
       setLoading(false);
@@ -1204,14 +1225,17 @@ export const Matches = ({ id, isCreator }) => {
     }
 
     try {
-      const response = await axios.get(`https://score360-7.onrender.com/api/v1/tournaments/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await apiService({
+        endpoint: `tournaments/${id}`,
+        method: 'GET',
       });
-      setTournamentData(response.data);
-      setVenues(response.data.venues);
+
+      if (response.success) {
+        setTournamentData(response.data);
+        setVenues(response.data.venues);
+      } else {
+        setError('Failed to fetch tournament details');
+      }
     } catch (error) {
       setError('Failed to fetch tournament details');
     }
@@ -1229,16 +1253,19 @@ export const Matches = ({ id, isCreator }) => {
 
     try {
       const venuesQuery = venues.join(',');
-      await axios.post(`https://score360-7.onrender.com/api/v1/tournaments/${id}/schedule-matches?venues=${venuesQuery}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await apiService({
+        endpoint: `tournaments/${id}/schedule-matches`,
+        method: 'POST',
+        params: { venues: venuesQuery },
+        body: {},
+      });
 
-      fetchMatchDetails(id);
+      if (response.success) {
+        fetchMatchDetails(id);
+      } else {
+        setError('Failed to schedule matches');
+        console.error('Schedule API error:', response.error);
+      }
     } catch (error) {
       setError('Failed to schedule matches');
     } finally {
@@ -1262,11 +1289,10 @@ export const Matches = ({ id, isCreator }) => {
   const handleScheduleSubmit = async () => {
     if (!selectedMatch) return;
 
-    const selectedDateTime = moment(matchDate)
-      .set({
-        hour: moment(matchTime).hour(),
-        minute: moment(matchTime).minute(),
-      });
+    const selectedDateTime = moment(matchDate).set({
+      hour: moment(matchTime).hour(),
+      minute: moment(matchTime).minute(),
+    });
 
     const payload = {
       matchDate: selectedDateTime.format("YYYY-MM-DD"),
@@ -1274,76 +1300,64 @@ export const Matches = ({ id, isCreator }) => {
       venue,
     };
 
-    try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      const response = await axios.put(
-        `https://score360-7.onrender.com/api/v1/tournaments/${id}/matches/${selectedMatch.id}`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+    const { success, data, error } = await apiService({
+      endpoint: `tournaments/${id}/matches/${selectedMatch.id}`,
+      method: 'PUT',
+      body: payload,
+    });
 
-      console.log('Match scheduled successfully:', response.data);
+    if (success) {
+      console.log("Match scheduled successfully:", data);
       setModalVisible(false);
-    } catch (error) {
-      console.error('Error scheduling match:', error?.response?.data || error.message);
-      Alert.alert('Error', 'Failed to schedule match');
+      fetchMatchDetails(id);
+    } else {
+      console.error("Error scheduling match:", error);
+      Alert.alert("Error", "Failed to schedule match.");
     }
   };
 
+  // Handle Manual Match Scheduling
   const manualMatchScheduleHandler = async () => {
     console.log(`${manualMatchTeamB}, ${manualMatchTeamA}, ${manualMatchDate}, ${manualMatchTime}, ${manualMatchVenue}`);
 
     if (!manualMatchTeamA || !manualMatchTeamB || !manualMatchDate || !manualMatchTime || !manualMatchVenue) {
-      alert('Please fill in all fields.');
+      Alert.alert("Error", "Please fill in all fields.");
       return;
     }
 
     if (manualMatchTeamA === manualMatchTeamB) {
-      alert('Team A and Team B cannot be the same.');
+      Alert.alert("Error", "Team A and Team B cannot be the same.");
       return;
     }
 
-    const selectedDateTime = moment(manualMatchDate)
-      .set({
-        hour: moment(manualMatchTime).hour(),
-        minute: moment(manualMatchTime).minute(),
-      });
-    try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) {
-        setError('Please Login Again');
-        setLoading(false);
-        return;
-      }
+    const selectedDateTime = moment(manualMatchDate).set({
+      hour: moment(manualMatchTime).hour(),
+      minute: moment(manualMatchTime).minute(),
+    });
 
-      const response = await axios.post(`https://score360-7.onrender.com/api/v1/matches/schedule`, {
-        tournamentId: id,
-        team1Id: manualMatchTeamA,
-        team2Id: manualMatchTeamB,
-        overs: +tournamentData.type,
-        venue: manualMatchVenue,
-        matchDate: selectedDateTime.format("YYYY-MM-DD"),
-        matchTime: selectedDateTime.format("HH:mm"),
-      },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          }
-        });
+    const payload = {
+      tournamentId: id,
+      team1Id: manualMatchTeamA,
+      team2Id: manualMatchTeamB,
+      overs: +tournamentData.type,
+      venue: manualMatchVenue,
+      matchDate: selectedDateTime.format("YYYY-MM-DD"),
+      matchTime: selectedDateTime.format("HH:mm"),
+    };
 
-      if (response.status === 201 || response.status === 200) {
-        alert('Match scheduled successfully!');
-        setIsManualModalOpen(false);
-        fetchMatchDetails(id);
-      }
-    } catch (error) {
-      console.error('Manual match schedule error:', error);
-      alert('Failed to schedule match manually.');
+    const { success, data, error } = await apiService({
+      endpoint: 'matches/schedule',
+      method: 'POST',
+      body: payload,
+    });
+
+    if (success) {
+      Alert.alert("Success", "Match scheduled successfully!");
+      setIsManualModalOpen(false);
+      fetchMatchDetails(id);
+    } else {
+      console.error("Manual match schedule error:", error);
+      Alert.alert("Error", "Failed to schedule match manually.");
     }
   };
 
@@ -1713,26 +1727,28 @@ export const PointsTable = ({ id }) => {
     const token = await AsyncStorage.getItem('jwtToken');
     if (!token) {
       navigation.navigate('Login');
+      return;
     }
     try {
       setLoading(true);
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/tournaments/points-table/${id}`,
-        {
-          headers:
-          {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-      // setPointsData(response.data);
-      console.log(response.data);
+      const { success, data, error } = await apiService({
+        endpoint: `tournaments/points-table/${id}`,
+        method: 'GET',
+      });
+
+      if (success) {
+        console.log('Points Table:', data);
+        // setPointsData(data);
+      } else {
+        console.error('Failed to fetch points table:', error);
+      }
+
     } catch (err) {
-      console.log(err);
+      console.error('Unexpected error:', err);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     // getPointsTable();

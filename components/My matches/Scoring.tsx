@@ -11,7 +11,6 @@ import {
   View,
   Image,
 } from 'react-native';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 // import LinearGradient from 'react-native-linear-gradient';
@@ -21,6 +20,7 @@ import EventSource from 'react-native-event-source';
 import bg from '../../assets/images/cricsLogo.png';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
+import apiService from '../APIservices';
 const driveImage = require('../../assets/images/DriveShot.png');
 const cutImage = require('../../assets/images/squareShot.png');
 const pullImage = require('../../assets/images/HookShot.png');
@@ -159,10 +159,17 @@ const ScoringScreen = ({ route }) => {
   const SSEhandler = async () => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
+      //test
       const eventSource = new EventSource(
-        `https://score360-7.onrender.com/api/v1/matches/${matchId}/subscribe`,
+        `http://34.47.150.57:8081/api/v1/matches/${matchId}/subscribe`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      //prod
+      // const eventSource = new EventSource(
+      //   `http://34.47.150.57:8080/api/v1/matches/${matchId}/subscribe`,
+      //   { headers: { Authorization: `Bearer ${token}` } }
+      // );
 
       eventSource.addEventListener('ball-update', (event) => {
         const data = JSON.parse(event.data);
@@ -389,67 +396,91 @@ const ScoringScreen = ({ route }) => {
 
   const getMatchState = async () => {
     try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/matches/matchstate/${matchId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const { success, data, error } = await apiService({
+        endpoint: `matches/matchstate/${matchId}`,
+        method: 'GET',
+      });
 
-      console.log("Match State Data:", response.data);
-      const data = response.data;
+      if (!success) {
+        console.log("Error fetching match state:", error);
+        return;
+      }
+
+      console.log("Match State Data:", data);
 
       setMatchId(data.matchId);
-      setStrikerId(data.currentStriker.playerId || null);
-      setNonStrikerId(data.currentNonStriker.playerId || null);
-      setBowler(data.currentBowler.playerId || null);
-      setSelectedStrikerName(data.currentStriker.name || "Unknown");
-      setSelectedNonStrikerName(data.currentNonStriker.name || "Unknown");
-      setSelectedBowlerName(data.currentBowler.name || "Unknown");
-      setBattingTeamName(data.battingTeam.name || "Unknown");
-      setScore(data.battingTeam.score || 0);
-      setBowlingTeamName(data.bowlingTeam.name || "Unknown");
-      setWicket(data.battingTeam.wickets || 0);
-      setExtras(data.battingTeam.extras || 0);
+      setStrikerId(data.currentStriker?.playerId || null);
+      setNonStrikerId(data.currentNonStriker?.playerId || null);
+      setBowler(data.currentBowler?.playerId || null);
+      setSelectedStrikerName(data.currentStriker?.name || "Unknown");
+      setSelectedNonStrikerName(data.currentNonStriker?.name || "Unknown");
+      setSelectedBowlerName(data.currentBowler?.name || "Unknown");
+      setBattingTeamName(data.battingTeam?.name || "Unknown");
+      setScore(data.battingTeam?.score || 0);
+      setBowlingTeamName(data.bowlingTeam?.name || "Unknown");
+      setWicket(data.battingTeam?.wickets || 0);
+      setExtras(data.battingTeam?.extras || 0);
       setBattingTeamII(data.battingTeamPlayingXI || []);
       setBowlingTeamII(data.bowlingTeamPlayingXI || []);
       setCompletedOvers(data.completedOvers || 0);
       setCurrentOver(data.currentOver || []);
 
-      const filteredBowlers = data.bowlingTeamPlayingXI?.filter((player) => player.playerId !== data.currentBowler?.playerId)
-        .map(({ playerId, name }) => ({ playerId, name })) || [];
+      const filteredBowlers =
+        data.bowlingTeamPlayingXI?.filter(
+          (player) => player.playerId !== data.currentBowler?.playerId
+        ).map(({ playerId, name }) => ({ playerId, name })) || [];
       setAvailableBowlers(filteredBowlers);
 
-      const available = data.battingTeamPlayingXI?.filter(
-        (player) => player.ballsFaced === 0 && player.playerId !== data.currentStriker?.playerId && player.playerId !== data.currentNonStriker?.playerId
-      ).map(({ playerId, name }) => ({ playerId, name })) || [];
+      const available =
+        data.battingTeamPlayingXI?.filter(
+          (player) =>
+            player.ballsFaced === 0 &&
+            player.playerId !== data.currentStriker?.playerId &&
+            player.playerId !== data.currentNonStriker?.playerId
+        ).map(({ playerId, name }) => ({ playerId, name })) || [];
       setAvailableBatsmen(available);
 
-      const strikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentStriker?.name) || { runs: 0, ballsFaced: 0 };
-      const nonStrikerStats = data.battingTeamPlayingXI?.find(player => player?.name === data.currentNonStriker?.name) || { runs: 0, ballsFaced: 0 };
-      const bowlerStats = data.bowlingTeamPlayingXI?.find(player => player?.name === data.currentBowler?.name) || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 };
+      const strikerStats =
+        data.battingTeamPlayingXI?.find(
+          (player) => player?.name === data.currentStriker?.name
+        ) || { runs: 0, ballsFaced: 0 };
+      const nonStrikerStats =
+        data.battingTeamPlayingXI?.find(
+          (player) => player?.name === data.currentNonStriker?.name
+        ) || { runs: 0, ballsFaced: 0 };
+      const bowlerStats =
+        data.bowlingTeamPlayingXI?.find(
+          (player) => player?.name === data.currentBowler?.name
+        ) || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 };
 
       setStrikerStats(strikerStats);
       setNonStrikerStats(nonStrikerStats);
       setBowlerStats(bowlerStats);
 
-      const formattedOverDetails = data.currentOver?.map((ball) => {
-        let event = ball.runs.toString();
-        if (ball.wicket) event += 'W';
-        if (ball.noBall) event += 'NB';
-        if (ball.wide) event += 'Wd';
-        if (ball.bye) event += 'B';
-        if (ball.legBye) event += 'LB';
-        return event;
-      }) || [];
+      const formattedOverDetails =
+        data.currentOver?.map((ball) => {
+          let event = ball.runs.toString();
+          if (ball.wicket) event += 'W';
+          if (ball.noBall) event += 'NB';
+          if (ball.wide) event += 'Wd';
+          if (ball.bye) event += 'B';
+          if (ball.legBye) event += 'LB';
+          return event;
+        }) || [];
 
       setOverDetails(formattedOverDetails);
 
-      const deliveryCount = data.currentOver?.reduce((count, ball) => {
-        return count + (ball.noBall || ball.wide ? 0 : 1);
-      }, 0) || 0;
+      const deliveryCount =
+        data.currentOver?.reduce((count, ball) => {
+          return count + (ball.noBall || ball.wide ? 0 : 1);
+        }, 0) || 0;
       setLegalDeliveries(deliveryCount);
 
-      if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
+      if (
+        data.completedOvers !== 0 &&
+        deliveryCount === 0 &&
+        data.completedOvers !== data.totalOvers
+      ) {
         setModals((prev) => ({ ...prev, nextBowler: true }));
       }
       console.log("Logging set values");
@@ -465,7 +496,6 @@ const ScoringScreen = ({ route }) => {
       console.log("Wickets:", wicket);
       console.log("Extras:", extras);
       console.log("Completed Overs:", completedOvers);
-
 
     } catch (error) {
       console.log("Error fetching match state:", error);
@@ -519,26 +549,24 @@ const ScoringScreen = ({ route }) => {
   // };
 
   const undoHandler = async () => {
-    const token = await AsyncStorage.getItem('jwtToken');
-    if (!token) {
-      navigation.navigate('Login');
-    }
     try {
-      const response = await axios.post(
-        `https://score360-7.onrender.com/api/v1/matches/${matchId}/undo-last-ball`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-        },
-      );
-      console.log(response);
+      const { success, data, error } = await apiService({
+        endpoint: `matches/${matchId}/undo-last-ball`,
+        method: 'POST',
+        body: {},
+      });
+
+      if (!success) {
+        console.log("Undo failed:", error);
+        return;
+      }
+
+      console.log("Undo successful:", data);
     } catch (err) {
-      console.log(err);
+      console.log("Unexpected error during undo:", err);
     }
     getMatchState();
-  }
+  };
 
   const handleExtrasWicketSelection = (value) => {
     if (value === 'Wide') {
@@ -574,41 +602,37 @@ const ScoringScreen = ({ route }) => {
     }
     setModals({ ...modals, nextBatsman: false });
 
-    try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
+    const { success, error } = await apiService({
+      endpoint: `matches/${matchId}/next-batsman/${selectedPlayer.playerId}`,
+      method: 'POST',
+      body: {},
+    });
 
-      const response = await axios.post(
-        `https://score360-7.onrender.com/api/v1/matches/${matchId}/next-batsman/${selectedPlayer.playerId}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-    } catch (error) {
+    if (!success) {
       console.error("Error updating next batsman:", error);
       Alert.alert("Error", "Failed to update next batsman.");
     }
   };
 
   const selectNextBowler = async (playerId, playerName) => {
-    try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
-      const response = await axios.post(`https://score360-7.onrender.com/api/v1/matches/${matchId}/next-bowler/${playerId}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    const { success, error } = await apiService({
+      endpoint: `matches/${matchId}/next-bowler/${playerId}`,
+      method: 'POST',
+      body: {},
+    });
 
-      // Reset the new bowler's stats
-      setBowlerStats({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
-
-      setBowler(playerId);
-      setCurrentBowlerName(playerName);
-      setLegalDeliveries(0);
-      setModals((prev) => ({ ...prev, nextBowler: false }));
-    } catch (error) {
+    if (!success) {
       console.error("Error selecting next bowler:", error);
+      Alert.alert("Error", "Failed to update next bowler.");
+      return;
     }
+
+    // Reset the new bowler's stats
+    setBowlerStats({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
+    setBowler(playerId);
+    setCurrentBowlerName(playerName);
+    setLegalDeliveries(0);
+    setModals((prev) => ({ ...prev, nextBowler: false }));
   };
 
   const catchHandler = () => {
@@ -665,52 +689,56 @@ const ScoringScreen = ({ route }) => {
   };
 
   const submitScore = async (data) => {
-    try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
-      await axios.post(
-        `https://score360-7.onrender.com/api/v1/matches/${matchId}/ball`,
-        {
-          matchId,
-          tournamentId: null,
-          strikerId: strikerId,
-          bowlerId: bowler,
-          wicketType: data.wicketType || '',
-          shotType: data.shotType || '',
-          direction: data.direction || '',
-          runs: data.runs || 0,
-          battingFirst: true,
-          wide: data.wide || false,
-          noBall: data.noBall || false,
-          bye: data.bye || false,
-          legBye: data.legBye || false,
-          wicket: data.wicket || false,
-          freeHit: false,
-          catcherId: selectedCatcher || null,
-          runOutMakerId: data.runOutMakerId || null,
-          runOutGetterId: data.runOutGetterId || null,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    const payload = {
+      matchId,
+      tournamentId: null,
+      strikerId,
+      bowlerId: bowler,
+      wicketType: data.wicketType || '',
+      shotType: data.shotType || '',
+      direction: data.direction || '',
+      runs: data.runs || 0,
+      battingFirst: true,
+      wide: data.wide || false,
+      noBall: data.noBall || false,
+      bye: data.bye || false,
+      legBye: data.legBye || false,
+      wicket: data.wicket || false,
+      freeHit: false,
+      catcherId: selectedCatcher || null,
+      runOutMakerId: data.runOutMakerId || null,
+      runOutGetterId: data.runOutGetterId || null,
+    };
+
+    const { success, error } = await apiService({
+      endpoint: `matches/${matchId}/ball`,
+      method: 'POST',
+      body: payload,
+    });
+
+    if (success) {
       Alert.alert('Success', 'Score updated successfully!');
-    } catch (err) {
+    } else {
+      console.error('Score update error:', error);
       Alert.alert('Error', 'Failed to update score');
     }
   };
 
   const handleStartSecondInnings = async () => {
-    try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      const response = await axios.post(`https://score360-7.onrender.com/api/v1/matches/matches/${matchId}/start-second-innings`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+    const { success, error } = await apiService({
+      endpoint: `matches/matches/${matchId}/start-second-innings`,
+      method: 'POST',
+      body: {},
+    });
+
+    if (success) {
       setModals({ ...modals, startNextInnings: false });
       navigation.navigate('SelectRoles', { matchId, isFirstInnings: false });
-    } catch (error) {
-      console.log(error);
+    } else {
+      console.error('Start second innings error:', error);
+      Alert.alert('Error', 'Failed to start second innings');
     }
-  }
+  };
 
   return (
     <View style={styles.container}>

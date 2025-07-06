@@ -1,11 +1,11 @@
 import { Alert, FlatList, ImageBackground, Pressable, StyleSheet, Text, View, Animated, Image } from 'react-native';
 import React, { useEffect, useState, useRef } from 'react';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import stadiumBG from '../../assets/images/cricsLogo.png';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
+import apiService from '../APIservices';
 
 const SelectRoles = ({ route, navigation }) => {
   const { matchId, isFirstInnings } = route.params;
@@ -76,17 +76,24 @@ const SelectRoles = ({ route, navigation }) => {
       if (!token) throw new Error("Please login again");
 
       const [responseBatting, responseBowling] = await Promise.all([
-        axios.get(`https://score360-7.onrender.com/api/v1/matches/${matchId}/playingXI/batting`, {
-          headers: { Authorization: `Bearer ${token}` }
+        apiService({
+          endpoint: `matches/${matchId}/playingXI/batting`,
+          method: 'GET',
         }),
-        axios.get(`https://score360-7.onrender.com/api/v1/matches/${matchId}/playingXI/bowling`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        apiService({
+          endpoint: `matches/${matchId}/playingXI/bowling`,
+          method: 'GET',
+        }),
       ]);
-      
-      setBattingII(responseBatting.data);
-      setBowlingII(responseBowling.data);
+
+      if (responseBatting.success && responseBowling.success) {
+        setBattingII(responseBatting.data);
+        setBowlingII(responseBowling.data);
+      } else {
+        Alert.alert('Error', 'Unable to load one or both playing XIs.');
+      }
     } catch (err) {
+      console.error(err);
       Alert.alert('Error', 'Failed to fetch playing XI');
     } finally {
       setIsLoading(false);
@@ -143,42 +150,53 @@ const SelectRoles = ({ route, navigation }) => {
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error("Please login again");
 
-      await axios.post(
-        `https://score360-7.onrender.com/api/v1/matches/${matchId}/players/update`,
-        { striker: strikerId, nonStriker: nonStrikerId, bowler: bowlerId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await apiService({
+        endpoint: `matches/${matchId}/players/update`,
+        method: 'POST',
+        body: {
+          striker: strikerId,
+          nonStriker: nonStrikerId,
+          bowler: bowlerId,
+        },
+      });
 
-      showPopupNotification();
-      setTimeout(() => {
-        navigation.navigate(`Scoring`, { 
-          matchId, 
-          strikerId, 
-          nonStrikerId, 
-          bowler: bowlerId, 
-          selectedStrikerName: strikerName, 
-          selectedNonStrikerName: nonStrikerName, 
-          selectedBowlerName: bowlerName, 
-          isFirstInnings, 
-          score: 0, 
-          wicket: 0, 
-          completedOvers: 0 
-        });
-      }, 1000);
+      if (response.success) {
+        showPopupNotification();
+
+        setTimeout(() => {
+          navigation.navigate('Scoring', {
+            matchId,
+            strikerId,
+            nonStrikerId,
+            bowler: bowlerId,
+            selectedStrikerName: strikerName,
+            selectedNonStrikerName: nonStrikerName,
+            selectedBowlerName: bowlerName,
+            isFirstInnings,
+            score: 0,
+            wicket: 0,
+            completedOvers: 0,
+          });
+        }, 1000);
+      } else {
+        Alert.alert('Error', 'Failed to update players');
+      }
     } catch (err) {
-      setIsLoading(false);
+      console.error(err);
       Alert.alert('Error', 'Failed to update players');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const renderPlayerItem = ({ item }) => (
     <Pressable
       style={[
-        styles.playerCard, 
+        styles.playerCard,
         (step === 1 ? (strikerId === item.playerId || nonStrikerId === item.playerId) : bowlerId === item.playerId) && styles.selected
       ]}
-      onPress={() => step === 1 ? 
-        handleSelectBatsman({ playerId: item.playerId, name: item.name }) : 
+      onPress={() => step === 1 ?
+        handleSelectBatsman({ playerId: item.playerId, name: item.name }) :
         handleSelectBowler({ playerId: item.playerId, name: item.name })}
     >
       <View style={styles.playerContent}>
@@ -190,7 +208,7 @@ const SelectRoles = ({ route, navigation }) => {
           ]}
         />
         <Text style={[
-          styles.playerText, 
+          styles.playerText,
           (step === 1 ? (strikerId === item.playerId || nonStrikerId === item.playerId) : bowlerId === item.playerId) && styles.selectedText
         ]}>
           {item.name}
@@ -225,7 +243,7 @@ const SelectRoles = ({ route, navigation }) => {
           <View style={styles.headerContainer}>
             <Text style={styles.heading}>Select Roles</Text>
           </View>
-          
+
           <BlurView style={styles.selectRolesIIContainer} intensity={50}>
             <LinearGradient
               colors={['#0866AA', '#6BB9F0']}
@@ -253,8 +271,8 @@ const SelectRoles = ({ route, navigation }) => {
                       />
                     )}
                   </View>
-                  
-                  <Animated.View 
+
+                  <Animated.View
                     style={[
                       styles.nextButtonContainer,
                       {
@@ -268,8 +286,8 @@ const SelectRoles = ({ route, navigation }) => {
                       }
                     ]}
                   >
-                    <Pressable 
-                      style={[styles.nextButton, styles.actionButton]} 
+                    <Pressable
+                      style={[styles.nextButton, styles.actionButton]}
                       onPress={() => setStep(2)}
                     >
                       <Text style={styles.actionButtonText}>Next</Text>
@@ -298,16 +316,16 @@ const SelectRoles = ({ route, navigation }) => {
                     )}
                   </View>
                   <View style={styles.bottomButtonContainer}>
-                    <Pressable 
-                      style={[styles.backButton, styles.actionButton]} 
+                    <Pressable
+                      style={[styles.backButton, styles.actionButton]}
                       onPress={() => setStep(1)}
                     >
                       <MaterialIcons name="arrow-back" size={20} color="white" />
                       <Text style={styles.actionButtonText}>Back</Text>
                     </Pressable>
                     {bowlerId && (
-                      <Pressable 
-                        style={[styles.submitButton, styles.actionButton]} 
+                      <Pressable
+                        style={[styles.submitButton, styles.actionButton]}
                         onPress={handleSubmit}
                         disabled={isLoading}
                       >

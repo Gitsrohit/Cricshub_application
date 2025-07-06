@@ -11,9 +11,10 @@ import {
   ImageBackground,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import apiService from '../APIservices';
 
 const logo = require('../../assets/images/cricshub.png');
-const background = require('../../assets/images/cricsLogo.png'); 
+const background = require('../../assets/images/cricsLogo.png');
 
 const Registration = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -36,29 +37,23 @@ const Registration = ({ navigation }) => {
     }
 
     try {
-      const url = `https://score360-7.onrender.com/api/v1/auth/sendOtp?email=${encodeURIComponent(
-        formData.email
-      )}`;
-
-      const response = await fetch(url, {
+      const response = await apiService({
+        endpoint: `auth/sendOtp`,
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        params: { email: formData.email },
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.success) {
         Alert.alert('Success', 'Verification email sent!');
       } else {
         Alert.alert(
           'Error',
-          `Error ${response.status}: ${data.message || 'Failed to send verification email.'}`
+          `Error ${response.status}: ${response.error.message || 'Failed to send verification email.'}`
         );
       }
     } catch (error) {
-      Alert.alert('Success', 'Verification email sent!');
+      Alert.alert('Error', 'Something went wrong.');
+      console.error(error);
     }
   };
 
@@ -76,37 +71,23 @@ const Registration = ({ navigation }) => {
     }
 
     try {
-      const response = await fetch(
-        'https://score360-7.onrender.com/api/v1/auth/register',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            mobile,
-            password,
-            confirmPassword,
-            otp,
-          }),
-        }
-      );
+      const response = await apiService({
+        endpoint: 'auth/register',
+        method: 'POST',
+        body: {
+          name,
+          email,
+          mobile,
+          password,
+          confirmPassword,
+          otp,
+        },
+      });
 
-      const contentType = response.headers.get('Content-Type');
-      let data = null;
-
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        data = await response.text();
-      }
-
-      if (response.ok) {
+      if (response.success) {
         Alert.alert('Success', 'Registration successful!');
       } else {
-        Alert.alert('Error', `Error ${response.status}: ${data.message || data}`);
+        Alert.alert('Error', `Error ${response.status}: ${response.error.message || 'Registration failed.'}`);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to connect to the server.');

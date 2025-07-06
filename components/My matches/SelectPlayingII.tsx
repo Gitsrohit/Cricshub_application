@@ -12,11 +12,11 @@ import {
   ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import apiService from "../APIservices";
 
 const SelectPlayingXI = ({ route }) => {
   const navigation = useNavigation();
@@ -43,24 +43,24 @@ const SelectPlayingXI = ({ route }) => {
 
     try {
       const [response1, response2] = await Promise.all([
-        axios.get(
-          `https://score360-7.onrender.com/api/v1/teams/${matchDetails.team1Id}`,
-          {
-            headers: { authorization: `Bearer ${token}` },
-          }
-        ),
-        axios.get(
-          `https://score360-7.onrender.com/api/v1/teams/${matchDetails.team2Id}`,
-          {
-            headers: { authorization: `Bearer ${token}` },
-          }
-        ),
+        apiService({
+          endpoint: `teams/${matchDetails.team1Id}`,
+          method: 'GET',
+        }),
+        apiService({
+          endpoint: `teams/${matchDetails.team2Id}`,
+          method: 'GET',
+        }),
       ]);
 
-      setTeam1Details(response1.data.data);
-      setTeam2Details(response2.data.data);
-      setFilteredTeam1Players(response1.data.data.players);
-      setFilteredTeam2Players(response2.data.data.players);
+      if (response1.success && response2.success) {
+        setTeam1Details(response1.data.data);
+        setTeam2Details(response2.data.data);
+        setFilteredTeam1Players(response1.data.data.players);
+        setFilteredTeam2Players(response2.data.data.players);
+      } else {
+        setError("Sorry, unable to fetch one or both team details");
+      }
     } catch (err) {
       setError("Sorry, unable to fetch team details");
       console.error(err);
@@ -92,8 +92,8 @@ const SelectPlayingXI = ({ route }) => {
       prev.includes(playerId)
         ? prev.filter((id) => id !== playerId)
         : prev.length < 11
-        ? [...prev, playerId]
-        : prev
+          ? [...prev, playerId]
+          : prev
     );
   };
 
@@ -138,19 +138,24 @@ const SelectPlayingXI = ({ route }) => {
       const token = await AsyncStorage.getItem("jwtToken");
       if (!token) throw new Error("Please login again");
 
-      await axios.post(
-        `https://score360-7.onrender.com/api/v1/matches/${matchId}/start`,
-        {
+      const response = await apiService({
+        endpoint: `matches/${matchId}/start`,
+        method: 'POST',
+        body: {
           tournamentId: null,
           team1PlayingXIIds: selectedTeam1,
           team2PlayingXIIds: selectedTeam2,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setTeam1ModalVisible(false);
-      setTeam2ModalVisible(false);
-      
-      navigation.navigate("Toss", { matchDetails, matchId });
+      });
+
+      if (response.success) {
+        setTeam1ModalVisible(false);
+        setTeam2ModalVisible(false);
+        navigation.navigate("Toss", { matchDetails, matchId });
+      } else {
+        setError("Failed to start match");
+        setTeam2ModalVisible(true);
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to start match");

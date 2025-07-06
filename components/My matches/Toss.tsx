@@ -2,11 +2,11 @@ import { ImageBackground, StyleSheet, Text, View, Pressable, Alert, TouchableOpa
 import React, { useEffect, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import stadiumBG from '../../assets/images/cricsLogo.png';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Modal from 'react-native-modal';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons, FontAwesome, Ionicons } from '@expo/vector-icons'; // Import icons
+import apiService from '../APIservices';
 
 const Toss = ({ route }) => {
   const [matchDetails, setMatchDetails] = useState(null);
@@ -32,13 +32,19 @@ const Toss = ({ route }) => {
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) throw new Error('Please login again');
 
-      const response = await axios.post(
-        `https://score360-7.onrender.com/api/v1/matches/${route.params.matchId}/toss`,
-        { tossWinner, choice },
-        { headers: { authorization: `Bearer ${token}` } }
-      );
-      navigation.navigate('SelectRoles', { matchId, isFirstInnings: true });
+      const response = await apiService({
+        endpoint: `matches/${route.params.matchId}/toss`,
+        method: 'POST',
+        body: { tossWinner, choice },
+      });
+
+      if (response.success) {
+        navigation.navigate('SelectRoles', { matchId, isFirstInnings: true });
+      } else {
+        Alert.alert('Error', 'Failed to submit toss decision. Please try again.');
+      }
     } catch (error) {
+      console.error(error);
       Alert.alert('Error', 'Failed to submit toss decision. Please try again.');
     }
   };

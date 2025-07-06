@@ -18,9 +18,9 @@ import {
 import backgroundImage from '../../../assets/images/cricsLogo.png';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
+import apiService from '../../APIservices';
 
 const { width } = Dimensions.get('window');
 
@@ -312,17 +312,22 @@ const MyMatch = () => {
 
   const getMyMatches = async () => {
     try {
-      const token = await AsyncStorage.getItem('jwtToken');
       const playerId = await AsyncStorage.getItem('userUUID');
-      if (!token) throw new Error('Please Login Again');
+      if (!playerId) throw new Error('User ID not found. Please login again.');
 
       setLoading(true);
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/matches/player/${playerId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setMatches(response.data);
-      setError(null);
+
+      const response = await apiService({
+        endpoint: `matches/player/${playerId}`,
+        method: 'GET',
+      });
+
+      if (response.success) {
+        setMatches(response.data);
+        setError(null);
+      } else {
+        setError('Failed to load your matches. Pull down to refresh.');
+      }
     } catch (err) {
       setError('Failed to load your matches. Pull down to refresh.');
     } finally {
@@ -419,15 +424,17 @@ const MyMatch = () => {
       )}
 
       {!loading && matches?.length === 0 && (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Icon name="info-outline" size={40} color="#888" />
-          <Text style={styles.noMatchText}>No matches found</Text>
-          <TouchableOpacity
-            onPress={getMyMatches}
-            style={{ marginTop: 10, padding: 10 }}
-          >
-            <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <View style={{ alignItems: 'center', backgroundColor: 'white', margin: 4, borderRadius: 2, paddingVertical: 4 }}>
+            <Icon name="info-outline" size={40} color="#888" />
+            <Text style={styles.noMatchText}>No matches found</Text>
+            <TouchableOpacity
+              onPress={getMyMatches}
+              style={{ marginTop: 10, padding: 10 }}
+            >
+              <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -527,21 +534,29 @@ const LiveMatch = () => {
 
   const getLiveMatches = async () => {
     try {
+      const userId = (await AsyncStorage.getItem('userUUID'))?.trim();
+      if (userId) setUserId(userId);
+
       const token = await AsyncStorage.getItem('jwtToken');
-      setUserId((await AsyncStorage.getItem('userUUID')).trim());
       if (!token) {
         navigation.navigate('Login');
+        return;
       }
+
       setLoading(true);
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/matches/status`,
-        {
-          params: { status: 'Live' },
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setMatches(response.data);
-      setError(null);
+
+      const response = await apiService({
+        endpoint: 'matches/status',
+        method: 'GET',
+        params: { status: 'Live' },
+      });
+
+      if (response.success) {
+        setMatches(response.data);
+        setError(null);
+      } else {
+        setError('Failed to load live matches. Pull down to refresh.');
+      }
     } catch (err) {
       setError('Failed to load live matches. Pull down to refresh.');
     } finally {
@@ -657,15 +672,17 @@ const LiveMatch = () => {
       )}
 
       {!loading && matches?.length === 0 && (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Icon name="sports-cricket" size={40} color="#888" />
-          <Text style={styles.noMatchText}>No live matches right now</Text>
-          <TouchableOpacity
-            onPress={getLiveMatches}
-            style={{ marginTop: 10, padding: 10 }}
-          >
-            <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <View style={{ alignItems: 'center', backgroundColor: 'white', margin: 4, borderRadius: 2, paddingVertical: 4 }}>
+            <Icon name="sports-cricket" size={40} color="#888" />
+            <Text style={styles.noMatchText}>No live matches right now</Text>
+            <TouchableOpacity
+              onPress={getLiveMatches}
+              style={{ marginTop: 10, padding: 10 }}
+            >
+              <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -693,20 +710,26 @@ const UpcomingMatch = () => {
 
   const getUpcomingMatches = async () => {
     try {
+      const userId = (await AsyncStorage.getItem('userUUID'))?.trim();
+      if (userId) setUserId(userId);
+
       const token = await AsyncStorage.getItem('jwtToken');
-      setUserId((await AsyncStorage.getItem('userUUID')).trim());
       if (!token) throw new Error('Please Login Again');
 
       setLoading(true);
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/matches/status`,
-        {
-          params: { status: 'Upcoming' },
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setMatches(response.data);
-      setError(null);
+
+      const response = await apiService({
+        endpoint: 'matches/status',
+        method: 'GET',
+        params: { status: 'Upcoming' },
+      });
+
+      if (response.success) {
+        setMatches(response.data);
+        setError(null);
+      } else {
+        setError('Failed to load upcoming matches. Pull down to refresh.');
+      }
     } catch (err) {
       setError('Failed to load upcoming matches. Pull down to refresh.');
     } finally {
@@ -817,15 +840,17 @@ const UpcomingMatch = () => {
       )}
 
       {!loading && matches?.length === 0 && (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Icon name="event-available" size={40} color="#888" />
-          <Text style={styles.noMatchText}>No upcoming matches scheduled</Text>
-          <TouchableOpacity
-            onPress={getUpcomingMatches}
-            style={{ marginTop: 10, padding: 10 }}
-          >
-            <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <View style={{ alignItems: 'center', backgroundColor: 'white', margin: 4, borderRadius: 2, paddingVertical: 4 }}>
+            <Icon name="event-available" size={40} color="#888" />
+            <Text style={styles.noMatchText}>No upcoming matches scheduled</Text>
+            <TouchableOpacity
+              onPress={getUpcomingMatches}
+              style={{ marginTop: 10, padding: 10 }}
+            >
+              <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -856,15 +881,19 @@ const PastMatch = () => {
       if (!token) throw new Error('Please Login Again');
 
       setLoading(true);
-      const response = await axios.get(
-        `https://score360-7.onrender.com/api/v1/matches/status`,
-        {
-          params: { status: 'Past' },
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setMatches(response.data);
-      setError(null);
+
+      const response = await apiService({
+        endpoint: 'matches/status',
+        method: 'GET',
+        params: { status: 'Past' },
+      });
+
+      if (response.success) {
+        setMatches(response.data);
+        setError(null);
+      } else {
+        setError('Failed to load past matches. Pull down to refresh.');
+      }
     } catch (err) {
       setError('Failed to load past matches. Pull down to refresh.');
     } finally {
@@ -961,15 +990,17 @@ const PastMatch = () => {
       )}
 
       {!loading && matches?.length === 0 && (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Icon name="history" size={40} color="#888" />
-          <Text style={styles.noMatchText}>No past matches found</Text>
-          <TouchableOpacity
-            onPress={getPastMatches}
-            style={{ marginTop: 10, padding: 10 }}
-          >
-            <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <View style={{ alignItems: 'center', backgroundColor: 'white', margin: 4, borderRadius: 2, paddingVertical: 4 }}>
+            <Icon name="history" size={40} color="#888" />
+            <Text style={styles.noMatchText}>No past matches found</Text>
+            <TouchableOpacity
+              onPress={getPastMatches}
+              style={{ marginTop: 10, padding: 10 }}
+            >
+              <Text style={{ color: '#34B8FF', fontWeight: '600' }}>Tap to refresh</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 

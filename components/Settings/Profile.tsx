@@ -15,12 +15,13 @@ import {
   Dimensions,
   StatusBar,
 } from "react-native";
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome";
 import * as ImagePicker from "expo-image-picker";
 import backgroundImage from "../../assets/images/cricsLogo.png";
+import apiService from "../APIservices";
+import axios from "axios";
 
 const { width } = Dimensions.get("window");
 const PlaceholderAnimation = ({ style, shouldAnimate }) => {
@@ -146,22 +147,24 @@ const Settings = ({ navigation }) => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
+
       const token = await AsyncStorage.getItem("jwtToken");
       if (!token) {
         showNotification("Please login again", "error");
         return;
       }
 
-      const response = await axios.get(
-        "https://score360-7.onrender.com/api/v1/profile/current",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await apiService({
+        endpoint: "profile/current",
+        method: "GET",
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to load profile data");
+      }
 
       const profileData = response.data.data || response.data;
+
       setProfile({
         name: profileData.name || "",
         phone: profileData.phone || profileData.phoneNumber || "",
@@ -174,18 +177,19 @@ const Settings = ({ navigation }) => {
     } catch (err) {
       console.error("Profile fetch error:", err);
       let errorMessage = "Failed to load profile data";
-      if (err.response) {
-        if (err.response.status === 401) {
-          errorMessage = "Session expired. Please login again";
-        } else {
-          errorMessage = err.response.data?.message || errorMessage;
-        }
+      if (err.response?.status === 401) {
+        errorMessage = "Session expired. Please login again";
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
       }
       showNotification(errorMessage, "error");
     } finally {
       setLoading(false);
     }
   };
+
   const updateProfileData = async (updatedData) => {
     try {
       setIsUpdating(true);
@@ -195,16 +199,15 @@ const Settings = ({ navigation }) => {
         return false;
       }
 
-      const response = await axios.put(
-        "https://score360-7.onrender.com/api/v1/profile/update",
-        updatedData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await apiService({
+        endpoint: "profile/update",
+        method: "PUT",
+        body: updatedData,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to update profile");
+      }
 
       const updatedProfile = response.data.data || response.data;
       setProfile((prev) => ({
@@ -220,9 +223,13 @@ const Settings = ({ navigation }) => {
     } catch (err) {
       console.error("Update error:", err);
       let errorMessage = "Failed to update profile";
-      if (err.response) {
-        errorMessage = err.response.data?.message || errorMessage;
+
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
       }
+
       showNotification(errorMessage, "error");
       return false;
     } finally {

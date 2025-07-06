@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import apiService from '../APIservices';
 
 const logo = require('../../assets/images/cricshub.png');
 const background = require('../../assets/images/cricsLogo.png');
@@ -73,15 +73,16 @@ const Login = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        'https://score360-7.onrender.com/api/v1/auth/login',
-        {
+      const response = await apiService({
+        endpoint: 'auth/login',
+        method: 'POST',
+        body: {
           username: formData.email.toLowerCase(),
           password: formData.password,
-        }
-      );
+        },
+      });
 
-      if (response.data.success) {
+      if (response.success) {
         const token = response.data.data?.token;
         const userId = response.data.data?.user?.id;
         const name = response.data.data?.user?.name;
@@ -89,24 +90,23 @@ const Login = ({ navigation }) => {
         if (!token || !userId) {
           throw new Error('Token or User ID is missing in the API response.');
         }
-        
+
         await saveToken(token);
         await AsyncStorage.setItem('userUUID', userId);
         await AsyncStorage.setItem('userName', name);
         navigation.replace('Main');
       } else {
-        alert('Invalid credentials, please try again!');
+        if (response.error === "Unauthorized") {
+          setError('Invalid credentials');
+        } else {
+          alert(`Error: ${response.status || 'Unknown'} - ${response.error.message || response.error}`);
+        }
+        setFormData({ email: '', password: '' });
       }
     } catch (err) {
+      console.error('Login error:', err);
+      alert('An unexpected error occurred. Please try again.');
       setFormData({ email: '', password: '' });
-      if (err.response.data.error === "Unauthorized") {
-        setError('Invalid credentials');
-      }
-      else if (err.response) {
-        alert(`Error: ${err.response.status} - ${err.response.data.message}`);
-      } else {
-        alert('An error occurred. Please try again later.');
-      }
     } finally {
       setLoading(false);
     }

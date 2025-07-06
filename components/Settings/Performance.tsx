@@ -13,8 +13,8 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome";
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import apiService from "../APIservices";
 
 const Performance = () => {
   const [playerData, setPlayerData] = useState({
@@ -57,17 +57,17 @@ const Performance = () => {
       const token = await AsyncStorage.getItem("jwtToken");
       if (!token) throw new Error("Authentication required");
 
-      const response = await axios.get(
-        "https://score360-7.onrender.com/api/v1/profile/current",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await apiService({
+        endpoint: 'profile/current',
+        method: 'GET',
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to load player data');
+      }
 
       const data = response.data;
+
       setPlayerData({
         ...data,
         careerStats: {
@@ -85,7 +85,7 @@ const Performance = () => {
           ballsBowled: data.careerStats?.ballsBowled || 0,
           bestBowlingFigures: data.careerStats?.bestBowlingFigures || "N/A",
           catchesTaken: data.careerStats?.catchesTaken || 0,
-          totalOuts: data.careerStats?.totalOuts || 0
+          totalOuts: data.careerStats?.totalOuts || 0,
         },
         totalSixes: data.totalSixes || 0,
         totalFours: data.totalFours || 0,
@@ -93,9 +93,9 @@ const Performance = () => {
         role: data.role || "Player",
         name: data.name || "Player Name",
         email: data.email || "player@example.com",
-        logoPath: data.logoPath || null
+        logoPath: data.logoPath || null,
       });
-      
+
       animateContent();
     } catch (err) {
       setError(err.message || "Failed to load player data");

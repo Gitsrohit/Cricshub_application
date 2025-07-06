@@ -15,10 +15,10 @@ import {
   StatusBar,
   ImageBackground,
 } from "react-native";
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import apiService from "../APIservices";
 const background = require('../../assets/images/cricsLogo.png');
 
 const TeamDetailsScreen = ({ route }) => {
@@ -68,31 +68,35 @@ const TeamDetailsScreen = ({ route }) => {
 
   const debouncedFetchPlayers = useCallback(
     debounce(async (query) => {
-      if (!query.trim()) return; // Prevent empty search
+      if (!query.trim()) return;
       setLoading(true);
-
       try {
-        const token = await AsyncStorage.getItem("jwtToken");
-
-        const responses = await Promise.all([
-          axios.get(`https://score360-7.onrender.com/api/v1/teams/players/search/name?name=${query}`, {
-            headers: { Authorization: `Bearer ${token}` },
+        const [nameRes, phoneRes] = await Promise.all([
+          apiService({
+            endpoint: 'teams/players/search/name',
+            method: 'GET',
+            params: { name: query.trim() },
           }),
-          axios.get(`https://score360-7.onrender.com/api/v1/teams/players/search/phone?phone=${query}`, {
-            headers: { Authorization: `Bearer ${token}` },
+          apiService({
+            endpoint: 'teams/players/search/phone',
+            method: 'GET',
+            params: { phone: query.trim() },
           }),
         ]);
 
-        const [nameResponse, phoneResponse] = responses;
+        const nameData = nameRes.success ? nameRes.data.data || [] : [];
+        const phoneData = phoneRes.success ? phoneRes.data.data || [] : [];
 
-        setSearchResults([
-          ...nameResponse.data.data,
-          ...phoneResponse.data.data,
-        ]);
+        // Optional: avoid duplicate players
+        const merged = [...nameData, ...phoneData];
+        const uniquePlayers = Array.from(
+          new Map(merged.map(player => [player.id, player])).values()
+        );
 
+        setSearchResults(uniquePlayers);
       } catch (err) {
-        console.error("Error fetching players:", err);
-        Alert.alert("Error", "Failed to fetch players.");
+        console.error('Error fetching players:', err);
+        Alert.alert('Error', 'Failed to fetch players.');
       } finally {
         setLoading(false);
       }
@@ -106,18 +110,23 @@ const TeamDetailsScreen = ({ route }) => {
 
   const addPlayer = async (player) => {
     try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      await axios.put(
-        `https://score360-7.onrender.com/api/v1/teams/${team.id}/${player.id}`,
-        { playerId: player.id, action: "Add" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setPlayers([...players, player]);
-      setModalVisible(false);
-      Alert.alert("Success", "Player added successfully!");
+      const response = await apiService({
+        endpoint: `teams/${team.id}/${player.id}`,
+        method: 'PUT',
+        body: { playerId: player.id, action: 'Add' },
+      });
+
+      if (response.success) {
+        setPlayers((prev) => [...prev, player]);
+        setModalVisible(false);
+        Alert.alert('Success', 'Player added successfully!');
+      } else {
+        console.error('API Error:', response.error);
+        Alert.alert('Error', response.error?.message || 'Failed to add player.');
+      }
     } catch (err) {
-      console.error("Error adding player:", err);
-      Alert.alert("Error", "Failed to add player.");
+      console.error('Error adding player:', err);
+      Alert.alert('Error', 'Failed to add player.');
     }
   };
 
