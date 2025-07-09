@@ -55,7 +55,7 @@ const Home = () => {
       title: "Host a Tournament",
       buttonText: "Host",
       navigateTo: "CreateTournaments",
-      icon: "tour",
+      icon: "emoji-events",
     },
     {
       title: "Create a Team",

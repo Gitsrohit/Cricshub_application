@@ -1,20 +1,46 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator, ImageBackground, StatusBar, Animated } from "react-native";
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  TouchableOpacity, 
+  Image, 
+  StyleSheet, 
+  ImageBackground, 
+  StatusBar,
+  RefreshControl,
+  Animated,
+  Easing,
+  Dimensions
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import LottieView from 'lottie-react-native';
 import apiService from "../APIservices";
+
+const { width } = Dimensions.get('window');
 const backgroundImage = require('../../assets/images/cricsLogo.png');
+const loaderAnimation = require('../../assets/loader.json');
+const emptyTeamsAnimation = require('../../assets/empty.json');
 
 const TeamPage = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
   const navigation = useNavigation();
 
   useEffect(() => {
     fetchTeams();
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      easing: Easing.ease,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   const fetchTeams = async () => {
@@ -42,6 +68,7 @@ const TeamPage = () => {
       console.error("Error fetching teams:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -62,23 +89,64 @@ const TeamPage = () => {
     }
   };
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchTeams();
+  };
+
   const renderTeamCard = ({ item }) => (
-    <TouchableOpacity onPress={() => handleTeamPress(item.id)} style={styles.card}>
-      <Image
-        source={{ uri: item.logoPath || "https://via.placeholder.com/60x60" }}
-        style={styles.teamLogo}
-      />
-      <View style={styles.teamInfo}>
-        <Text style={styles.teamName}>{item.name || "N/A"}</Text>
-        <Text style={styles.captain}>Captain: {item.captain?.name || "Unknown"}</Text>
-      </View>
-    </TouchableOpacity>
+    <Animated.View style={[styles.cardContainer, { opacity: fadeAnim }]}>
+      <TouchableOpacity 
+        onPress={() => handleTeamPress(item.id)} 
+        style={styles.card}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardGradient}>
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.9)', 'rgba(240, 248, 255, 0.8)']}
+            style={styles.gradientBackground}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+        </View>
+        
+        <View style={styles.cardContent}>
+          <Image
+            source={{ uri: item.logoPath || "https://via.placeholder.com/60x60" }}
+            style={styles.teamLogo}
+            // defaultSource={require('../../assets/images/team-placeholder.png')}
+          />
+          <View style={styles.teamInfo}>
+            <Text style={styles.teamName} numberOfLines={1}>{item.name || "N/A"}</Text>
+            <View style={styles.teamMeta}>
+              <View style={styles.captainContainer}>
+                <Icon name="star" size={14} color="#FFD700" style={styles.starIcon} />
+                <Text style={styles.captain}>{item.captain?.name || "Unknown"}</Text>
+              </View>
+              <View style={styles.memberContainer}>
+                <Icon name="people" size={14} color="#34B8FF" style={styles.peopleIcon} />
+                <Text style={styles.memberCount}>
+                  {item.players?.length || 0}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <Icon name="chevron-right" size={24} color="#34B8FF" />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#005a7f" />
+        <LottieView
+          source={loaderAnimation}
+          autoPlay
+          loop
+          style={styles.loaderAnimation}
+        />
+        <Text style={styles.loaderText}>Loading your teams...</Text>
       </View>
     );
   }
@@ -93,56 +161,72 @@ const TeamPage = () => {
       <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradientOverlay}>
         <ImageBackground source={backgroundImage} style={styles.background} resizeMode="cover">
           <BlurView intensity={50} tint="light" style={styles.container}>
+            {/* Enhanced Header */}
+            <View style={styles.header}>
+              <LinearGradient
+                colors={['rgba(52, 184, 255, 0.8)', 'rgba(52, 184, 255, 0.9)']}
+                style={styles.headerBackground}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              />
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+                activeOpacity={0.7}
+              >
+                <Icon name="arrow-back" size={28} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.heading}>My Teams</Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => navigation.navigate('CreateTeam')}
+                activeOpacity={0.7}
+              >
+                <Icon name="add" size={28} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+
             {teams.length > 0 ? (
               <FlatList
                 data={teams}
                 keyExtractor={(item) => item.id.toString()}
-                ListHeaderComponent={() =>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, marginTop: 30 }}>
-                    <TouchableOpacity
-                      style={{ padding: 5 }}
-                      onPress={() => navigation.goBack()}
-                      activeOpacity={0.7}
-                    >
-                      <Icon name="arrow-back" size={32} color="black" />
-                    </TouchableOpacity>
-                    <Text style={styles.heading}>Teams</Text>
-                  </View>
-                }
                 renderItem={renderTeamCard}
+                contentContainerStyle={styles.listContent}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    colors={['#34B8FF']}
+                    tintColor="#34B8FF"
+                  />
+                }
+                ListFooterComponent={<View style={styles.listFooter} />}
               />
             ) : (
-              <View style={styles.fullWidthCardContainer}>
-                <View
-                  style={[
-                    styles.createTeamCard,
-                    styles.fullWidthCard
-                  ]}
+              <View style={styles.emptyContainer}>
+                <LottieView
+                  source={emptyTeamsAnimation}
+                  autoPlay
+                  loop={false}
+                  style={styles.emptyAnimation}
+                />
+                <Text style={styles.emptyTitle}>No Teams Found</Text>
+                <Text style={styles.emptySubtitle}>Create your first team to get started</Text>
+                <TouchableOpacity
+                  style={styles.createButton}
+                  onPress={() => navigation.navigate('CreateTeam')}
+                  activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={["#0866AA", "#6BB9F0"]}
-                    style={styles.cardBackground}
+                    colors={["#0866AA", "#34B8FF"]}
+                    style={styles.createButtonGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
-                    <Icon
-                      name='group'
-                      size={40}
-                      color="#FFF"
-                      style={styles.cardIcon}
-                    />
-                    <Text style={styles.createTeamCardTitle}>Create a Team</Text>
-                    <TouchableOpacity
-                      style={styles.cardButton}
-                      onPress={() => navigation.navigate('CreateTeam')}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.cardButtonText}>
-                        Create
-                      </Text>
-                    </TouchableOpacity>
+                    <Icon name="add" size={24} color="#FFF" />
+                    <Text style={styles.createButtonText}>Create Team</Text>
                   </LinearGradient>
-                </View>
+                </TouchableOpacity>
               </View>
             )}
           </BlurView>
@@ -165,88 +249,216 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   container: {
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 15,
     flex: 1,
+    paddingHorizontal: 0,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 20
-  },
-  heading: {
-    width: '75%',
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#005a7f",
-    textAlign: "center",
-  },
-  card: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    padding: 15, borderRadius: 10, marginBottom: 10, alignItems: "center"
-  },
-  teamLogo: { width: 60, height: 60, borderRadius: 30, marginRight: 10 },
-  teamInfo: { flex: 1 },
-  teamName: { fontSize: 18, fontWeight: "bold", color: "#003b5c" },
-  captain: { fontSize: 14, color: "#666" },
-  loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  noTeamsText: { color: "#003b5c", textAlign: "center", marginTop: 20, fontSize: 16 },
-  fullWidthCardContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    marginTop: StatusBar?.currentHeight || 0,
-    width: "100%",
-  },
-  createTeamCard: {
-    // flex: 1,
-    borderRadius: 15,
-    margin: 10,
-    height: 180,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    shadowColor: "#000",
+    paddingVertical: 15,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    overflow: 'hidden',
+    position: 'relative',
+    marginBottom: 10,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
+    paddingTop:50,
     shadowRadius: 4,
     elevation: 4,
   },
-  cardBackground: {
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  backButton: {
+    padding: 8,
+    zIndex: 1,
+  },
+  heading: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#FFF",
+    textAlign: "center",
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    zIndex: 1,
   },
-  cardIcon: {
-    marginBottom: 10,
+  addButton: {
+    padding: 8,
+    zIndex: 1,
   },
-  cardTitle: {
+  cardContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  card: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    height: 100,
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  cardGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  gradientBackground: {
+    flex: 1,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    flex: 1,
+  },
+  teamLogo: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: '#FFF',
+    marginRight: 16,
+  },
+  teamInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  teamName: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#FFF",
-    marginBottom: 10,
-    textAlign: "center",
+    fontWeight: "bold",
+    color: "#003b5c",
+    marginBottom: 8,
   },
-  cardButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
+  teamMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  captainContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#FFF",
+    borderColor: 'rgba(255, 215, 0, 0.2)',
   },
-  cardButtonText: {
+  starIcon: {
+    marginRight: 4,
+  },
+  captain: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: "#005a7f",
+  },
+  memberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(52, 184, 255, 0.1)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 184, 255, 0.2)',
+  },
+  peopleIcon: {
+    marginRight: 4,
+  },
+  memberCount: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: "#005a7f",
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: '#f5fcff'
+  },
+  loaderAnimation: {
+    width: 150,
+    height: 150,
+  },
+  loaderText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#005a7f',
+    fontWeight: '500'
+  },
+  listContent: {
+    paddingBottom: 20,
+    paddingTop: 10,
+  },
+  listFooter: {
+    height: 30,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyAnimation: {
+    width: 200,
+    height: 200,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#005a7f',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  createButton: {
+    width: '100%',
+    maxWidth: 300,
+    borderRadius: 25,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  createButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  createButtonText: {
     color: "#FFF",
     fontWeight: "600",
-    fontSize: 14,
-  },
-  createTeamCardTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#FFF",
-    marginBottom: 10,
-    textAlign: "center",
+    fontSize: 16,
+    marginLeft: 10,
   },
 });
 
 export default TeamPage;
-
