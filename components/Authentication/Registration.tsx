@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import apiService from '../APIservices';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const logo = require('../../assets/images/cricshub.png');
 const background = require('../../assets/images/cricsLogo.png');
@@ -28,6 +29,19 @@ const Registration = ({ navigation }) => {
 
   const handleInputChange = (key, value) => {
     setFormData({ ...formData, [key]: value });
+  };
+
+  const saveToken = async (token) => {
+    try {
+      if (token === undefined || token === null) {
+        throw new Error('Token is undefined or null. Cannot save.');
+      }
+      const tokenString = typeof token === 'string' ? token : JSON.stringify(token);
+
+      await AsyncStorage.setItem('jwtToken', tokenString);
+    } catch (error) {
+      console.error('Error saving token securely:', error);
+    }
   };
 
   const handleVerifyEmail = async () => {
@@ -86,6 +100,42 @@ const Registration = ({ navigation }) => {
 
       if (response.success) {
         Alert.alert('Success', 'Registration successful!');
+        const loginResponse = await apiService({
+          endpoint: 'auth/login',
+          method: 'POST',
+          body: {
+            username: formData.email.toLowerCase(),
+            password: formData.password,
+          },
+        });
+        if (loginResponse.success) {
+          const token = loginResponse.data.data?.token;
+          const userId = loginResponse.data.data?.user?.id;
+          const name = loginResponse.data.data?.user?.name;
+
+          if (!token || !userId) {
+            throw new Error('Token or User ID is missing in the API response.');
+          }
+
+          await saveToken(token);
+          await AsyncStorage.setItem('userUUID', userId);
+          await AsyncStorage.setItem('userName', name);
+          navigation.replace('Main');
+        } else {
+          if (response.error === "Unauthorized") {
+            console.error('Invalid credentials');
+          } else {
+            alert(`Error: ${response.status || 'Unknown'} - ${response.error.message || response.error}`);
+          }
+          setFormData({
+            name: '',
+            email: '',
+            mobile: '',
+            password: '',
+            confirmPassword: '',
+            otp: '',
+          });
+        }
       } else {
         Alert.alert('Error', `Error ${response.status}: ${response.error.message || 'Registration failed.'}`);
       }

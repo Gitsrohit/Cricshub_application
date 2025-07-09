@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator, ImageBackground, StatusBar } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator, ImageBackground, StatusBar, Animated } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
@@ -112,7 +112,38 @@ const TeamPage = () => {
                 renderItem={renderTeamCard}
               />
             ) : (
-              <Text style={styles.noTeamsText}>No teams available</Text>
+              <View style={styles.fullWidthCardContainer}>
+                <View
+                  style={[
+                    styles.createTeamCard,
+                    styles.fullWidthCard
+                  ]}
+                >
+                  <LinearGradient
+                    colors={["#0866AA", "#6BB9F0"]}
+                    style={styles.cardBackground}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <Icon
+                      name='group'
+                      size={40}
+                      color="#FFF"
+                      style={styles.cardIcon}
+                    />
+                    <Text style={styles.createTeamCardTitle}>Create a Team</Text>
+                    <TouchableOpacity
+                      style={styles.cardButton}
+                      onPress={() => navigation.navigate('CreateTeam')}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.cardButtonText}>
+                        Create
+                      </Text>
+                    </TouchableOpacity>
+                  </LinearGradient>
+                </View>
+              </View>
             )}
           </BlurView>
         </ImageBackground>
@@ -159,6 +190,62 @@ const styles = StyleSheet.create({
   captain: { fontSize: 14, color: "#666" },
   loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   noTeamsText: { color: "#003b5c", textAlign: "center", marginTop: 20, fontSize: 16 },
+  fullWidthCardContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    marginTop: StatusBar?.currentHeight || 0,
+    width: "100%",
+  },
+  createTeamCard: {
+    // flex: 1,
+    borderRadius: 15,
+    margin: 10,
+    height: 180,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  cardBackground: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  cardIcon: {
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FFF",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  cardButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#FFF",
+  },
+  cardButtonText: {
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  createTeamCardTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FFF",
+    marginBottom: 10,
+    textAlign: "center",
+  },
 });
 
 export default TeamPage;

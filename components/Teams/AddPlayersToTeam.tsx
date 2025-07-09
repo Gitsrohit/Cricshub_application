@@ -458,6 +458,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0A1F3A',
+    marginTop: StatusBar?.currentHeight || 0,
   },
   backgroundImage: {
     flex: 1,
@@ -600,6 +601,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#1A365D',
+    borderRadius: 10,
   },
   emptyStateText: {
     color: '#fff',
