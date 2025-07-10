@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  FlatList, 
-  TouchableOpacity, 
-  Image, 
-  StyleSheet, 
-  ImageBackground, 
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ImageBackground,
   StatusBar,
   RefreshControl,
   Animated,
@@ -73,20 +73,7 @@ const TeamPage = () => {
   };
 
   const handleTeamPress = async (teamId) => {
-    try {
-      const response = await apiService({
-        endpoint: `teams/${teamId}`,
-        method: "GET",
-      });
-
-      if (response.success && response.data?.data) {
-        navigation.navigate("TeamDetailsScreen", { team: response.data.data });
-      } else {
-        console.error("Failed to fetch team details:", response.error);
-      }
-    } catch (err) {
-      console.error("Error fetching team details:", err);
-    }
+    navigation.navigate("TeamDetailsScreen", { teamId: teamId });
   };
 
   const onRefresh = () => {
@@ -96,8 +83,8 @@ const TeamPage = () => {
 
   const renderTeamCard = ({ item }) => (
     <Animated.View style={[styles.cardContainer, { opacity: fadeAnim }]}>
-      <TouchableOpacity 
-        onPress={() => handleTeamPress(item.id)} 
+      <TouchableOpacity
+        onPress={() => handleTeamPress(item.id)}
         style={styles.card}
         activeOpacity={0.7}
       >
@@ -109,12 +96,12 @@ const TeamPage = () => {
             end={{ x: 1, y: 1 }}
           />
         </View>
-        
+
         <View style={styles.cardContent}>
           <Image
             source={{ uri: item.logoPath || "https://via.placeholder.com/60x60" }}
             style={styles.teamLogo}
-            // defaultSource={require('../../assets/images/team-placeholder.png')}
+          // defaultSource={require('../../assets/images/team-placeholder.png')}
           />
           <View style={styles.teamInfo}>
             <Text style={styles.teamName} numberOfLines={1}>{item.name || "N/A"}</Text>
@@ -267,7 +254,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    paddingTop:50,
+    paddingTop: 50,
     shadowRadius: 4,
     elevation: 4,
   },

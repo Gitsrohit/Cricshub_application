@@ -29,7 +29,8 @@ const loaderAnimation = require('../../assets/loader.json');
 const { width } = Dimensions.get('window');
 
 const TeamDetailsScreen = ({ route, navigation }) => {
-  const { team } = route.params;
+  const { teamId } = route.params;
+  const [team, setTeam] = useState(null);
   const [players, setPlayers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
@@ -67,24 +68,25 @@ const TeamDetailsScreen = ({ route, navigation }) => {
 
   const roleCheck = async () => {
     const userId = await AsyncStorage.getItem('userUUID');
-    setCanEdit(userId === team.creator.id || userId === team.captain.id);
+    setCanEdit(userId === team?.creator?.id || userId === team?.captain?.id);
   };
 
   useEffect(() => {
-    roleCheck();
     fetchTeamDetails();
+    roleCheck();
   }, []);
 
   const fetchTeamDetails = async () => {
     try {
       setRefreshing(true);
       const response = await apiService({
-        endpoint: `teams/${team.id}`,
+        endpoint: `teams/${teamId}`,
         method: "GET",
       });
 
       if (response.success && response.data?.data) {
         setPlayers(response.data.data.players || []);
+        setTeam(response.data?.data);
         setDataLoaded(true);
       }
     } catch (err) {
@@ -186,13 +188,13 @@ const TeamDetailsScreen = ({ route, navigation }) => {
 
   const renderPlayerCard = ({ item, index }) => {
     const isFirstDesign = index % 2 === 0;
-    
+
     return (
       <Animated.View style={[styles.cardContainer, { opacity: fadeAnim }]}>
         <LinearGradient
-          colors={isFirstDesign ? 
-            ['#8FDFFF', '#104B62'] : 
-            ['#209FFF', '#00354A']   
+          colors={isFirstDesign ?
+            ['#8FDFFF', '#104B62'] :
+            ['#209FFF', '#00354A']
           }
           style={styles.playerCard}
           start={{ x: 0, y: 0 }}
@@ -205,14 +207,14 @@ const TeamDetailsScreen = ({ route, navigation }) => {
               defaultSource={require('../../assets/defaultLogo.png')}
             />
             <View style={styles.playerDetails}>
-              <Text style={styles.playerName}>{item.name}</Text>
+              <Text style={styles.playerName}>{item?.name}</Text>
               <Text style={styles.playerStats}>
                 {item.role} • {team.captain?.id === item.id && 'Captain'}
               </Text>
             </View>
           </View>
           {canEdit && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.removeButton}
               onPress={() => removePlayer(item.id)}
             >
@@ -261,16 +263,16 @@ const TeamDetailsScreen = ({ route, navigation }) => {
                 >
                   <MaterialIcons name="arrow-back" size={28} color="#FFF" />
                 </TouchableOpacity>
-                
+
                 <View style={styles.headerTitleContainer}>
                   <Text style={styles.headerTitle} numberOfLines={1}>
-                    {team.name}
+                    {team?.name}
                   </Text>
                   <Text style={styles.headerSubtitle}>
-                    {players.length} {players.length === 1 ? 'Member' : 'Members'} • Captain: {team.captain?.name}
+                    {players.length} {players.length === 1 ? 'Member' : 'Members'} • Captain: {team?.captain?.name}
                   </Text>
                 </View>
-                
+
                 <View style={{ width: 40 }} />
               </LinearGradient>
             </View>
@@ -296,7 +298,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
             />
 
             {canEdit && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.addButton}
                 onPress={() => setModalVisible(true)}
               >
@@ -331,13 +333,20 @@ const TeamDetailsScreen = ({ route, navigation }) => {
                     </View>
 
                     {loading ? (
-                      <ActivityIndicator size="large" color="#34B8FF" style={styles.loadingIndicator} />
+                      <View style={styles.loaderContainer}>
+                        <LottieView
+                          source={loaderAnimation}
+                          autoPlay
+                          loop
+                          style={styles.loader}
+                        />
+                      </View>
                     ) : searchResults.length > 0 ? (
                       <FlatList
                         data={searchResults}
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={({ item }) => (
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             style={styles.searchResultItem}
                             onPress={() => addPlayer(item)}
                           >
@@ -346,7 +355,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
                               style={styles.searchResultAvatar}
                               defaultSource={require('../../assets/defaultLogo.png')}
                             />
-                            <Text style={styles.searchResultName}>{item.name}</Text>
+                            <Text style={styles.searchResultName}>{item?.name}</Text>
                           </TouchableOpacity>
                         )}
                         contentContainerStyle={styles.searchResultsContainer}
@@ -359,7 +368,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
                       </View>
                     )}
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.closeButton}
                       onPress={() => setModalVisible(false)}
                     >
