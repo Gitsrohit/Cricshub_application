@@ -6,10 +6,6 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-<<<<<<< HEAD
-  ImageBackground,
-=======
->>>>>>> b04f0d0849597361c8765a299f92ba41369754c2
   StatusBar,
   RefreshControl,
   Animated,
@@ -81,33 +77,6 @@ const TeamPage = () => {
     fetchTeams();
   };
 
-<<<<<<< HEAD
-  const renderTeamCard = ({ item }) => (
-    <Animated.View style={[styles.cardContainer, { opacity: fadeAnim }]}>
-      <TouchableOpacity
-        onPress={() => handleTeamPress(item.id)}
-        style={styles.card}
-        activeOpacity={0.7}
-      >
-        <View style={styles.cardGradient}>
-          <LinearGradient
-            colors={['rgba(255, 255, 255, 0.9)', 'rgba(240, 248, 255, 0.8)']}
-            style={styles.gradientBackground}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          />
-        </View>
-
-        <View style={styles.cardContent}>
-          <Image
-            source={{ uri: item.logoPath || "https://via.placeholder.com/60x60" }}
-            style={styles.teamLogo}
-          // defaultSource={require('../../assets/images/team-placeholder.png')}
-          />
-          <View style={styles.teamInfo}>
-            <Text style={styles.teamName} numberOfLines={1}>{item.name || "N/A"}</Text>
-            <View style={styles.teamMeta}>
-=======
   const renderTeamCard = ({ item, index }) => {
     const cardColor = index % 2 === 0 ? '#E1F5FE' : '#E8F5E9';
     const borderColor = index % 2 === 0 ? '#B3E5FC' : '#C8E6C9';
@@ -134,7 +103,6 @@ const TeamPage = () => {
                   </Text>
                 </View>
               </View>
->>>>>>> b04f0d0849597361c8765a299f92ba41369754c2
               <View style={styles.captainContainer}>
                 <Icon name="copyright" size={14} color="#005a7f" style={styles.copyrightIcon} />
                 <Text style={styles.captain}>{item.captain?.name || "Unknown"}</Text>
@@ -245,10 +213,6 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-<<<<<<< HEAD
-    paddingTop: 50,
-=======
->>>>>>> b04f0d0849597361c8765a299f92ba41369754c2
     shadowRadius: 4,
     elevation: 4,
   },
@@ -312,14 +276,14 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     marginRight: 10,
   },
-  teamMeta: { 
+  teamMeta: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   captainContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 90, 127, 0.1)', 
+    backgroundColor: 'rgba(0, 90, 127, 0.1)',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 12,

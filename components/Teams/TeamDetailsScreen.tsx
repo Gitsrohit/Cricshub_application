@@ -83,11 +83,14 @@ const TeamDetailsScreen = ({ route, navigation }) => {
   const roleCheck = async () => {
     const userId = await AsyncStorage.getItem('userUUID');
     setCanEdit(userId === team?.creator?.id || userId === team?.captain?.id);
+    console.log(team?.creator?.id);
+    console.log(team?.captain?.id);
+    console.log(userId);
   };
 
   useEffect(() => {
     fetchTeamDetails();
-    roleCheck();
+    // roleCheck();
   }, []);
 
   const fetchTeamDetails = async () => {
@@ -101,7 +104,11 @@ const TeamDetailsScreen = ({ route, navigation }) => {
       if (response.success && response.data?.data) {
         setPlayers(response.data.data.players || []);
         setTeam(response.data?.data);
+        const userId = await AsyncStorage.getItem('userUUID');
+        setCanEdit(userId === response.data?.data?.creator?.id || userId === response.data?.data?.captain?.id);
         setDataLoaded(true);
+        console.log(response.data);
+
       }
     } catch (err) {
       console.error("Error fetching team details:", err);
