@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  Alert,
   Image,
   Modal,
   ActivityIndicator,
@@ -23,6 +22,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import LottieView from 'lottie-react-native';
 import apiService from "../APIservices";
+import CustomDialog from "../Customs/CustomDialog.js";
+
+
 const background = require('../../assets/images/cricsLogo.png');
 const loaderAnimation = require('../../assets/loader.json');
 
@@ -38,9 +40,21 @@ const TeamDetailsScreen = ({ route, navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [addingPlayerId, setAddingPlayerId] = useState(null);
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogMessage, setDialogMessage] = useState('');
+  const [dialogType, setDialogType] = useState('success');
   const slideAnim = useRef(new Animated.Value(500)).current;
   const [canEdit, setCanEdit] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
+
+  const showDialog = (title, message, type = 'success') => {
+    setDialogTitle(title);
+    setDialogMessage(message);
+    setDialogType(type);
+    setDialogVisible(true);
+  };
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -91,6 +105,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
       }
     } catch (err) {
       console.error("Error fetching team details:", err);
+      showDialog('Error', 'Failed to fetch team details', 'error');
     } finally {
       setRefreshing(false);
     }
@@ -125,7 +140,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
         setSearchResults(uniquePlayers);
       } catch (err) {
         console.error('Error fetching players:', err);
-        Alert.alert('Error', 'Failed to fetch players.');
+        showDialog('Error', 'Failed to fetch players', 'error');
       } finally {
         setLoading(false);
       }
@@ -148,6 +163,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
   };
 
   const addPlayer = async (player) => {
+    setAddingPlayerId(player.id);
     try {
       const response = await apiService({
         endpoint: `teams/${team.id}/${player.id}`,
@@ -158,12 +174,16 @@ const TeamDetailsScreen = ({ route, navigation }) => {
       if (response.success) {
         setPlayers((prev) => [...prev, player]);
         setModalVisible(false);
-        Alert.alert('Success', 'Player added successfully!');
+        setSearchQuery('');
+        setSearchResults([]);
+        showDialog('Success', 'Player added successfully!');
       } else {
-        Alert.alert('Error', response.error?.message || 'Failed to add player.');
+        showDialog('Error', response.error?.message || 'Failed to add player.', 'error');
       }
     } catch (err) {
-      Alert.alert('Error', 'Failed to add player.');
+      showDialog('Error', 'Failed to add player.', 'error');
+    } finally {
+      setAddingPlayerId(null);
     }
   };
 
@@ -177,12 +197,12 @@ const TeamDetailsScreen = ({ route, navigation }) => {
 
       if (response.success) {
         setPlayers(players.filter(p => p.id !== playerId));
-        Alert.alert('Success', 'Player removed successfully!');
+        showDialog('Success', 'Player removed successfully!');
       } else {
-        Alert.alert('Error', response.error?.message || 'Failed to remove player.');
+        showDialog('Error', response.error?.message || 'Failed to remove player.', 'error');
       }
     } catch (err) {
-      Alert.alert('Error', 'Failed to remove player.');
+      showDialog('Error', 'Failed to remove player.', 'error');
     }
   };
 
@@ -226,6 +246,29 @@ const TeamDetailsScreen = ({ route, navigation }) => {
     );
   };
 
+  const renderSearchResultItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.searchResultItem}
+      onPress={() => addPlayer(item)}
+      disabled={addingPlayerId === item.id}
+    >
+      <Image
+        source={item.profilePic ? { uri: item.profilePic } : require('../../assets/defaultLogo.png')}
+        style={styles.searchResultAvatar}
+        defaultSource={require('../../assets/defaultLogo.png')}
+      />
+      <View style={styles.searchResultTextContainer}>
+        <Text style={styles.searchResultName}>{item.name}</Text>
+        <Text style={styles.searchResultPhone}>{item.phone}</Text>
+      </View>
+      {addingPlayerId === item.id ? (
+        <ActivityIndicator size="small" color="#34B8FF" />
+      ) : (
+        <AntDesign name="pluscircleo" size={20} color="#34B8FF" />
+      )}
+    </TouchableOpacity>
+  );
+
   if (!dataLoaded) {
     return (
       <View style={styles.loaderContainer}>
@@ -247,11 +290,11 @@ const TeamDetailsScreen = ({ route, navigation }) => {
         translucent={true}
       />
       <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradientOverlay}>
-        <ImageBackground source={background} style={styles.background} resizeMode="cover">
+        <ImageBackground source={background} style={styles.background} resizeMode="cover" imageStyle={styles.backgroundImage}>
           <BlurView intensity={50} tint="light" style={styles.container}>
             <View style={styles.headerContainer}>
               <LinearGradient
-                colors={['rgba(52, 184, 255, 0.9)', 'rgba(8, 102, 170, 0.9)']}
+                colors={['#34B8FF', '#0866AA']}
                 style={styles.headerGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
@@ -333,31 +376,14 @@ const TeamDetailsScreen = ({ route, navigation }) => {
                     </View>
 
                     {loading ? (
-                      <View style={styles.loaderContainer}>
-                        <LottieView
-                          source={loaderAnimation}
-                          autoPlay
-                          loop
-                          style={styles.loader}
-                        />
+                      <View style={styles.modalLoader}>
+                        <ActivityIndicator size="large" color="#34B8FF" />
                       </View>
                     ) : searchResults.length > 0 ? (
                       <FlatList
                         data={searchResults}
                         keyExtractor={(item) => item.id.toString()}
-                        renderItem={({ item }) => (
-                          <TouchableOpacity
-                            style={styles.searchResultItem}
-                            onPress={() => addPlayer(item)}
-                          >
-                            <Image
-                              source={item.profilePic ? { uri: item.profilePic } : require('../../assets/defaultLogo.png')}
-                              style={styles.searchResultAvatar}
-                              defaultSource={require('../../assets/defaultLogo.png')}
-                            />
-                            <Text style={styles.searchResultName}>{item?.name}</Text>
-                          </TouchableOpacity>
-                        )}
+                        renderItem={renderSearchResultItem}
                         contentContainerStyle={styles.searchResultsContainer}
                       />
                     ) : (
@@ -378,6 +404,14 @@ const TeamDetailsScreen = ({ route, navigation }) => {
                 </View>
               </TouchableWithoutFeedback>
             </Modal>
+
+            <CustomDialog
+              visible={dialogVisible}
+              title={dialogTitle}
+              message={dialogMessage}
+              type={dialogType}
+              onClose={() => setDialogVisible(false)}
+            />
           </BlurView>
         </ImageBackground>
       </LinearGradient>
@@ -405,7 +439,9 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-    opacity: 0.8
+  },
+  backgroundImage: {
+    opacity: 0.5,
   },
   container: {
     borderWidth: 1,
@@ -427,6 +463,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 16,
+    backgroundColor: '#34B8FF',
   },
   headerTitleContainer: {
     flex: 1,
@@ -441,7 +478,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.9)',
     marginTop: 4,
     textAlign: 'center',
   },
@@ -477,7 +514,7 @@ const styles = StyleSheet.create({
   },
   playerStats: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.9)',
   },
   removeButton: {
     position: 'absolute',
@@ -545,8 +582,11 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginLeft: 8,
   },
-  loadingIndicator: {
-    marginVertical: 20,
+  modalLoader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 100,
   },
   searchResultsContainer: {
     paddingBottom: 16,
@@ -566,9 +606,18 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#f5f5f5',
   },
+  searchResultTextContainer: {
+    flex: 1,
+  },
   searchResultName: {
     fontSize: 16,
     color: '#003b5c',
+    fontWeight: '500',
+  },
+  searchResultPhone: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
   noResults: {
     padding: 20,
