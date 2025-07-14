@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-// import LinearGradient from 'react-native-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 
 import EventSource from 'react-native-event-source';
@@ -92,6 +91,12 @@ const ScoringScreen = ({ route }) => {
   const [selectedShot, setSelectedShot] = useState(null);
   const [shotModalVisible, setShotModalVisible] = useState(false);
   const [selectedRunForShot, setSelectedRunForShot] = useState(null);
+  const liveSocketRef = useRef(null);
+  const submitSocketRef = useRef(null);
+  const livePingIntervalRef = useRef(null);
+  const livePongTimeoutRef = useRef(null);
+  const submitPingIntervalRef = useRef(null);
+  const submitPongTimeoutRef = useRef(null);
   const cricketShots = [
     'Drive',
     'Cut',
@@ -156,242 +161,260 @@ const ScoringScreen = ({ route }) => {
     });
   };
 
-  const SSEhandler = async () => {
+  const matchStateUpdateHandler = (data) => {
+    setBattingTeamName(data.battingTeam?.name);
+    setBowlingTeamName(data.bowlingTeam?.name);
+    setScore(data.battingTeam.score);
+    setExtras(data.battingTeam.extras);
+    setWicket(data.battingTeam.wickets);
+    setBattingTeamII(data.battingTeamPlayingXI);
+    setBowlingTeamII(data.bowlingTeamPlayingXI);
+    setCompletedOvers(data.completedOvers);
+    setCurrentBowlerName(data.currentBowler?.name);
+    setStrikerName(data.currentStriker?.name);
+    setNonStrikerName(data.currentNonStriker?.name);
+    setCurrentOver(data.currentOver);
+
+    // Fetch available bowlers
+    const filteredBowlers = data.bowlingTeamPlayingXI.filter((player) => player.playerId !== bowler).map(({ playerId, name }) => ({ playerId, name }));
+    setAvailableBowlers(filteredBowlers);
+
+    // Fetch available batsmen
+    const available = data.battingTeamPlayingXI.filter(
+      (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
+    ).map(({ playerId, name }) => ({ playerId, name }));
+    setAvailableBatsmen(available);
+
+    // Extract striker details
+    const strikerStats = data.battingTeamPlayingXI.find(
+      (player) => player?.name === data.currentStriker?.name
+    );
+
+    // Extract non-striker details
+    const nonStrikerStats = data.battingTeamPlayingXI.find(
+      (player) => player?.name === data.currentNonStriker?.name
+    );
+    const bowlerStats = data.bowlingTeamPlayingXI.find(
+      (player) => player?.name === data.currentBowler?.name
+    );
+    const formattedOverDetails = data.currentOver.map((ball) => {
+      let event = ball.runs.toString();
+
+      if (ball.wicket) event += 'W';
+      if (ball.noBall) event += 'NB';
+      if (ball.wide) event += 'Wd';
+      if (ball.bye) event += 'B';
+      if (ball.legBye) event += 'LB';
+
+      return event;
+    });
+
+    setOverDetails(formattedOverDetails);
+    const deliveryCount = data.currentOver.reduce((count, ball) => {
+      return count + (ball.noBall || ball.wide ? 0 : 1);
+    }, 0);
+    setLegalDeliveries(deliveryCount);
+    if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
+      setModals((prev) => ({ ...prev, nextBowler: true }));
+    }
+
+    setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
+    setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
+    setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
+  }
+
+  const setupSubmitSocket = async () => {
     try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      //test
-      const eventSource = new EventSource(
-        `http://34.47.150.57:8081/api/v1/matches/${matchId}/subscribe`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const submitSocketUrl = `ws://34.47.150.57:8081/app/match/${matchId}`;
+      submitSocketRef.current = new WebSocket(submitSocketUrl);
 
-      //prod
-      // const eventSource = new EventSource(
-      //   `http://34.47.150.57:8080/api/v1/matches/${matchId}/subscribe`,
-      //   { headers: { Authorization: `Bearer ${token}` } }
-      // );
+      submitSocketRef.current.onopen = () => {
+        console.log('[Submit] WebSocket connected');
 
-      eventSource.addEventListener('ball-update', (event) => {
-        const data = JSON.parse(event.data);
-        console.log("Ball update");
-        console.log(data);
-        setBattingTeamName(data.battingTeam?.name);
-        setBowlingTeamName(data.bowlingTeam?.name);
-        setScore(data.battingTeam.score);
-        setExtras(data.battingTeam.extras);
-        setWicket(data.battingTeam.wickets);
-        setBattingTeamII(data.battingTeamPlayingXI);
-        setBowlingTeamII(data.bowlingTeamPlayingXI);
-        setCompletedOvers(data.completedOvers);
-        setCurrentBowlerName(data.currentBowler?.name);
-        setStrikerName(data.currentStriker?.name);
-        setNonStrikerName(data.currentNonStriker?.name);
-        setCurrentOver(data.currentOver);
+        submitPingIntervalRef.current = setInterval(() => {
+          if (submitSocketRef.current?.readyState === WebSocket.OPEN) {
+            console.log('[Submit] Sending ping...');
+            submitSocketRef.current.send(JSON.stringify({ type: 'ping' }));
 
-        // Fetch available bowlers
-        const filteredBowlers = data.bowlingTeamPlayingXI.filter((player) => player.playerId !== bowler).map(({ playerId, name }) => ({ playerId, name }));
-        setAvailableBowlers(filteredBowlers);
-
-        // Fetch available batsmen
-        const available = data.battingTeamPlayingXI.filter(
-          (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
-        ).map(({ playerId, name }) => ({ playerId, name }));
-        setAvailableBatsmen(available);
-
-        // Extract striker details
-        const strikerStats = data.battingTeamPlayingXI.find(
-          (player) => player?.name === data.currentStriker?.name
-        );
-
-        // Extract non-striker details
-        const nonStrikerStats = data.battingTeamPlayingXI.find(
-          (player) => player?.name === data.currentNonStriker?.name
-        );
-        const bowlerStats = data.bowlingTeamPlayingXI.find(
-          (player) => player?.name === data.currentBowler?.name
-        );
-        const formattedOverDetails = data.currentOver.map((ball) => {
-          let event = ball.runs.toString();
-
-          if (ball.wicket) event += 'W';
-          if (ball.noBall) event += 'NB';
-          if (ball.wide) event += 'Wd';
-          if (ball.bye) event += 'B';
-          if (ball.legBye) event += 'LB';
-
-          return event;
-        });
-
-        setOverDetails(formattedOverDetails);
-        const deliveryCount = data.currentOver.reduce((count, ball) => {
-          return count + (ball.noBall || ball.wide ? 0 : 1);
-        }, 0);
-        setLegalDeliveries(deliveryCount);
-        if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
-          setModals((prev) => ({ ...prev, nextBowler: true }));
-        }
-
-        setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
-        setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
-        setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
-
-      });
-
-      eventSource.addEventListener('match-complete', (event) => {
-        const data = event.data;
-        console.log("Match complete");
-        console.log(JSON.parse(data));
-        eventSource.close();
-        navigation.navigate('MatchScoreCard', { matchId })
-      })
-
-      eventSource.addEventListener('innings-complete', (event) => {
-        console.log("Innings over!");
-        const data = JSON.parse(event.data);
-        console.log(data);
-        setBattingTeamName(data.battingTeam?.name);
-        setBowlingTeamName(data.bowlingTeam?.name);
-        setScore(data.battingTeam.score);
-        setExtras(data.battingTeam.extras);
-        setWicket(data.battingTeam.wickets);
-        setBattingTeamII(data.battingTeamPlayingXI);
-        setBowlingTeamII(data.bowlingTeamPlayingXI);
-        setCompletedOvers(data.completedOvers);
-        setCurrentBowlerName(data.currentBowler?.name);
-        setStrikerName(data.currentStriker?.name);
-        setNonStrikerName(data.currentNonStriker?.name);
-        setCurrentOver(data.currentOver);
-
-        // Fetch available bowlers
-        const filteredBowlers = data.bowlingTeamPlayingXI.filter((player) => player.playerId !== bowler).map(({ playerId, name }) => ({ playerId, name }));
-        setAvailableBowlers(filteredBowlers);
-
-        // Fetch available batsmen
-        const available = data.battingTeamPlayingXI.filter(
-          (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
-        ).map(({ playerId, name }) => ({ playerId, name }));
-        setAvailableBatsmen(available);
-
-        // Extract striker details
-        const strikerStats = data.battingTeamPlayingXI.find(
-          (player) => player?.name === data.currentStriker?.name
-        );
-
-        // Extract non-striker details
-        const nonStrikerStats = data.battingTeamPlayingXI.find(
-          (player) => player?.name === data.currentNonStriker?.name
-        );
-        const bowlerStats = data.bowlingTeamPlayingXI.find(
-          (player) => player?.name === data.currentBowler?.name
-        );
-        const formattedOverDetails = data.currentOver.map((ball) => {
-          let event = ball.runs.toString();
-
-          if (ball.wicket) event += 'W';
-          if (ball.noBall) event += 'NB';
-          if (ball.wide) event += 'Wd';
-          if (ball.bye) event += 'B';
-          if (ball.legBye) event += 'LB';
-
-          return event;
-        });
-
-        setOverDetails(formattedOverDetails);
-        const deliveryCount = data.currentOver.reduce((count, ball) => {
-          return count + (ball.noBall || ball.wide ? 0 : 1);
-        }, 0);
-        setLegalDeliveries(deliveryCount);
-        if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
-          setModals((prev) => ({ ...prev, nextBowler: true }));
-        }
-
-        setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
-        setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
-        setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
-
-        setModals({ ...modals, startNextInnings: true });
-      });
-
-      eventSource.addEventListener('second-innings-started', (event) => {
-        console.log("2nd innings event listening");
-        const data = JSON.parse(event.data);
-        console.log(data);
-        setBattingTeamName(data.battingTeam?.name);
-        setBowlingTeamName(data.bowlingTeam?.name);
-        setScore(data.battingTeam.score);
-        setExtras(data.battingTeam.extras);
-        setWicket(data.battingTeam.wickets);
-        setBattingTeamII(data.battingTeamPlayingXI);
-        setBowlingTeamII(data.bowlingTeamPlayingXI);
-        setCompletedOvers(data.completedOvers);
-        setCurrentBowlerName(data.currentBowler?.name);
-        setStrikerName(data.currentStriker?.name);
-        setNonStrikerName(data.currentNonStriker?.name);
-        setCurrentOver(data.currentOver);
-
-        // Fetch available bowlers
-        const filteredBowlers = data.bowlingTeamPlayingXI.filter((player) => player.playerId !== bowler).map(({ playerId, name }) => ({ playerId, name }));
-        setAvailableBowlers(filteredBowlers);
-
-        // Fetch available batsmen
-        const available = data.battingTeamPlayingXI.filter(
-          (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
-        ).map(({ playerId, name }) => ({ playerId, name }));
-        setAvailableBatsmen(available);
-
-        // Extract striker details
-        const strikerStats = data.battingTeamPlayingXI.find(
-          (player) => player?.name === data.currentStriker?.name
-        );
-
-        // Extract non-striker details
-        const nonStrikerStats = data.battingTeamPlayingXI.find(
-          (player) => player?.name === data.currentNonStriker?.name
-        );
-        const bowlerStats = data.bowlingTeamPlayingXI.find(
-          (player) => player?.name === data.currentBowler?.name
-        );
-        const formattedOverDetails = data.currentOver.map((ball) => {
-          let event = ball.runs.toString();
-
-          if (ball.wicket) event += 'W';
-          if (ball.noBall) event += 'NB';
-          if (ball.wide) event += 'Wd';
-          if (ball.bye) event += 'B';
-          if (ball.legBye) event += 'LB';
-
-          return event;
-        });
-
-        setOverDetails(formattedOverDetails);
-        const deliveryCount = data.currentOver.reduce((count, ball) => {
-          return count + (ball.noBall || ball.wide ? 0 : 1);
-        }, 0);
-        setLegalDeliveries(deliveryCount);
-        if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
-          setModals((prev) => ({ ...prev, nextBowler: true }));
-        }
-
-        setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
-        setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
-        setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
-      });
-
-      eventSource.onerror = (error) => {
-        console.error('SSE Error:', error);
-        eventSource.close();
+            submitPongTimeoutRef.current = setTimeout(() => {
+              console.warn('[Submit] Pong not received, closing socket');
+              submitSocketRef.current?.close();
+            }, 5000);
+          }
+        }, 20000);
       };
 
-      return () => {
-        eventSource.close();
+      submitSocketRef.current.onmessage = (message) => {
+        try {
+          const parsed = JSON.parse(message.data);
+
+          if (parsed.type === 'pong') {
+            clearTimeout(submitPongTimeoutRef.current);
+            console.log('[Submit] Received pong');
+            return;
+          }
+
+          if (parsed.type === 'ball-submission-ack') {
+            Alert.alert('Success', 'Score submitted successfully');
+          } else if (parsed.type === 'ball-submission-error') {
+            Alert.alert('Error', parsed.message || 'Score submission failed');
+          } else {
+            console.log('[Submit] Message:', parsed);
+          }
+        } catch (err) {
+          console.error('[Submit] WebSocket message error:', err);
+        }
+      };
+
+      submitSocketRef.current.onerror = (error) => {
+        console.error('[Submit] WebSocket error:', error.message || error);
+      };
+
+      submitSocketRef.current.onclose = () => {
+        console.warn('[Submit] WebSocket closed');
+        clearInterval(submitPingIntervalRef.current);
+        clearTimeout(submitPongTimeoutRef.current);
       };
     } catch (err) {
-      console.log(err);
+      console.error('[Submit] WebSocket setup error:', err);
+    }
+  };
+
+  // const SSEhandler = async () => {
+  //   try {
+  //     const token = await AsyncStorage.getItem('jwtToken');
+  //     //test
+  //     const eventSource = new EventSource(
+  //       `http://34.47.150.57:8081/api/v1/matches/${matchId}/subscribe`,
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
+
+  //     //prod
+  //     // const eventSource = new EventSource(
+  //     //   `http://34.47.150.57:8080/api/v1/matches/${matchId}/subscribe`,
+  //     //   { headers: { Authorization: `Bearer ${token}` } }
+  //     // );
+
+  //     eventSource.addEventListener('ball-update', (event) => {
+  //       const data = JSON.parse(event.data);
+  //       console.log("Ball update");
+  //       console.log(data);
+  //       matchStateUpdateHandler(data);
+  //     });
+
+  //     eventSource.addEventListener('match-complete', (event) => {
+  //       const data = event.data;
+  //       console.log("Match complete");
+  //       console.log(JSON.parse(data));
+  //       eventSource.close();
+  //       navigation.navigate('MatchScoreCard', { matchId })
+  //     })
+
+  //     eventSource.addEventListener('innings-complete', (event) => {
+  //       console.log("Innings over!");
+  //       const data = JSON.parse(event.data);
+  //       console.log(data);
+  //       matchStateUpdateHandler(data);
+  //       setModals({ ...modals, startNextInnings: true });
+  //     });
+
+  //     eventSource.addEventListener('second-innings-started', (event) => {
+  //       console.log("2nd innings event listening");
+  //       const data = JSON.parse(event.data);
+  //       console.log(data);
+  //       matchStateUpdateHandler(data);
+  //     });
+
+  //     eventSource.onerror = (error) => {
+  //       console.error('SSE Error:', error);
+  //       eventSource.close();
+  //     };
+
+  //     return () => {
+  //       eventSource.close();
+  //     };
+  //   } catch (err) {
+  //     console.log(err);
+  //   }
+  // };
+
+  const webSocketConnectionHandler = async () => {
+    try {
+      const liveSocketUrl = `ws://34.47.150.57:8081/api/v1/topic/match/${matchId}`;
+      liveSocketRef.current = new WebSocket(liveSocketUrl);
+
+      liveSocketRef.current.onopen = () => {
+        console.log('[Live] WebSocket connected');
+
+        livePingIntervalRef.current = setInterval(() => {
+          if (liveSocketRef.current?.readyState === WebSocket.OPEN) {
+            console.log('[Live] Sending ping...');
+            liveSocketRef.current.send(JSON.stringify({ type: 'ping' }));
+
+            livePongTimeoutRef.current = setTimeout(() => {
+              console.warn('[Live] Pong not received, closing socket');
+              liveSocketRef.current?.close();
+            }, 5000);
+          }
+        }, 20000);
+      };
+
+      liveSocketRef.current.onmessage = (message) => {
+        try {
+          const parsed = JSON.parse(message.data);
+
+          if (parsed.type === 'pong') {
+            clearTimeout(livePongTimeoutRef.current);
+            console.log('[Live] Received pong');
+            return;
+          }
+
+          const { type, data } = parsed;
+          switch (type) {
+            case 'ball-update':
+              console.log('Ball update');
+              matchStateUpdateHandler(data);
+              break;
+            case 'match-complete':
+              console.log('Match complete');
+              liveSocketRef.current?.close();
+              navigation.navigate('MatchScoreCard', { matchId });
+              break;
+            case 'innings-complete':
+              console.log('Innings over');
+              matchStateUpdateHandler(data);
+              setModals((prev) => ({ ...prev, startNextInnings: true }));
+              break;
+            case 'second-innings-started':
+              console.log('Second innings started');
+              matchStateUpdateHandler(data);
+              break;
+            default:
+              console.log('Unknown message type:', type);
+          }
+        } catch (err) {
+          console.error('[Live] WebSocket message error:', err);
+        }
+      };
+
+      liveSocketRef.current.onerror = (error) => {
+        console.error('[Live] WebSocket error:', error.message || error);
+      };
+
+      liveSocketRef.current.onclose = () => {
+        console.warn('[Live] WebSocket closed');
+        clearInterval(livePingIntervalRef.current);
+        clearTimeout(livePongTimeoutRef.current);
+      };
+    } catch (err) {
+      console.error('[Live] WebSocket setup error:', err);
     }
   };
 
   useEffect(() => {
-    SSEhandler();
+    // SSEhandler();
+    webSocketConnectionHandler();
+    setupSubmitSocket();
   }, [matchId]);
 
   const getMatchState = async () => {
@@ -689,6 +712,7 @@ const ScoringScreen = ({ route }) => {
   };
 
   const submitScore = async (data) => {
+    const token = await AsyncStorage.getItem('jwtToken');
     const payload = {
       matchId,
       tournamentId: null,
@@ -710,17 +734,21 @@ const ScoringScreen = ({ route }) => {
       runOutGetterId: data.runOutGetterId || null,
     };
 
-    const { success, error } = await apiService({
-      endpoint: `matches/${matchId}/ball`,
-      method: 'POST',
-      body: payload,
-    });
+    if (
+      submitSocketRef.current &&
+      submitSocketRef.current.readyState === WebSocket.OPEN
+    ) {
+      const message = {
+        type: 'ball-submission',
+        token,
+        data: payload,
+      };
 
-    if (success) {
-      Alert.alert('Success', 'Score updated successfully!');
+      submitSocketRef.current.send(JSON.stringify(message));
+      console.log('[Submit] Score submitted via WebSocket:', message);
     } else {
-      console.error('Score update error:', error);
-      Alert.alert('Error', 'Failed to update score');
+      Alert.alert('Connection Error', 'Submit WebSocket not connected.');
+      console.warn('[Submit] WebSocket not connected or ready.');
     }
   };
 
