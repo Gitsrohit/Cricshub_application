@@ -434,6 +434,8 @@ const stompLiveClient = new Client();
 // Connection Manager Hook
 
 
+
+
 const useStompConnection = () => {
   const [submitConnected, setSubmitConnected] = useState(false);
   const [liveConnected, setLiveConnected] = useState(false);
@@ -457,8 +459,8 @@ const useStompConnection = () => {
 
     client.configure({
       webSocketFactory: () => {
-        console.log(`[${type}] Creating new SockJS connection...`);
-        return new SockJS('http://34.47.150.57:8081/ws');
+        console.log(`[${type}] Creating native WebSocket connection...`);
+        return new WebSocket('ws://34.47.150.57:8081/ws'); // change to wss:// in prod/
       },
       reconnectDelay: 5000,
       heartbeatIncoming: 10000,
@@ -473,7 +475,8 @@ const useStompConnection = () => {
 
       if (type === 'live' && matchId) {
         client.subscribe(`/topic/match/${matchId}`, (message) => {
-          // Handle live messages
+          console.log(`[${type}] Live message:`, message.body);
+          // You can add logic to handle live updates here
         });
       }
     };
@@ -504,6 +507,8 @@ const useStompConnection = () => {
 
   return { submitConnected, liveConnected, setupClient };
 };
+
+
 
 
 
@@ -861,7 +866,7 @@ const submitScore = async (data, isConnectedFn) => {
     await waitForSubmitConnection(isConnectedFn);
 
     stompSubmitClient.publish({
-      destination: `app/match/${matchId}/ball`,
+      destination: `/app/match/${matchId}/ball`,
       body: JSON.stringify(payload),
       headers: { 'content-type': 'application/json' },
     });
@@ -917,19 +922,19 @@ const checkConnectionHealth = async (client, type) => {
       Alert.alert('Error', 'Failed to start second innings');
     }
   };
-const { submitConnected, liveConnected, setupClient } = useStompConnection();
+  const { submitConnected, setupClient } = useStompConnection();
 
-useEffect(() => {
-  console.log('[WS] Setting up sockets for match:', matchId);
-  setupClient(stompLiveClient, 'live', matchId);
-  setupClient(stompSubmitClient, 'submit');
+  useEffect(() => {
+    console.log('[WS] Setting up sockets for match:', matchId);
+    setupClient(stompLiveClient, 'live', matchId);
+    setupClient(stompSubmitClient, 'submit');
 
-  return () => {
-    console.log('[WS] Cleaning up connections...');
-    stompLiveClient.deactivate();
-    stompSubmitClient.deactivate();
-  };
-}, [matchId]);
+    return () => {
+      console.log('[WS] Cleaning up connections...');
+      stompLiveClient.deactivate();
+      stompSubmitClient.deactivate();
+    };
+  }, [matchId]);
 const handleSubmit = async (data) => {
   await submitScore(data, () => submitConnected); // 🔥 pass state as a function
 };
