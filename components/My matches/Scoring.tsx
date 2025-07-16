@@ -14,14 +14,15 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
-
+// import SockJS from 'sockjs-client';
+// import { Client, IMessage } from '@stomp/stompjs';
 import EventSource from 'react-native-event-source';
 
 
 import bg from '../../assets/images/cricsLogo.png';
 import { Picker } from '@react-native-picker/picker';
 import SockJS from 'sockjs-client';
-import { Client } from '@stomp/stompjs';
+import { Client,IMessage } from '@stomp/stompjs';
 import { useNavigation } from '@react-navigation/native';
 import apiService from '../APIservices';
 const driveImage = require('../../assets/images/DriveShot.png');
@@ -436,13 +437,14 @@ const stompLiveClient = new Client();
 
 
 
+
 const useStompConnection = () => {
   const [submitConnected, setSubmitConnected] = useState(false);
   const [liveConnected, setLiveConnected] = useState(false);
   const reconnectAttempts = useRef(0);
   const MAX_RECONNECT_ATTEMPTS = 3;
 
-  const updateConnectionState = (type, isConnected) => {
+  const updateConnectionState = (type: 'submit' | 'live', isConnected: boolean) => {
     if (type === 'submit') {
       setSubmitConnected(isConnected);
     } else {
@@ -454,13 +456,13 @@ const useStompConnection = () => {
     }
   };
 
-  const setupClient = (client, type, matchId = null) => {
+  const setupClient = (client: Client, type: 'submit' | 'live', matchId: string | null = null) => {
     console.log(`[${type}] Initializing STOMP client...`);
 
     client.configure({
       webSocketFactory: () => {
-        console.log(`[${type}] Creating native WebSocket connection...`);
-        return new WebSocket('ws://34.47.150.57:8081/ws'); // change to wss:// in prod/
+        console.log(`[${type}] Creating SockJS connection...`);
+        return new SockJS('http://34.47.150.57:8081/ws');
       },
       reconnectDelay: 5000,
       heartbeatIncoming: 10000,
@@ -474,9 +476,8 @@ const useStompConnection = () => {
       reconnectAttempts.current = 0;
 
       if (type === 'live' && matchId) {
-        client.subscribe(`/topic/match/${matchId}`, (message) => {
+        client.subscribe(`/topic/match/${matchId}`, (message: IMessage) => {
           console.log(`[${type}] Live message:`, message.body);
-          // You can add logic to handle live updates here
         });
       }
     };
@@ -507,6 +508,7 @@ const useStompConnection = () => {
 
   return { submitConnected, liveConnected, setupClient };
 };
+
 
 
 
@@ -877,7 +879,7 @@ const submitScore = async (data, isConnectedFn) => {
 
     return true;
   } catch (error) {
-    console.error('[Submit] Publish error:', error);
+    console.error('[Subm0it] Publish error:', error);
     Alert.alert('Submission Error', 'Failed to submit score. Please wait for connection.');
     return false;
   }

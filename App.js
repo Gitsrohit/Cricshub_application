@@ -7,6 +7,8 @@ import Registration from './components/Authentication/Registration';
 import CricketAppScreen from './components/My matches/CricketAppScreen';
 import Tournaments from './components/Tournaments/Tournaments';
 import Home from './components/Home/Home';
+import WebSocketTest from './components/Home/WebSocketTest';
+
 import Teams from './components/Teams/Teams';
 import Profile from './components/Settings/Profile';
 import Performance from './components/Settings/Performance';
@@ -42,7 +44,7 @@ const App = () => {
       <NavigationContainer>
         <InternetConnectivityCheck>
           <Stack.Navigator
-            initialRouteName="Login"
+            initialRouteName="Main"
             screenOptions={{ headerShown: false }}
           >
             {/* Authentication Screens */}
@@ -69,6 +71,8 @@ const MainScreens = () => {
         <Stack.Screen name="Teams" component={Teams} />
         <Stack.Screen name="Profile" component={Profile} />
         <Stack.Screen name="Performance" component={Performance} />
+        <Stack.Screen name="WebSocketTest" component={WebSocketTest} />
+
         <Stack.Screen name="CreateTeam" component={CreateTeam} />
         <Stack.Screen name="CreateTournaments" component={CreateTournaments} />
         <Stack.Screen name="ManageTournaments" component={ManageTournaments} />
