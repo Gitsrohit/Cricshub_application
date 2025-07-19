@@ -54,6 +54,14 @@ const CreateTeam = () => {
       logoUri,
     });
   };
+   const handleWeb = () => {
+    // if (!teamName.trim() || !logoUri) {
+    //   Alert.alert('Error', 'Please fill in the team name and upload a logo.');
+    //   return;
+    // }
+    navigation.navigate('WebSocketTest');
+  };
+
 
   return (
     <ImageBackground source={background} style={styles.background}>
@@ -88,6 +96,9 @@ const CreateTeam = () => {
 
             <TouchableOpacity onPress={handleContinue} style={styles.continueButton}>
               <Text style={styles.continueButtonText}>Continue</Text>
+            </TouchableOpacity>
+             <TouchableOpacity onPress={handleWeb} style={styles.continueButton}>
+              <Text style={styles.continueButtonText}>Web</Text>
             </TouchableOpacity>
           </LinearGradient>
         </View>

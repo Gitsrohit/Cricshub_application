@@ -14,10 +14,15 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
-
+// import SockJS from 'sockjs-client';
+// import { Client, IMessage } from '@stomp/stompjs';
 import EventSource from 'react-native-event-source';
+
+
 import bg from '../../assets/images/cricsLogo.png';
 import { Picker } from '@react-native-picker/picker';
+import SockJS from 'sockjs-client';
+import { Client,IMessage } from '@stomp/stompjs';
 import { useNavigation } from '@react-navigation/native';
 import apiService from '../APIservices';
 const driveImage = require('../../assets/images/DriveShot.png');
@@ -34,12 +39,17 @@ const loftedImage = require('../../assets/images/LoaftedShot.png');
 const ScoringScreen = ({ route }) => {
   const navigation = useNavigation();
   const [matchId, setMatchId] = useState(route.params.matchId);
+
+const isLiveConnectedRef = useRef(false);
+const reconnectAttemptsRef = useRef(0);
+const MAX_RECONNECT_ATTEMPTS = 5;
   const [strikerId, setStrikerId] = useState(route.params.strikerId);
   const [nonStrikerId, setNonStrikerId] = useState(route.params.nonStrikerId);
   const [bowler, setBowler] = useState(route.params.bowler);
   const [selectedStrikerName, setSelectedStrikerName] = useState(route.params.selectedStrikerName);
   const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(route.params.selectedNonStrikerName);
   const [selectedBowlerName, setSelectedBowlerName] = useState(route.params.selectedBowlerName);
+  const isSubmitConnectedRef = useRef(false);
   const [selectedRun, setSelectedRun] = useState(null);
   const [wideExtra, setWideExtra] = useState('');
   const [noBallExtra, setNoBallExtra] = useState('');
@@ -149,7 +159,7 @@ const ScoringScreen = ({ route }) => {
   const handleDirectionSelection = (direction) => {
     setSelectedDirection(direction);
     setDirectionModalVisible(false);
-    submitScore({
+    handleSubmit({
       runs: parseInt(selectedRunForShot),
       wide: false,
       noBall: false,
@@ -221,201 +231,340 @@ const ScoringScreen = ({ route }) => {
     setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
     setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
     setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
+    
   }
 
-  const setupSubmitSocket = async () => {
-    try {
-      const submitSocketUrl = `ws://34.47.150.57:8081/app/match/${matchId}`;
-      submitSocketRef.current = new WebSocket(submitSocketUrl);
 
-      submitSocketRef.current.onopen = () => {
-        console.log('[Submit] WebSocket connected');
+//  const setupSubmitSocket = async () => {
+//   try {
+//     const submitSocketUrl = `ws://34.47.150.57:8081/app/match/${matchId}`;
+//     submitSocketRef.current = new WebSocket(submitSocketUrl);
 
-        submitPingIntervalRef.current = setInterval(() => {
-          if (submitSocketRef.current?.readyState === WebSocket.OPEN) {
-            console.log('[Submit] Sending ping...');
-            submitSocketRef.current.send(JSON.stringify({ type: 'ping' }));
+//     submitSocketRef.current.onopen = () => {
+//       console.log('[Submit] WebSocket connected');
 
-            submitPongTimeoutRef.current = setTimeout(() => {
-              console.warn('[Submit] Pong not received, closing socket');
-              submitSocketRef.current?.close();
-            }, 5000);
-          }
-        }, 20000);
-      };
+//       submitPingIntervalRef.current = setInterval(() => {
+//         if (submitSocketRef.current?.readyState === WebSocket.OPEN) {
+//           console.log('[Submit] Sending ping...');
+//           submitSocketRef.current.send(JSON.stringify({ type: 'ping' }));
 
-      submitSocketRef.current.onmessage = (message) => {
-        try {
-          const parsed = JSON.parse(message.data);
+//           submitPongTimeoutRef.current = setTimeout(() => {
+//             console.warn('[Submit] Pong not received, closing socket');
+//             submitSocketRef.current?.close();
+//           }, 5000);
+//         }
+//       }, 20000);
+//     };
 
-          if (parsed.type === 'pong') {
-            clearTimeout(submitPongTimeoutRef.current);
-            console.log('[Submit] Received pong');
-            return;
-          }
+//     submitSocketRef.current.onmessage = (message) => {
+//       try {
+//         const parsed = JSON.parse(message.data);
 
-          if (parsed.type === 'ball-submission-ack') {
-            Alert.alert('Success', 'Score submitted successfully');
-          } else if (parsed.type === 'ball-submission-error') {
-            Alert.alert('Error', parsed.message || 'Score submission failed');
-          } else {
-            console.log('[Submit] Message:', parsed);
-          }
-        } catch (err) {
-          console.error('[Submit] WebSocket message error:', err);
-        }
-      };
+//         if (parsed.type === 'pong') {
+//           clearTimeout(submitPongTimeoutRef.current);
+//           console.log('[Submit] Received pong');
+//           return;
+//         }
 
-      submitSocketRef.current.onerror = (error) => {
-        console.error('[Submit] WebSocket error:', error.message || error);
-      };
+//         console.log('[Submit] Message:', parsed); // Log anything else for now
 
-      submitSocketRef.current.onclose = () => {
-        console.warn('[Submit] WebSocket closed');
-        clearInterval(submitPingIntervalRef.current);
-        clearTimeout(submitPongTimeoutRef.current);
-      };
-    } catch (err) {
-      console.error('[Submit] WebSocket setup error:', err);
+//       } catch (err) {
+//         console.error('[Submit] WebSocket message error:', err);
+//       }
+//     };
+
+//     submitSocketRef.current.onerror = (error) => {
+//       console.error('[Submit] WebSocket error:', error.message || error);
+//     };
+
+//     submitSocketRef.current.onclose = () => {
+//       console.warn('[Submit] WebSocket closed');
+//       clearInterval(submitPingIntervalRef.current);
+//       clearTimeout(submitPongTimeoutRef.current);
+//     };
+//   } catch (err) {
+//     console.error('[Submit] WebSocket setup error:', err);
+//   }
+// };
+
+//   // const SSEhandler = async () => {
+//   //   try {
+//   //     const token = await AsyncStorage.getItem('jwtToken');
+//   //     //test
+//   //     const eventSource = new EventSource(
+//   //       `http://34.47.150.57:8081/api/v1/matches/${matchId}/subscribe`,
+//   //       { headers: { Authorization: `Bearer ${token}` } }
+//   //     );
+
+//   //     //prod
+//   //     // const eventSource = new EventSource(
+//   //     //   `http://34.47.150.57:8080/api/v1/matches/${matchId}/subscribe`,
+//   //     //   { headers: { Authorization: `Bearer ${token}` } }
+//   //     // );
+
+//   //     eventSource.addEventListener('ball-update', (event) => {
+//   //       const data = JSON.parse(event.data);
+//   //       console.log("Ball update");
+//   //       console.log(data);
+//   //       matchStateUpdateHandler(data);
+//   //     });
+
+//   //     eventSource.addEventListener('match-complete', (event) => {
+//   //       const data = event.data;
+//   //       console.log("Match complete");
+//   //       console.log(JSON.parse(data));
+//   //       eventSource.close();
+//   //       navigation.navigate('MatchScoreCard', { matchId })
+//   //     })
+
+//   //     eventSource.addEventListener('innings-complete', (event) => {
+//   //       console.log("Innings over!");
+//   //       const data = JSON.parse(event.data);
+//   //       console.log(data);
+//   //       matchStateUpdateHandler(data);
+//   //       setModals({ ...modals, startNextInnings: true });
+//   //     });
+
+//   //     eventSource.addEventListener('second-innings-started', (event) => {
+//   //       console.log("2nd innings event listening");
+//   //       const data = JSON.parse(event.data);
+//   //       console.log(data);
+//   //       matchStateUpdateHandler(data);
+//   //     });
+
+//   //     eventSource.onerror = (error) => {
+//   //       console.error('SSE Error:', error);
+//   //       eventSource.close();
+//   //     };
+
+//   //     return () => {
+//   //       eventSource.close();
+//   //     };
+//   //   } catch (err) {
+//   //     console.log(err);
+//   //   }
+//   // };
+
+//   const webSocketConnectionHandler = async () => {
+//     try {
+//       const liveSocketUrl = `ws://34.47.150.57:8081/api/v1/topic/match/${matchId}`;
+//       liveSocketRef.current = new WebSocket(liveSocketUrl);
+
+//       liveSocketRef.current.onopen = () => {
+//         console.log('[Live] WebSocket connected');
+
+//         livePingIntervalRef.current = setInterval(() => {
+//           if (liveSocketRef.current?.readyState === WebSocket.OPEN) {
+//             console.log('[Live] Sending ping...');
+//             liveSocketRef.current.send(JSON.stringify({ type: 'ping' }));
+
+//             livePongTimeoutRef.current = setTimeout(() => {
+//               console.warn('[Live] Pong not received, closing socket');
+//               liveSocketRef.current?.close();
+//             }, 5000);
+//           }
+//         }, 20000);
+//       };
+
+//       liveSocketRef.current.onmessage = (message) => {
+//         try {
+//           const parsed = JSON.parse(message.data);
+
+//           if (parsed.type === 'pong') {
+//             clearTimeout(livePongTimeoutRef.current);
+//             console.log('[Live] Received pong');
+//             return;
+//           }
+
+//           const { type, data } = parsed;
+//           switch (type) {
+//             case 'ball-update':
+//               console.log('Ball update');
+//               matchStateUpdateHandler(data);
+//               break;
+//             case 'match-complete':
+//               console.log('Match complete');
+//               liveSocketRef.current?.close();
+//               navigation.navigate('MatchScoreCard', { matchId });
+//               break;
+//             case 'innings-complete':
+//               console.log('Innings over');
+//               matchStateUpdateHandler(data);
+//               setModals((prev) => ({ ...prev, startNextInnings: true }));
+//               break;
+//             case 'second-innings-started':
+//               console.log('Second innings started');
+//               matchStateUpdateHandler(data);
+//               break;
+//             default:
+//               console.log('Unknown message type:', type);
+//           }
+//         } catch (err) {
+//           console.error('[Live] WebSocket message error:', err);
+//         }
+//       };
+
+//       liveSocketRef.current.onerror = (error) => {
+//         console.error('[Live] WebSocket error:', error.message || error);
+//       };
+
+//       liveSocketRef.current.onclose = () => {
+//         console.warn('[Live] WebSocket closed');
+//         clearInterval(livePingIntervalRef.current);
+//         clearTimeout(livePongTimeoutRef.current);
+//       };
+//     } catch (err) {
+//       console.error('[Live] WebSocket setup error:', err);
+//     }
+//   };
+
+//   useEffect(() => {
+//     // SSEhandler();
+//     webSocketConnectionHandler();
+//     setupSubmitSocket();
+//   }, [matchId]);
+
+
+
+const stompSubmitClientRef = useRef<Client | null>(null);
+const stompLiveClientRef = useRef<Client | null>(null);
+// Connection state refs
+
+
+// Common configuration for both clients
+// Connection Manager Hook
+
+
+
+
+
+const useStompConnection = () => {
+  const [submitConnected, setSubmitConnected] = useState(false);
+  const [liveConnected, setLiveConnected] = useState(false);
+  const reconnectAttempts = useRef(0);
+  const MAX_RECONNECT_ATTEMPTS = 3;
+
+  const updateConnectionState = (type: 'submit' | 'live', isConnected: boolean) => {
+    if (type === 'submit') {
+      setSubmitConnected(isConnected);
+    } else {
+      setLiveConnected(isConnected);
+    }
+
+    if (!isConnected) {
+      console.warn(`[${type}] Connection state updated to disconnected`);
     }
   };
 
-  // const SSEhandler = async () => {
-  //   try {
-  //     const token = await AsyncStorage.getItem('jwtToken');
-  //     //test
-  //     const eventSource = new EventSource(
-  //       `http://34.47.150.57:8081/api/v1/matches/${matchId}/subscribe`,
-  //       { headers: { Authorization: `Bearer ${token}` } }
-  //     );
+  const setupClient = (clientRef: React.MutableRefObject<Client | null>, type: 'submit' | 'live', matchId: string | null = null) => {
+    console.log(`[${type}] Initializing STOMP client...`);
+    clientRef.current = new Client();
+    clientRef.current.configure({
+      webSocketFactory: () => {
+        console.log(`[${type}] Creating SockJS connection...`);
+        return new SockJS('http://34.47.150.57:8081/ws');
+      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
+      debug: (str) => console.log(`[${type}] DEBUG: ${str}`),
+    });
 
-  //     //prod
-  //     // const eventSource = new EventSource(
-  //     //   `http://34.47.150.57:8080/api/v1/matches/${matchId}/subscribe`,
-  //     //   { headers: { Authorization: `Bearer ${token}` } }
-  //     // );
+    clientRef.current.onConnect = (frame) => {
+      console.log(`[${type}] STOMP connected ✅`, frame);
+      updateConnectionState(type, true);
+      reconnectAttempts.current = 0;
 
-  //     eventSource.addEventListener('ball-update', (event) => {
-  //       const data = JSON.parse(event.data);
-  //       console.log("Ball update");
-  //       console.log(data);
-  //       matchStateUpdateHandler(data);
-  //     });
-
-  //     eventSource.addEventListener('match-complete', (event) => {
-  //       const data = event.data;
-  //       console.log("Match complete");
-  //       console.log(JSON.parse(data));
-  //       eventSource.close();
-  //       navigation.navigate('MatchScoreCard', { matchId })
-  //     })
-
-  //     eventSource.addEventListener('innings-complete', (event) => {
-  //       console.log("Innings over!");
-  //       const data = JSON.parse(event.data);
-  //       console.log(data);
-  //       matchStateUpdateHandler(data);
-  //       setModals({ ...modals, startNextInnings: true });
-  //     });
-
-  //     eventSource.addEventListener('second-innings-started', (event) => {
-  //       console.log("2nd innings event listening");
-  //       const data = JSON.parse(event.data);
-  //       console.log(data);
-  //       matchStateUpdateHandler(data);
-  //     });
-
-  //     eventSource.onerror = (error) => {
-  //       console.error('SSE Error:', error);
-  //       eventSource.close();
-  //     };
-
-  //     return () => {
-  //       eventSource.close();
-  //     };
-  //   } catch (err) {
-  //     console.log(err);
-  //   }
-  // };
-
-  const webSocketConnectionHandler = async () => {
+      if (type === 'live' && matchId) {
+  clientRef.current?.subscribe(`/topic/match/${matchId}`, (message: IMessage) => {
     try {
-      const liveSocketUrl = `ws://34.47.150.57:8081/api/v1/topic/match/${matchId}`;
-      liveSocketRef.current = new WebSocket(liveSocketUrl);
+      const parsed = JSON.parse(message.body);
+      
+      // Validate message structure
+      if (!parsed.eventName || !parsed.payload) {
+        console.error('Invalid message format', parsed);
+        return;
+      }
 
-      liveSocketRef.current.onopen = () => {
-        console.log('[Live] WebSocket connected');
+      const { eventName, payload } = parsed;
+      console.log(`[${eventName}] Live message received for match ${matchId}`);
 
-        livePingIntervalRef.current = setInterval(() => {
-          if (liveSocketRef.current?.readyState === WebSocket.OPEN) {
-            console.log('[Live] Sending ping...');
-            liveSocketRef.current.send(JSON.stringify({ type: 'ping' }));
-
-            livePongTimeoutRef.current = setTimeout(() => {
-              console.warn('[Live] Pong not received, closing socket');
-              liveSocketRef.current?.close();
-            }, 5000);
-          }
-        }, 20000);
-      };
-
-      liveSocketRef.current.onmessage = (message) => {
-        try {
-          const parsed = JSON.parse(message.data);
-
-          if (parsed.type === 'pong') {
-            clearTimeout(livePongTimeoutRef.current);
-            console.log('[Live] Received pong');
-            return;
-          }
-
-          const { type, data } = parsed;
-          switch (type) {
-            case 'ball-update':
-              console.log('Ball update');
-              matchStateUpdateHandler(data);
-              break;
-            case 'match-complete':
-              console.log('Match complete');
-              liveSocketRef.current?.close();
-              navigation.navigate('MatchScoreCard', { matchId });
-              break;
-            case 'innings-complete':
-              console.log('Innings over');
-              matchStateUpdateHandler(data);
-              setModals((prev) => ({ ...prev, startNextInnings: true }));
-              break;
-            case 'second-innings-started':
-              console.log('Second innings started');
-              matchStateUpdateHandler(data);
-              break;
-            default:
-              console.log('Unknown message type:', type);
-          }
-        } catch (err) {
-          console.error('[Live] WebSocket message error:', err);
-        }
-      };
-
-      liveSocketRef.current.onerror = (error) => {
-        console.error('[Live] WebSocket error:', error.message || error);
-      };
-
-      liveSocketRef.current.onclose = () => {
-        console.warn('[Live] WebSocket closed');
-        clearInterval(livePingIntervalRef.current);
-        clearTimeout(livePongTimeoutRef.current);
-      };
-    } catch (err) {
-      console.error('[Live] WebSocket setup error:', err);
+      // Handle different event types
+      switch (eventName) {
+        case 'ball-update':
+          console.log('Ball update:', payload);
+          matchStateUpdateHandler(payload);
+          break;
+        case 'match-complete':
+          console.log('Match complete:', payload);
+          liveSocketRef.current?.close();
+          navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
+          break;
+        case 'innings-complete':
+          console.log('Innings complete:', payload);
+          matchStateUpdateHandler(payload);
+          setModals(prev => ({ ...prev, startNextInnings: true }));
+          break;
+        case 'second-innings-started':
+          console.log('Second innings started:', payload);
+          matchStateUpdateHandler(payload);
+          break;
+        default:
+          console.warn('Unknown event type:', eventName, payload);
+      }
+    } catch (error) {
+      console.error('Error processing live message:', error, message.body);
     }
+  });
+}
+    };
+
+    clientRef.current.onStompError = (frame) => {
+      console.error(`[${type}] STOMP error:`, frame.headers?.message || frame);
+      updateConnectionState(type, false);
+    };
+
+    clientRef.current.onWebSocketClose = (event) => {
+      console.warn(`[${type}] WebSocket closed:`, event);
+      updateConnectionState(type, false);
+
+      if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
+        reconnectAttempts.current++;
+        console.log(`[${type}] Attempting reconnect (${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS})`);
+        setTimeout(() => clientRef.current?.activate(), 5000);
+      }
+    };
+
+    clientRef.current.onDisconnect = () => {
+      console.log(`[${type}] STOMP disconnected`);
+      updateConnectionState(type, false);
+    };
+
+    clientRef.current.activate();
+  
   };
 
-  useEffect(() => {
-    // SSEhandler();
-    webSocketConnectionHandler();
-    setupSubmitSocket();
-  }, [matchId]);
+  return { submitConnected, liveConnected, setupClient };
+};
+
+useEffect(() => {
+  console.log('[WS] Setting up sockets for match:', matchId);
+  setupClient(stompLiveClientRef, 'live', matchId);
+  setupClient(stompSubmitClientRef, 'submit');
+
+  return () => {
+    console.log('[WS] Cleaning up connections...');
+    stompLiveClientRef.current?.deactivate();
+    stompSubmitClientRef.current?.deactivate();
+  };
+}, [matchId]);
+
+
+
+
+
+
+
 
   const getMatchState = async () => {
     try {
@@ -429,7 +578,7 @@ const ScoringScreen = ({ route }) => {
         return;
       }
 
-      console.log("Match State Data:", data);
+      // console.log("Match State Data:", data);
 
       setMatchId(data.matchId);
       setStrikerId(data.currentStriker?.playerId || null);
@@ -506,19 +655,19 @@ const ScoringScreen = ({ route }) => {
       ) {
         setModals((prev) => ({ ...prev, nextBowler: true }));
       }
-      console.log("Logging set values");
-      console.log("Match ID:", matchId);
-      console.log("Striker:", strikerId);
-      console.log("Non-Striker:", nonStrikerId);
-      console.log("Bowler:", bowler);
-      console.log("Selected Striker Name:", selectedStrikerName);
-      console.log("Selected Non-Striker Name:", selectedNonStrikerName);
-      console.log("Selected Bowler Name:", selectedBowlerName);
-      console.log("Batting Team Name:", battingTeamName);
-      console.log("Score:", score);
-      console.log("Wickets:", wicket);
-      console.log("Extras:", extras);
-      console.log("Completed Overs:", completedOvers);
+      // console.log("Logging set values");
+      // console.log("Match ID:", matchId);
+      // console.log("Striker:", strikerId);
+      // console.log("Non-Striker:", nonStrikerId);
+      // console.log("Bowler:", bowler);
+      // console.log("Selected Striker Name:", selectedStrikerName);
+      // console.log("Selected Non-Striker Name:", selectedNonStrikerName);
+      // console.log("Selected Bowler Name:", selectedBowlerName);
+      // console.log("Batting Team Name:", battingTeamName);
+      // console.log("Score:", score);
+      // console.log("Wickets:", wicket);
+      // console.log("Extras:", extras);;;
+      // console.log("Completed Overs:", completedOvers);
 
     } catch (error) {
       console.log("Error fetching match state:", error);
@@ -604,7 +753,7 @@ const ScoringScreen = ({ route }) => {
       undoHandler();
     } else {
       setSelectedRun(value);
-      submitScore({ runs: parseInt(value), wide: false, noBall: false, bye: false, legBye: false, wicket: false });
+      handleSubmit({ runs: parseInt(value), wide: false, noBall: false, bye: false, legBye: false, wicket: false });
     }
   };
 
@@ -661,7 +810,7 @@ const ScoringScreen = ({ route }) => {
   const catchHandler = () => {
     console.log('Selected Catcher:', selectedCatcher);
 
-    submitScore({
+    handleSubmit({
       runs: 0,
       wicket: true,
       wicketType: 'Caught',
@@ -692,7 +841,7 @@ const ScoringScreen = ({ route }) => {
     console.log("Wicket giraa");
 
     setWicketType(value);
-    submitScore({
+   handleSubmit({
       runs: 0,
       wicket: true,
       wicketType: value,
@@ -710,47 +859,109 @@ const ScoringScreen = ({ route }) => {
       }
     }, 10000);
   };
-
-  const submitScore = async (data) => {
-    const token = await AsyncStorage.getItem('jwtToken');
-    const payload = {
-      matchId,
-      tournamentId: null,
-      strikerId,
-      bowlerId: bowler,
-      wicketType: data.wicketType || '',
-      shotType: data.shotType || '',
-      direction: data.direction || '',
-      runs: data.runs || 0,
-      battingFirst: true,
-      wide: data.wide || false,
-      noBall: data.noBall || false,
-      bye: data.bye || false,
-      legBye: data.legBye || false,
-      wicket: data.wicket || false,
-      freeHit: false,
-      catcherId: selectedCatcher || null,
-      runOutMakerId: data.runOutMakerId || null,
-      runOutGetterId: data.runOutGetterId || null,
+  const waitForStomp = (client, timeout = 3000) =>
+  new Promise((resolve, reject) => {
+    const interval = 100;
+    let waited = 0;
+    const check = () => {
+      if (client.connected) return resolve(true);
+      waited += interval;
+      if (waited >= timeout) return reject('STOMP connection timeout');
+      setTimeout(check, interval);
     };
+    check();
+  });
 
-    if (
-      submitSocketRef.current &&
-      submitSocketRef.current.readyState === WebSocket.OPEN
-    ) {
-      const message = {
-        type: 'ball-submission',
-        token,
-        data: payload,
-      };
+const waitForSubmitConnection = async (checkConnectedState, timeout = 5000) => {
+  const interval = 100;
+  let waited = 0;
 
-      submitSocketRef.current.send(JSON.stringify(message));
-      console.log('[Submit] Score submitted via WebSocket:', message);
-    } else {
-      Alert.alert('Connection Error', 'Submit WebSocket not connected.');
-      console.warn('[Submit] WebSocket not connected or ready.');
-    }
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      if (checkConnectedState()) {
+        resolve(true);
+      } else if (waited >= timeout) {
+        reject(new Error('STOMP submit connection timeout'));
+      } else {
+        waited += interval;
+        setTimeout(check, interval);
+      }
+    };
+    check();
+  });
+};
+
+
+const submitScore = async (data, isConnectedFn) => {
+  const payload = {
+    matchId,
+    tournamentId: null,
+    strikerId,
+    bowlerId: bowler,
+    wicketType: data.wicketType || '',
+    shotType: data.shotType || '',
+    direction: data.direction || '',
+    runs: data.runs || 0,
+    battingFirst: true,
+    wide: data.wide || false,
+    noBall: data.noBall || false,
+    bye: data.bye || false,
+    legBye: data.legBye || false,
+    wicket: data.wicket || false,
+    freeHit: false,
+    catcherId: selectedCatcher || null,
+    runOutMakerId: data.runOutMakerId || null,
+    runOutGetterId: data.runOutGetterId || null,
   };
+
+  try {
+    await waitForSubmitConnection(isConnectedFn);
+
+    if (!stompSubmitClientRef.current || !stompSubmitClientRef.current.connected) {
+      throw new Error('STOMP submit client not connected');
+    }
+
+    stompSubmitClientRef.current.publish({
+      destination: `/app/match/${matchId}/ball`,
+      body: JSON.stringify(payload),
+      headers: { 'content-type': 'application/json' },
+    });
+
+    setTimeout(() => {
+      console.log('[Submit] Score published successfully');
+    }, 100);
+
+    return true;
+  } catch (error) {
+    console.error('[Submit] Publish error:', error);
+    Alert.alert('Submission Error', 'Failed to submit score. Please wait for connection.');
+    return false;
+  }
+};
+
+ const checkConnectionHealth = async (client, type) => {
+  console.log(`[${type}] Checking connection health...`);
+  
+  // If client thinks it's connected but WebSocket isn't ready
+  if (client.connected && (!client.webSocket || client.webSocket.readyState !== WebSocket.OPEN)) {
+    console.warn(`[${type}] Connection state mismatch - forcing reconnect`);
+    try {
+      await client.deactivate();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      client.activate();
+      return false;
+    } catch (err) {
+      console.error(`[${type}] Reconnect failed:`, err);
+      return false;
+    }
+  }
+  
+  return client.connected;
+};
+
+
+
+
 
   const handleStartSecondInnings = async () => {
     const { success, error } = await apiService({
@@ -767,6 +978,22 @@ const ScoringScreen = ({ route }) => {
       Alert.alert('Error', 'Failed to start second innings');
     }
   };
+  const { submitConnected, setupClient } = useStompConnection();
+
+  // useEffect(() => {
+  //   console.log('[WS] Setting up sockets for match:', matchId);
+  //   setupClient(stompLiveClient, 'live', matchId);
+  //   setupClient(stompSubmitClient, 'submit');
+
+  //   return () => {
+  //     console.log('[WS] Cleaning up connections...');
+  //     stompLiveClient.deactivate();
+  //     stompSubmitClient.deactivate();
+  //   };
+  // }, [matchId]);
+const handleSubmit = async (data) => {
+  await submitScore(data, () => submitConnected); // 🔥 pass state as a function
+};
 
   return (
     <View style={styles.container}>
@@ -899,7 +1126,7 @@ const ScoringScreen = ({ route }) => {
               style={styles.submitButton}
               onPress={() => {
                 setModals({ ...modals, wide: false });
-                submitScore({ runs: parseInt(wideExtra || '0'), wide: true });
+                handleSubmit({ runs: parseInt(wideExtra || '0'), wide: true });
                 setWideExtra('0');
               }}
             >
@@ -924,7 +1151,7 @@ const ScoringScreen = ({ route }) => {
               style={styles.submitButton}
               onPress={() => {
                 setModals({ ...modals, noBall: false });
-                submitScore({ runs: parseInt(noBallExtra || '0'), noBall: true });
+                handleSubmit({ runs: parseInt(noBallExtra || '0'), noBall: true });
                 setNoBallExtra('0');
               }}
             >
@@ -947,7 +1174,7 @@ const ScoringScreen = ({ route }) => {
               style={styles.submitButton}
               onPress={() => {
                 setModals({ ...modals, bye: false });
-                submitScore({ runs: parseInt(byeExtra || '0'), bye: true });
+              handleSubmit({ runs: parseInt(byeExtra || '0'), bye: true });
               }}
             >
               <Text style={styles.submitText}>Submit</Text>
@@ -1168,7 +1395,7 @@ const ScoringScreen = ({ route }) => {
                 }
 
                 // Call score handler
-                submitScore({
+                handleSubmit({
                   runs: 0,
                   wicket: true,
                   wicketType: 'Run Out',

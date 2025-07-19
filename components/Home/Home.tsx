@@ -76,6 +76,12 @@ const Home = () => {
       icon: "live-tv",
       isFullWidth: true,
     },
+     {
+    title: "WebSocket Test",
+    buttonText: "Test",
+    navigateTo: "WebSocketTest",
+    icon: "wifi-tethering",
+  }
   ];
 
   const animatedValues = sections.map(() => new Animated.Value(1));
@@ -191,6 +197,7 @@ const Home = () => {
               { icon: "help-circle-outline", text: "Support", screen: "Support" },
               { icon: "star-outline", text: "Rate Us", screen: "RateUs" },
               { icon: "settings-outline", text: "Settings", screen: "Settings" },
+              { icon: "help-circle-outline", text: "Web", screen: "WebSocketTest"}
             ].map(({ icon, text, screen }) => (
               <TouchableOpacity
                 key={screen}
