@@ -426,8 +426,8 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 
 
 
-const stompSubmitClient = new Client();
-const stompLiveClient = new Client();
+const stompSubmitClientRef = useRef<Client | null>(null);
+const stompLiveClientRef = useRef<Client | null>(null);
 // Connection state refs
 
 
@@ -456,10 +456,10 @@ const useStompConnection = () => {
     }
   };
 
-  const setupClient = (client: Client, type: 'submit' | 'live', matchId: string | null = null) => {
+  const setupClient = (clientRef: React.MutableRefObject<Client | null>, type: 'submit' | 'live', matchId: string | null = null) => {
     console.log(`[${type}] Initializing STOMP client...`);
-
-    client.configure({
+    clientRef.current = new Client();
+    clientRef.current.configure({
       webSocketFactory: () => {
         console.log(`[${type}] Creating SockJS connection...`);
         return new SockJS('http://34.47.150.57:8081/ws');
@@ -470,44 +470,94 @@ const useStompConnection = () => {
       debug: (str) => console.log(`[${type}] DEBUG: ${str}`),
     });
 
-    client.onConnect = (frame) => {
+    clientRef.current.onConnect = (frame) => {
       console.log(`[${type}] STOMP connected ✅`, frame);
       updateConnectionState(type, true);
       reconnectAttempts.current = 0;
 
       if (type === 'live' && matchId) {
-        client.subscribe(`/topic/match/${matchId}`, (message: IMessage) => {
-          console.log(`[${type}] Live message:`, message.body);
-        });
+  clientRef.current?.subscribe(`/topic/match/${matchId}`, (message: IMessage) => {
+    try {
+      const parsed = JSON.parse(message.body);
+      
+      // Validate message structure
+      if (!parsed.eventName || !parsed.payload) {
+        console.error('Invalid message format', parsed);
+        return;
       }
+
+      const { eventName, payload } = parsed;
+      console.log(`[${eventName}] Live message received for match ${matchId}`);
+
+      // Handle different event types
+      switch (eventName) {
+        case 'ball-update':
+          console.log('Ball update:', payload);
+          matchStateUpdateHandler(payload);
+          break;
+        case 'match-complete':
+          console.log('Match complete:', payload);
+          liveSocketRef.current?.close();
+          navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
+          break;
+        case 'innings-complete':
+          console.log('Innings complete:', payload);
+          matchStateUpdateHandler(payload);
+          setModals(prev => ({ ...prev, startNextInnings: true }));
+          break;
+        case 'second-innings-started':
+          console.log('Second innings started:', payload);
+          matchStateUpdateHandler(payload);
+          break;
+        default:
+          console.warn('Unknown event type:', eventName, payload);
+      }
+    } catch (error) {
+      console.error('Error processing live message:', error, message.body);
+    }
+  });
+}
     };
 
-    client.onStompError = (frame) => {
+    clientRef.current.onStompError = (frame) => {
       console.error(`[${type}] STOMP error:`, frame.headers?.message || frame);
       updateConnectionState(type, false);
     };
 
-    client.onWebSocketClose = (event) => {
+    clientRef.current.onWebSocketClose = (event) => {
       console.warn(`[${type}] WebSocket closed:`, event);
       updateConnectionState(type, false);
 
       if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttempts.current++;
         console.log(`[${type}] Attempting reconnect (${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS})`);
-        setTimeout(() => client.activate(), 5000);
+        setTimeout(() => clientRef.current?.activate(), 5000);
       }
     };
 
-    client.onDisconnect = () => {
+    clientRef.current.onDisconnect = () => {
       console.log(`[${type}] STOMP disconnected`);
       updateConnectionState(type, false);
     };
 
-    client.activate();
+    clientRef.current.activate();
+  
   };
 
   return { submitConnected, liveConnected, setupClient };
 };
+
+useEffect(() => {
+  console.log('[WS] Setting up sockets for match:', matchId);
+  setupClient(stompLiveClientRef, 'live', matchId);
+  setupClient(stompSubmitClientRef, 'submit');
+
+  return () => {
+    console.log('[WS] Cleaning up connections...');
+    stompLiveClientRef.current?.deactivate();
+    stompSubmitClientRef.current?.deactivate();
+  };
+}, [matchId]);
 
 
 
@@ -867,7 +917,11 @@ const submitScore = async (data, isConnectedFn) => {
   try {
     await waitForSubmitConnection(isConnectedFn);
 
-    stompSubmitClient.publish({
+    if (!stompSubmitClientRef.current || !stompSubmitClientRef.current.connected) {
+      throw new Error('STOMP submit client not connected');
+    }
+
+    stompSubmitClientRef.current.publish({
       destination: `/app/match/${matchId}/ball`,
       body: JSON.stringify(payload),
       headers: { 'content-type': 'application/json' },
@@ -879,13 +933,13 @@ const submitScore = async (data, isConnectedFn) => {
 
     return true;
   } catch (error) {
-    console.error('[Subm0it] Publish error:', error);
+    console.error('[Submit] Publish error:', error);
     Alert.alert('Submission Error', 'Failed to submit score. Please wait for connection.');
     return false;
   }
 };
 
-const checkConnectionHealth = async (client, type) => {
+ const checkConnectionHealth = async (client, type) => {
   console.log(`[${type}] Checking connection health...`);
   
   // If client thinks it's connected but WebSocket isn't ready
@@ -926,17 +980,17 @@ const checkConnectionHealth = async (client, type) => {
   };
   const { submitConnected, setupClient } = useStompConnection();
 
-  useEffect(() => {
-    console.log('[WS] Setting up sockets for match:', matchId);
-    setupClient(stompLiveClient, 'live', matchId);
-    setupClient(stompSubmitClient, 'submit');
+  // useEffect(() => {
+  //   console.log('[WS] Setting up sockets for match:', matchId);
+  //   setupClient(stompLiveClient, 'live', matchId);
+  //   setupClient(stompSubmitClient, 'submit');
 
-    return () => {
-      console.log('[WS] Cleaning up connections...');
-      stompLiveClient.deactivate();
-      stompSubmitClient.deactivate();
-    };
-  }, [matchId]);
+  //   return () => {
+  //     console.log('[WS] Cleaning up connections...');
+  //     stompLiveClient.deactivate();
+  //     stompSubmitClient.deactivate();
+  //   };
+  // }, [matchId]);
 const handleSubmit = async (data) => {
   await submitScore(data, () => submitConnected); // 🔥 pass state as a function
 };

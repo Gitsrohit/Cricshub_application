@@ -63,7 +63,7 @@ const App = () => {
 const MainScreens = () => {
   return (
     <View style={{ flex: 1 }}>
-      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="MyMatches" component={AllMatches} />
