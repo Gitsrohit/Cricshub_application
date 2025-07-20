@@ -44,7 +44,7 @@ const App = () => {
       <NavigationContainer>
         <InternetConnectivityCheck>
           <Stack.Navigator
-            initialRouteName="Main"
+            initialRouteName="Login"
             screenOptions={{ headerShown: false }}
           >
             {/* Authentication Screens */}
@@ -63,7 +63,7 @@ const App = () => {
 const MainScreens = () => {
   return (
     <View style={{ flex: 1 }}>
-      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="MyMatches" component={AllMatches} />
