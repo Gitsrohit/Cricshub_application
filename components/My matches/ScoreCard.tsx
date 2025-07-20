@@ -51,6 +51,7 @@ const ScoreCard = ({ route, navigation }) => {
       if (response.success && response.data) {
         setMatchState(response.data);
         setTeam(response.data.team1.name);
+        console.log(response.data);
       } else {
         setLoadingError('No match data received');
         setMatchState({ error: true });
@@ -155,7 +156,7 @@ const ScoreCard = ({ route, navigation }) => {
   };
 
   const renderBowlingTable = (bowlingTeamData) => {
-    const bowlers = bowlingTeamData.playingXI.filter(bowler => bowler.overs);
+    const bowlers = bowlingTeamData.playingXI.filter(bowler => bowler.ballsBowled);
 
     return (
       <View style={styles.card}>
@@ -169,7 +170,7 @@ const ScoreCard = ({ route, navigation }) => {
         <View style={styles.statsHeader}>
           <Text style={[styles.nameCol, styles.headerText]}>Bowler</Text>
           <Text style={[styles.statCol, styles.headerText]}>O</Text>
-          <Text style={[styles.statCol, styles.headerText]}>M</Text>
+          {/* <Text style={[styles.statCol, styles.headerText]}>M</Text> */}
           <Text style={[styles.statCol, styles.headerText]}>R</Text>
           <Text style={[styles.statCol, styles.headerText]}>W</Text>
           <Text style={[styles.statCol, styles.headerText]}>Econ</Text>
@@ -186,12 +187,12 @@ const ScoreCard = ({ route, navigation }) => {
             <Text style={[styles.nameCol, styles.playerName]}>
               {bowler.name}
             </Text>
-            <Text style={[styles.statCol, styles.statText]}>{bowler.overs}</Text>
-            <Text style={[styles.statCol, styles.statText]}>{bowler.maidens || 0}</Text>
+            <Text style={[styles.statCol, styles.statText]}>{bowler.ballsBowled / 6}.{bowler.ballsBowled % 6}</Text>
+            {/* <Text style={[styles.statCol, styles.statText]}>{bowler.maidens || 0}</Text> */}
             <Text style={[styles.statCol, styles.statText]}>{bowler.runsConceded || 0}</Text>
-            <Text style={[styles.statCol, styles.statText]}>{bowler.wickets || 0}</Text>
+            <Text style={[styles.statCol, styles.statText]}>{bowler.wicketsTaken || 0}</Text>
             <Text style={[styles.statCol, styles.statText]}>
-              {bowler.economy ? bowler.economy.toFixed(1) : '0.0'}
+              {bowler.economyRate ? bowler.economyRate.toFixed(1) : '0.0'}
             </Text>
           </View>
         ))}
