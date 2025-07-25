@@ -323,7 +323,7 @@ const MyMatch = () => {
       });
 
       if (response.success) {
-        setMatches(response.data);
+        setMatches(response.data.data);
         setError(null);
       } else {
         setError('Failed to load your matches. Pull down to refresh.');
@@ -552,7 +552,7 @@ const LiveMatch = () => {
       });
 
       if (response.success) {
-        setMatches(response.data);
+        setMatches(response.data.data);
         setError(null);
       } else {
         setError('Failed to load live matches. Pull down to refresh.');
@@ -725,7 +725,7 @@ const UpcomingMatch = () => {
       });
 
       if (response.success) {
-        setMatches(response.data);
+        setMatches(response.data.data);
         setError(null);
       } else {
         setError('Failed to load upcoming matches. Pull down to refresh.');
@@ -889,7 +889,7 @@ const PastMatch = () => {
       });
 
       if (response.success) {
-        setMatches(response.data);
+        setMatches(response.data.data);
         setError(null);
       } else {
         setError('Failed to load past matches. Pull down to refresh.');

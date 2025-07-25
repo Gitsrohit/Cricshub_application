@@ -127,12 +127,12 @@ const TeamDetailsScreen = ({ route, navigation }) => {
           apiService({
             endpoint: 'teams/players/search/name',
             method: 'GET',
-            params: { name: query.trim() },
+            params: { query },
           }),
           apiService({
             endpoint: 'teams/players/search/phone',
             method: 'GET',
-            params: { phone: query.trim() },
+            params: { query },
           }),
         ]);
 

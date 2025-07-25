@@ -51,7 +51,7 @@ const Tournaments = () => {
       });
 
       if (success) {
-        setTournaments(data);
+        setTournaments(data.data);
       } else {
         console.error('Fetch tournaments error:', error);
         setError('Failed to load tournaments');
@@ -550,7 +550,7 @@ export const OthersTournaments = ({ tournaments, tournamentTimeStatus }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.tournamentsContainer}>
-      {tournaments.map((tournament) => {
+      {tournaments?.map?.((tournament) => {
         const sanitizedBannerUrl = tournament.banner.replace(
           'https://score360-7.onrender.com/api/v1/files/http:/',
           'https://'
@@ -675,7 +675,7 @@ const MyTournaments = ({ tournaments }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.tournamentsContainer}>
-      {tournaments.map((tournament) => {
+      {tournaments?.map?.((tournament) => {
         const sanitizedBannerUrl = tournament.banner.replace(
           'https://score360-7.onrender.com/api/v1/files/http:/',
           'https://'

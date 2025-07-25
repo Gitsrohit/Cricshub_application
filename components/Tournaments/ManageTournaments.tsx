@@ -32,7 +32,7 @@ export default function ManageTournaments({ route }) {
       });
 
       if (response.success) {
-        const data = response.data;
+        const data = response.data.data;
         setTournamentsDetails(data);
 
         if (data.banner) {
@@ -665,7 +665,7 @@ export const Info = ({ id, isCreator }) => {
       });
 
       if (response.success) {
-        const data = response.data;
+        const data = response.data.data;
         setTournamentsDetails(data);
         setEditedDetails({
           ...data,
@@ -927,7 +927,7 @@ export const Teams = ({ id, isCreator }) => {
       });
 
       if (response.success) {
-        setTeams(response.data.teamNames || []);
+        setTeams(response.data.data.teamNames || []);
       } else {
         console.error('API Error:', response.error);
         setError(response.error?.message || 'Failed to fetch Team names');
@@ -1076,7 +1076,7 @@ export const Teams = ({ id, isCreator }) => {
                   <Image source={{ uri: team.logoPath }} style={styles.teamImage} resizeMode='cover' />
                   <View>
                     <Text style={styles.teamName}>{team.name}</Text>
-                    <Text style={styles.teamCaptain}>{team.captain.name}</Text>
+                    <Text style={styles.teamCaptain}>{team.captain?.name}</Text>
                   </View>
                 </View>
               </View>
@@ -1140,7 +1140,7 @@ export const Teams = ({ id, isCreator }) => {
                             <Image source={{ uri: item.logoPath }} style={styles.teamImage} resizeMode='cover' />
                             <View>
                               <Text style={styles.teamName}>{item.name}</Text>
-                              <Text style={styles.teamCaptain}>{item.captain.name}</Text>
+                              <Text style={styles.teamCaptain}>{item.captain?.name}</Text>
                             </View>
                           </View>
                         </View>
@@ -1203,7 +1203,7 @@ export const Matches = ({ id, isCreator }) => {
       });
 
       if (response.success) {
-        setMatchDetails(response.data);
+        setMatchDetails(response.data.data);
       } else {
         setError('Failed to fetch matches');
         console.error('Error fetching matches:', response.error);
@@ -1231,8 +1231,8 @@ export const Matches = ({ id, isCreator }) => {
       });
 
       if (response.success) {
-        setTournamentData(response.data);
-        setVenues(response.data.venues);
+        setTournamentData(response.data.data);
+        setVenues(response.data.data.venues);
       } else {
         setError('Failed to fetch tournament details');
       }
@@ -1668,59 +1668,59 @@ export const PointsTable = ({ id }) => {
     name: screenWidth * 0.33,
     others: screenWidth * 0.6 / 6, // divide remaining width into 6 columns
   };
-  // const [pointsData, setPointsData] = useState(null);
-  const pointsData = [
-    {
-      tournamentId: "t1",
-      team: { id: "team1", name: "Mumbai Warriors" },
-      matchesPlayed: 5,
-      matchesWon: 4,
-      matchesLost: 1,
-      matchesDrawn: 0,
-      points: 8,
-      netRunRate: 1.12,
-    },
-    {
-      tournamentId: "t1",
-      team: { id: "team2", name: "Delhi Dynamos" },
-      matchesPlayed: 5,
-      matchesWon: 3,
-      matchesLost: 1,
-      matchesDrawn: 1,
-      points: 7,
-      netRunRate: 0.87,
-    },
-    {
-      tournamentId: "t1",
-      team: { id: "team3", name: "Chennai Chargers" },
-      matchesPlayed: 5,
-      matchesWon: 2,
-      matchesLost: 2,
-      matchesDrawn: 1,
-      points: 5,
-      netRunRate: -0.14,
-    },
-    {
-      tournamentId: "t1",
-      team: { id: "team4", name: "Kolkata Knights" },
-      matchesPlayed: 5,
-      matchesWon: 1,
-      matchesLost: 3,
-      matchesDrawn: 1,
-      points: 3,
-      netRunRate: -0.89,
-    },
-    {
-      tournamentId: "t1",
-      team: { id: "team5", name: "Bangalore Blasters" },
-      matchesPlayed: 5,
-      matchesWon: 0,
-      matchesLost: 5,
-      matchesDrawn: 0,
-      points: 0,
-      netRunRate: -1.45,
-    },
-  ];
+  const [pointsData, setPointsData] = useState(null);
+  // const pointsData = [
+  //   {
+  //     tournamentId: "t1",
+  //     team: { id: "team1", name: "Mumbai Warriors" },
+  //     matchesPlayed: 5,
+  //     matchesWon: 4,
+  //     matchesLost: 1,
+  //     matchesDrawn: 0,
+  //     points: 8,
+  //     netRunRate: 1.12,
+  //   },
+  //   {
+  //     tournamentId: "t1",
+  //     team: { id: "team2", name: "Delhi Dynamos" },
+  //     matchesPlayed: 5,
+  //     matchesWon: 3,
+  //     matchesLost: 1,
+  //     matchesDrawn: 1,
+  //     points: 7,
+  //     netRunRate: 0.87,
+  //   },
+  //   {
+  //     tournamentId: "t1",
+  //     team: { id: "team3", name: "Chennai Chargers" },
+  //     matchesPlayed: 5,
+  //     matchesWon: 2,
+  //     matchesLost: 2,
+  //     matchesDrawn: 1,
+  //     points: 5,
+  //     netRunRate: -0.14,
+  //   },
+  //   {
+  //     tournamentId: "t1",
+  //     team: { id: "team4", name: "Kolkata Knights" },
+  //     matchesPlayed: 5,
+  //     matchesWon: 1,
+  //     matchesLost: 3,
+  //     matchesDrawn: 1,
+  //     points: 3,
+  //     netRunRate: -0.89,
+  //   },
+  //   {
+  //     tournamentId: "t1",
+  //     team: { id: "team5", name: "Bangalore Blasters" },
+  //     matchesPlayed: 5,
+  //     matchesWon: 0,
+  //     matchesLost: 5,
+  //     matchesDrawn: 0,
+  //     points: 0,
+  //     netRunRate: -1.45,
+  //   },
+  // ];
   const [loading, setLoading] = useState(false);
 
   const getPointsTable = async () => {
@@ -1738,7 +1738,7 @@ export const PointsTable = ({ id }) => {
 
       if (success) {
         console.log('Points Table:', data);
-        // setPointsData(data);
+        setPointsData(data);
       } else {
         console.error('Failed to fetch points table:', error);
       }
@@ -1751,7 +1751,7 @@ export const PointsTable = ({ id }) => {
   };
 
   useEffect(() => {
-    // getPointsTable();
+    getPointsTable();
   }, []);
 
   const renderItem = ({ item }) => (

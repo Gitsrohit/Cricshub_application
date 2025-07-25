@@ -150,7 +150,7 @@ const InstantMatch = () => {
       });
 
       if (response.success) {
-        const matchId = response.data.id;
+        const matchId = response.data.data.id;
         navigation.navigate('SelectPlayingII', { matchDetails, matchId });
       } else {
         console.error(response.error);
@@ -278,7 +278,7 @@ const InstantMatch = () => {
                         <Image source={{ uri: item.logoPath }} resizeMode="cover" style={styles.teamLogo} />
                         <View style={styles.teamDetails}>
                           <Text style={styles.teamName}>{item.name}</Text>
-                          <Text style={styles.teamCaptain}>Captain: {item.captain.name}</Text>
+                          <Text style={styles.teamCaptain}>Captain: {item.captain?.name}</Text>
                         </View>
                       </View>
                     </Pressable>

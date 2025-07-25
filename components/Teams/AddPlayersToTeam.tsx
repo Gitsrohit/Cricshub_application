@@ -115,12 +115,12 @@ const AddPlayersToTeam = () => {
         apiService({
           endpoint: `teams/players/search/name`,
           method: 'GET',
-          params: { name: query },
+          params: { query },
         }),
         apiService({
           endpoint: `teams/players/search/phone`,
           method: 'GET',
-          params: { phone: query },
+          params: { query },
         }),
       ]);
 

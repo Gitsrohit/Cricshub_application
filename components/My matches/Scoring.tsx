@@ -11,14 +11,7 @@ import {
   View,
   Image,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Animatable from 'react-native-animatable';
-// import SockJS from 'sockjs-client';
-// import { Client, IMessage } from '@stomp/stompjs';
-import EventSource from 'react-native-event-source';
-
-
 import bg from '../../assets/images/cricsLogo.png';
 import { Picker } from '@react-native-picker/picker';
 import SockJS from 'sockjs-client';
@@ -39,10 +32,6 @@ const loftedImage = require('../../assets/images/LoaftedShot.png');
 const ScoringScreen = ({ route }) => {
   const navigation = useNavigation();
   const [matchId, setMatchId] = useState(route.params.matchId);
-
-  const isLiveConnectedRef = useRef(false);
-  const reconnectAttemptsRef = useRef(0);
-  const MAX_RECONNECT_ATTEMPTS = 5;
   const [strikerId, setStrikerId] = useState(route.params.strikerId);
   const [nonStrikerId, setNonStrikerId] = useState(route.params.nonStrikerId);
   const [bowler, setBowler] = useState(route.params.bowler);
@@ -556,6 +545,8 @@ const ScoringScreen = ({ route }) => {
       body: {},
     });
 
+    await getMatchState();
+
     if (!success) {
       console.error("Error updating next batsman:", error);
       Alert.alert("Error", "Failed to update next batsman.");
@@ -607,7 +598,7 @@ const ScoringScreen = ({ route }) => {
     setModals((prev) => ({ ...prev, catch: false }));
 
     setTimeout(() => {
-      if (wicket < 9) {
+      if (wicket < 9 || modals.startNextInnings === false) {
         setModals((prev) => ({ ...prev, nextBatsman: true }));
       }
     }, 10000);
