@@ -19,7 +19,7 @@ import LottieView from 'lottie-react-native';
 import apiService from "../APIservices";
 
 const { width } = Dimensions.get('window');
-const loaderAnimation = require('../../assets/loader.json');
+const loaderAnimation = require('../../assets/animations/loader.json');
 const emptyTeamsAnimation = require('../../assets/empty.json');
 
 const TeamPage = () => {

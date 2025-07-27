@@ -4,89 +4,143 @@ import {
   View,
   TouchableOpacity,
   FlatList,
-  ImageBackground,
   Pressable,
-  Modal,
   TextInput,
   Image,
-  ActivityIndicator,
+  Vibration,
+  Platform,
+  Animated,
+  Alert, // Added for showing creation errors
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react"; // Added useCallback
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import apiService from "../APIservices";
+import { AppColors } from '../../assets/constants/colors.js'
+import { AppGradients } from '../../assets/constants/colors.js'
+import CustomAlertDialog from '../Customs/CustomDialog.js'
+import LottieView from 'lottie-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const SelectPlayingXI = ({ route }) => {
   const navigation = useNavigation();
-  const { matchDetails, matchId } = route.params;
+  // We now receive matchDetails and the requestBody to create the match
+  const { matchDetails, requestBody } = route.params;
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true); // For initial data fetch (match creation + team details)
+  const [error, setError] = useState(null); // For any error during the initial loading phase
+  const [matchId, setMatchId] = useState(null); // New state to hold the created match's ID
+
   const [team1Details, setTeam1Details] = useState(null);
   const [team2Details, setTeam2Details] = useState(null);
   const [selectedTeam1, setSelectedTeam1] = useState([]);
   const [selectedTeam2, setSelectedTeam2] = useState([]);
-  const [team1ModalVisible, setTeam1ModalVisible] = useState(true);
-  const [team2ModalVisible, setTeam2ModalVisible] = useState(false);
+  const [currentSelectionTeam, setCurrentSelectionTeam] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredTeam1Players, setFilteredTeam1Players] = useState([]);
   const [filteredTeam2Players, setFilteredTeam2Players] = useState([]);
+  const [isAlertDialogVisible, setIsAlertDialogVisible] = useState(false);
+  const [alertDialogMessage, setAlertDialogMessage] = useState("");
+  const [alertDialogType, setAlertDialogType] = useState("info");
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
 
-  const fetchTeamsDetails = async () => {
+  // Function to create the match and then fetch team details
+  const initializeMatchAndTeams = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     const token = await AsyncStorage.getItem("jwtToken");
     if (!token) {
-      setError("Please login again");
+      setError("Please login again to create match.");
+      setIsLoading(false);
       return;
     }
 
     try {
-      const [response1, response2] = await Promise.all([
-        apiService({
-          endpoint: `teams/${matchDetails.team1Id}`,
-          method: 'GET',
-        }),
-        apiService({
-          endpoint: `teams/${matchDetails.team2Id}`,
-          method: 'GET',
-        }),
-      ]);
+      // 1. Create the Match First
+      console.log("SelectPlayingXI: Attempting to create match with requestBody:", requestBody);
+      const matchCreationResponse = await apiService({
+        endpoint: 'matches/schedule',
+        method: 'POST',
+        body: requestBody,
+        token: token,
+      });
 
-      if (response1.success && response2.success) {
-        setTeam1Details(response1.data.data);
-        setTeam2Details(response2.data.data);
-        setFilteredTeam1Players(response1.data.data.players);
-        setFilteredTeam2Players(response2.data.data.players);
+      if (matchCreationResponse.success && matchCreationResponse.data.data && matchCreationResponse.data.data.id) {
+        const newMatchId = matchCreationResponse.data.data.id;
+        setMatchId(newMatchId); // Store the matchId
+
+        console.log("SelectPlayingXI: Match created successfully, ID:", newMatchId);
+
+        // 2. Then, Fetch Team Details
+        const [response1, response2] = await Promise.all([
+          apiService({
+            endpoint: `teams/${matchDetails.team1Id}`,
+            method: 'GET',
+            token: token,
+          }),
+          apiService({
+            endpoint: `teams/${matchDetails.team2Id}`,
+            method: 'GET',
+            token: token,
+          }),
+        ]);
+
+        if (response1.success && response2.success) {
+          setTeam1Details(response1.data.data);
+          setTeam2Details(response2.data.data);
+          setFilteredTeam1Players(response1.data.data.players);
+          setFilteredTeam2Players(response2.data.data.players);
+          console.log("SelectPlayingXI: Team details fetched.");
+        } else {
+          let teamFetchError = "Failed to fetch team details.";
+          if (response1.error && !response1.success) teamFetchError += ` Team 1: ${response1.error.message || response1.error}`;
+          if (response2.error && !response2.success) teamFetchError += ` Team 2: ${response2.error.message || response2.error}`;
+          setError(teamFetchError);
+          console.error("SelectPlayingXI: Error fetching team details:", teamFetchError);
+        }
       } else {
-        setError("Sorry, unable to fetch one or both team details");
+        // Handle match creation failure
+        const creationErrorMsg = matchCreationResponse.error?.message || "Unknown error creating match.";
+        setError(`Failed to create match: ${creationErrorMsg}`);
+        console.error("SelectPlayingXI: Match creation failed:", matchCreationResponse.error);
+        Alert.alert("Match Creation Failed", `Could not create the match: ${creationErrorMsg}. Please try again.`);
       }
     } catch (err) {
-      setError("Sorry, unable to fetch team details");
-      console.error(err);
+      setError("An unexpected error occurred during match setup: " + err.message);
+      console.error("SelectPlayingXI: Overall setup error:", err);
+      Alert.alert("Error", "An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [matchDetails.team1Id, matchDetails.team2Id, requestBody]); 
 
   useEffect(() => {
-    fetchTeamsDetails();
-  }, []);
+    initializeMatchAndTeams();
+  }, [initializeMatchAndTeams]);
 
-  const handleSearch = (query, team) => {
+  const handleSearch = (query, teamNum) => {
     setSearchQuery(query);
-    const players = team === 1 ? team1Details.players : team2Details.players;
-    const filtered = players.filter((player) =>
-      player.name.toLowerCase().includes(query.toLowerCase())
+    let playersToFilter = [];
+    if (teamNum === 1 && team1Details) {
+      playersToFilter = team1Details.players;
+    } else if (teamNum === 2 && team2Details) {
+      playersToFilter = team2Details.players;
+    }
+
+    const filtered = playersToFilter.filter((player) =>
+      player.name.toLowerCase().includes(query.toLowerCase()) ||
+      (player.role && player.role.toLowerCase().includes(query.toLowerCase()))
     );
-    team === 1
+
+    teamNum === 1
       ? setFilteredTeam1Players(filtered)
       : setFilteredTeam2Players(filtered);
   };
 
-  const togglePlayerSelection = (team, playerId) => {
-    const selectedTeam = team === 1 ? selectedTeam1 : selectedTeam2;
-    const setSelectedTeam = team === 1 ? setSelectedTeam1 : setSelectedTeam2;
+  const togglePlayerSelection = (teamNum, playerId) => {
+    const selectedTeam = teamNum === 1 ? selectedTeam1 : selectedTeam2;
+    const setSelectedTeam = teamNum === 1 ? setSelectedTeam1 : setSelectedTeam2;
 
     setSelectedTeam((prev) =>
       prev.includes(playerId)
@@ -101,74 +155,124 @@ const SelectPlayingXI = ({ route }) => {
     const isSelected = (team === 1 ? selectedTeam1 : selectedTeam2).includes(
       item.id
     );
-    return (
-      <TouchableOpacity
-        style={[styles.playerButton, isSelected && styles.selectedPlayer]}
-        onPress={() => togglePlayerSelection(team, item.id)}
-      >
-        <View style={styles.playerInfoContainer}>
-          <View style={styles.profileIconContainer}>
-            <Image
-              source={require("../../assets/defaultLogo.png")}
-              style={styles.userImage}
-            />
-          </View>
 
+    const PlayerContent = (
+      <View style={styles.playerInfoContainer}>
+        <View style={styles.profileIconContainer}>
+          <Image
+            source={require("../../assets/defaultLogo.png")} 
+            style={styles.userImage}
+          />
+        </View>
+
+        <View style={styles.playerTextContainer}>
           <Text
             style={[styles.playerText, isSelected && styles.selectedPlayerText]}
           >
             {item.name}
           </Text>
+          {item.role && (
+            <Text
+              style={[styles.playerRole, isSelected && styles.selectedPlayerRole]}
+            >
+              {item.role}
+            </Text>
+          )}
         </View>
-        {isSelected && (
-          <MaterialIcons
-            name="check-circle"
-            size={24}
-            color="#fff"
-            style={styles.checkIcon}
-          />
+      </View>
+    );
+
+    return (
+      <TouchableOpacity
+        style={[styles.playerButton, !isSelected && styles.unselectedPlayerButton]}
+        onPress={() => togglePlayerSelection(team, item.id)}
+        activeOpacity={0.7}
+      >
+        {isSelected ? (
+          <LinearGradient
+            colors={AppGradients.primaryCard}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.selectedPlayerGradient}
+          >
+            {PlayerContent}
+            <MaterialIcons
+              name="check-circle"
+              size={24}
+              color="#fff"
+              style={styles.checkIcon}
+            />
+          </LinearGradient>
+        ) : (
+          <>
+            {PlayerContent}
+          </>
         )}
       </TouchableOpacity>
     );
   };
 
-  const handleStartMatch = async () => {
-    try {
-      setIsLoading(true);
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Please login again");
+  const shakeScreen = () => {
+    shakeAnimation.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeAnimation, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnimation, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnimation, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnimation, { toValue: 0, duration: 50, useNativeDriver: true })
+    ]).start();
+  };
 
-      const response = await apiService({
-        endpoint: `matches/${matchId}/start`,
-        method: 'POST',
-        body: {
-          tournamentId: null,
-          team1PlayingXIIds: selectedTeam1,
-          team2PlayingXIIds: selectedTeam2,
-        },
-      });
+  const handleCloseAlertDialog = () => {
+    setIsAlertDialogVisible(false);
+    setAlertDialogMessage("");
+    setAlertDialogType("info");
+  };
 
-      if (response.success) {
-        setTeam1ModalVisible(false);
-        setTeam2ModalVisible(false);
-        navigation.navigate("Toss", { matchDetails, matchId });
-      } else {
-        setError("Failed to start match");
-        setTeam2ModalVisible(true);
-      }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to start match");
-      setTeam2ModalVisible(true);
-    } finally {
-      setIsLoading(false);
+  const handleContinueToTeam2 = () => {
+    if (selectedTeam1.length !== 11) {
+      setAlertDialogMessage(
+        `Please select exactly 11 players for ${team1Details?.name} to continue.`
+      );
+      setAlertDialogType("error");
+      setIsAlertDialogVisible(true);
+      Platform.OS === 'ios' ? Vibration.vibrate() : Vibration.vibrate(500);
+      shakeScreen();
+      return;
     }
+    setCurrentSelectionTeam(2);
+    setSearchQuery("");
+    setFilteredTeam2Players(team2Details?.players || []);
+  };
+
+  const handleStartMatch = async () => {
+    if (selectedTeam2.length !== 11) {
+      setAlertDialogMessage(
+        `Please select exactly 11 players for ${team2Details?.name} to start the match.`
+      );
+      setAlertDialogType("error");
+      setIsAlertDialogVisible(true);
+      Platform.OS === 'ios' ? Vibration.vibrate() : Vibration.vibrate(500);
+      shakeScreen();
+      return;
+    }
+
+    navigation.navigate("TossScreen", {
+      matchDetails,
+      matchId, 
+      team1PlayingXIIds: selectedTeam1,
+      team2PlayingXIIds: selectedTeam2,
+    });
   };
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2E83D1" />
+        <LottieView
+          source={require('../../assets/animations/Search for Players.json')}
+          autoPlay
+          loop
+          style={styles.lottieLoader}
+        />
       </View>
     );
   }
@@ -179,119 +283,116 @@ const SelectPlayingXI = ({ route }) => {
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={fetchTeamsDetails}
+          onPress={initializeMatchAndTeams}
         >
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
   }
+  if (!matchId || !team1Details || !team2Details) {
+      return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={AppColors.primaryBlue} />
+            <Text style={styles.loadingText}>Initializing match...</Text>
+        </View>
+      );
+  }
+
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={["#000000", "#0A303B", "#36B0D5"]}
-        style={styles.gradient}
+      <CustomAlertDialog
+        visible={isAlertDialogVisible}
+        title="Selection Required"
+        message={alertDialogMessage}
+        onClose={handleCloseAlertDialog}
+        type={alertDialogType}
+      />
+
+      <Animated.View
+        style={[
+          styles.mainScreenContent,
+          { transform: [{ translateX: shakeAnimation }] }
+        ]}
       >
-        <ImageBackground
-          source={require("../../assets/images/cricsLogo.png")}
-          resizeMode="cover"
-          style={styles.background}
-          imageStyle={styles.backgroundImage}
-        >
-          {/* Team 1 Selection Modal - Only show if team1ModalVisible is true and team2ModalVisible is false */}
-          {team1ModalVisible && !team2ModalVisible && (
-            <Modal visible={true} transparent animationType="slide">
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalContainer}>
-                  <Text style={styles.modalTitle}>
-                    {team1Details?.name} - Select Playing XI
-                  </Text>
-                  <Text style={styles.selectedCount}>
-                    Selected: {selectedTeam1.length}/11
-                  </Text>
+        {currentSelectionTeam === 1 && (
+          <>
+            <Text style={styles.sectionTitle}>
+              <Text style={styles.teamNameHighlight}>{team1Details?.name}</Text> - Select Playing XI
+            </Text>
+            <Text style={styles.selectedCount}>
+              Selected: <Text style={styles.countHighlight}>{selectedTeam1.length}</Text>/11
+            </Text>
 
-                  <TextInput
-                    style={styles.searchBar}
-                    placeholder="Search players..."
-                    value={searchQuery}
-                    onChangeText={(query) => handleSearch(query, 1)}
-                  />
+            <TextInput
+              style={styles.searchBar}
+              placeholder="Search players by name or role..."
+              placeholderTextColor="#888"
+              value={searchQuery}
+              onChangeText={(query) => handleSearch(query, 1)}
+            />
 
-                  <FlatList
-                    data={filteredTeam1Players}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => renderPlayerItem({ item, team: 1 })}
-                    contentContainerStyle={styles.playerList}
-                  />
+            <FlatList
+              data={filteredTeam1Players}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => renderPlayerItem({ item, team: 1 })}
+              contentContainerStyle={styles.playerList}
+              keyboardShouldPersistTaps="handled"
+            />
 
-                  <Pressable
-                    style={[
-                      styles.nextButton,
-                      selectedTeam1.length !== 11 && styles.disabledButton,
-                    ]}
-                    onPress={() => {
-                      setTeam1ModalVisible(false);
-                      setTeam2ModalVisible(true);
-                      setSearchQuery("");
-                    }}
-                    disabled={selectedTeam1.length !== 11}
-                  >
-                    <Text style={styles.nextButtonText}>
-                      Continue to {team2Details?.name}
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-            </Modal>
-          )}
+            <Pressable
+              style={[
+                styles.actionButton,
+                selectedTeam1.length !== 11 && styles.disabledButton,
+              ]}
+              onPress={handleContinueToTeam2}
+            >
+              <Text style={styles.actionButtonText}>
+                Continue to <Text style={styles.teamNameHighlightSmall}>{team2Details?.name}</Text>
+              </Text>
+            </Pressable>
+          </>
+        )}
 
-          {/* Team 2 Selection Modal - Only show if team2ModalVisible is true */}
-          {team2ModalVisible && (
-            <Modal visible={true} transparent animationType="slide">
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalContainer}>
-                  <Text style={styles.modalTitle}>
-                    {team2Details?.name} - Select Playing XI
-                  </Text>
-                  <Text style={styles.selectedCount}>
-                    Selected: {selectedTeam2.length}/11
-                  </Text>
+        {currentSelectionTeam === 2 && (
+          <>
+            <Text style={styles.sectionTitle}>
+              <Text style={styles.teamNameHighlight}>{team2Details?.name}</Text> - Select Playing XI
+            </Text>
+            <Text style={styles.selectedCount}>
+              Selected: <Text style={styles.countHighlight}>{selectedTeam2.length}</Text>/11
+            </Text>
 
-                  <TextInput
-                    style={styles.searchBar}
-                    placeholder="Search players..."
-                    value={searchQuery}
-                    onChangeText={(query) => handleSearch(query, 2)}
-                  />
+            <TextInput
+              style={styles.searchBar}
+              placeholder="Search players by name or role..."
+              placeholderTextColor="#888"
+              value={searchQuery}
+              onChangeText={(query) => handleSearch(query, 2)}
+            />
 
-                  <FlatList
-                    data={filteredTeam2Players}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => renderPlayerItem({ item, team: 2 })}
-                    contentContainerStyle={styles.playerList}
-                  />
+            <FlatList
+              data={filteredTeam2Players}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => renderPlayerItem({ item, team: 2 })}
+              contentContainerStyle={styles.playerList}
+              keyboardShouldPersistTaps="handled"
+            />
 
-                  <Pressable
-                    style={[
-                      styles.nextButton,
-                      selectedTeam2.length !== 11 && styles.disabledButton,
-                    ]}
-                    onPress={handleStartMatch}
-                    disabled={selectedTeam2.length !== 11 || isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.nextButtonText}>Start Match</Text>
-                    )}
-                  </Pressable>
-                </View>
-              </View>
-            </Modal>
-          )}
-        </ImageBackground>
-      </LinearGradient>
+            <Pressable
+              style={[
+                styles.actionButton,
+                selectedTeam2.length !== 11 && styles.disabledButton,
+              ]}
+              onPress={handleStartMatch}
+              disabled={isLoading}
+            >
+              <Text style={styles.actionButtonText}>Start Match</Text>
+            </Pressable>
+          </>
+        )}
+      </Animated.View>
     </View>
   );
 };
@@ -299,157 +400,193 @@ const SelectPlayingXI = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: "100%",
+    backgroundColor: AppColors.BgColor,
   },
-  gradient: {
+  mainScreenContent: {
     flex: 1,
-    width: "100%",
-  },
-  background: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backgroundImage: {
-    opacity: 0.8,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    backgroundColor: AppColors.BgColor,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.lightBackground,
+  },
+  lottieLoader: {
+    width: 150,
+    height: 150,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: AppColors.primaryBlue,
+    fontSize: 16,
+    fontWeight: '500',
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.lightBackground,
     padding: 20,
   },
   errorText: {
     fontSize: 18,
-    color: "red",
+    color: AppColors.errorRed,
     marginBottom: 20,
     textAlign: "center",
+    fontWeight: '500',
   },
   retryButton: {
-    backgroundColor: "#2E83D1",
-    padding: 15,
+    backgroundColor: AppColors.primaryBlue,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
     borderRadius: 8,
-    width: "50%",
     alignItems: "center",
+    marginTop: 10,
   },
   retryButtonText: {
-    color: "#fff",
+    color: AppColors.white,
     fontSize: 16,
     fontWeight: "bold",
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContainer: {
-    width: "90%",
-    height: "80%",
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: "700",
     textAlign: "center",
-    marginBottom: 5,
-    color: "#333",
+    marginBottom: 8,
+    color: AppColors.darkText,
+  },
+  teamNameHighlight: {
+    color: AppColors.primaryBlue,
   },
   selectedCount: {
     textAlign: "center",
-    marginBottom: 15,
-    color: "#666",
-    fontSize: 16,
+    marginBottom: 20,
+    color: AppColors.mediumText,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  countHighlight: {
+    color: AppColors.primaryBlue,
+    fontWeight: 'bold',
   },
   searchBar: {
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: AppColors.white,
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: AppColors.inputBorder,
+    color: AppColors.darkText,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   playerList: {
     flexGrow: 1,
     paddingBottom: 80,
   },
   playerButton: {
+    marginVertical: 6,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: AppColors.cardBorder,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  unselectedPlayerButton: {
+    backgroundColor: AppColors.white,
     padding: 15,
-    marginVertical: 5,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
+  },
+  selectedPlayerGradient: {
+    padding: 15,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-  },
-  selectedPlayer: {
-    backgroundColor: "#2E83D1",
+    flex: 1,
   },
   playerInfoContainer: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
-  playerProfileImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-    backgroundColor: "#e0e0e0",
-  },
   profileIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-    backgroundColor: "#e0e0e0",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 15,
+    backgroundColor: AppColors.inputBackground,
     justifyContent: "center",
     alignItems: "center",
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: AppColors.inputBorder,
+  },
+  userImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 24,
+  },
+  playerTextContainer: {
+    flex: 1,
   },
   playerText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "600",
-    color: "#333",
-    flexShrink: 1,
+    color: AppColors.darkText,
+  },
+  playerRole: {
+    fontSize: 14,
+    color: AppColors.lightText,
+    fontWeight: '400',
   },
   selectedPlayerText: {
-    color: "#fff",
+    color: AppColors.white,
+  },
+  selectedPlayerRole: {
+    color: AppColors.inputBorder,
   },
   checkIcon: {
     marginLeft: 10,
   },
-  nextButton: {
+  actionButton: {
     position: "absolute",
     bottom: 20,
     left: 20,
     right: 20,
-    backgroundColor: "#2E83D1",
-    borderRadius: 8,
-    padding: 15,
+    backgroundColor: AppColors.primaryBlue,
+    borderRadius: 10,
+    paddingVertical: 16,
     alignItems: "center",
+    elevation: 5,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
   },
   disabledButton: {
-    backgroundColor: "#ccc",
+    backgroundColor: AppColors.infoGrey,
+    elevation: 0,
+    shadowOpacity: 0,
   },
-  nextButtonText: {
-    color: "white",
-    fontSize: 16,
+  actionButtonText: {
+    color: AppColors.white,
+    fontSize: 18,
     fontWeight: "bold",
   },
-  userImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 40,
-    marginBottom: 5,
-  },
+  teamNameHighlightSmall: {
+    fontWeight: 'bold',
+  }
 });
 
 export default SelectPlayingXI;

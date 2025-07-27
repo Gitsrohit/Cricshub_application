@@ -26,7 +26,7 @@ import CustomDialog from "../Customs/CustomDialog.js";
 
 
 const background = require('../../assets/images/cricsLogo.png');
-const loaderAnimation = require('../../assets/loader.json');
+const loaderAnimation =  require('../../assets/animations/loader.json');
 
 const { width } = Dimensions.get('window');
 

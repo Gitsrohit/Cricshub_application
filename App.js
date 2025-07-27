@@ -12,13 +12,14 @@ import WebSocketTest from './components/Home/WebSocketTest';
 import Teams from './components/Teams/Teams';
 import Profile from './components/Settings/Profile';
 import Performance from './components/Settings/Performance';
-import Footer from './components/Footer'; // Footer component
+import Footer from './components/Footer'; 
 import CreateTeam from './components/Teams/CreateTeam';
 import CreateTournaments from './components/Tournaments/CreateTournaments';
 import ManageTournaments from './components/Tournaments/ManageTournaments';
 import TeamDetailsScreen from './components/Teams/TeamDetailsScreen';
 import InstantMatch from './components/My matches/ScheduleMatch/InstantMatch';
 import SelectPlayingII from './components/My matches/SelectPlayingII';
+import TossScreen from './components/My matches/TossScreen';
 import Toss from './components/My matches/Toss';
 import Scoring from './components/My matches/Scoring';
 import SelectRoles from './components/My matches/SelectRoles';
@@ -32,6 +33,7 @@ import Contests from './components/Fantasy/Contests';
 import ContestDetails from './components/Fantasy/ContestDetails';
 import CreateContestTeam from './components/Fantasy/CreateContestTeam';
 // import Performance from './components/Settings/Performance';
+import MatchStartTransition from './components/My matches/MatchStartTransition';
 
 import ScoreCard from './components/My matches/ScoreCard';
 import InternetConnectivityCheck from './components/InternetConnectivity';
@@ -79,6 +81,7 @@ const MainScreens = () => {
         <Stack.Screen name="TeamDetailsScreen" component={TeamDetailsScreen} />
         <Stack.Screen name="InstantMatch" component={InstantMatch} />
         <Stack.Screen name="SelectPlayingII" component={SelectPlayingII} />
+        <Stack.Screen name="TossScreen" component={TossScreen} />
         <Stack.Screen name="Toss" component={Toss} />
         <Stack.Screen name="Scoring" component={Scoring} />
         <Stack.Screen name="SelectRoles" component={SelectRoles} />
@@ -91,6 +94,7 @@ const MainScreens = () => {
         <Stack.Screen name="Contests" component={Contests} />
         <Stack.Screen name="ContestDetails" component={ContestDetails} />
         <Stack.Screen name="CreateContestTeam" component={CreateContestTeam} />
+        <Stack.Screen name="MatchStartTransition" component={MatchStartTransition} />
       </Stack.Navigator>
       <Footer style={styles.footer} />
     </View>

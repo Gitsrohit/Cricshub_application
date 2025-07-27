@@ -1,157 +1,177 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Easing,
-  SafeAreaView,
-  StatusBar
-} from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-const CustomDialog = ({
+import LottieView from 'lottie-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AppColors, AppGradients } from '../../assets/constants/colors';
+
+const CustomAlertDialog = ({
   visible,
   title,
   message,
-  type = 'success',
   onClose,
-  showIcon = true,
-  duration = 3000,
-  position = 'top'
+  type = 'info',
+  buttons = [],
 }) => {
-  const slideAnim = useRef(new Animated.Value(-100)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const statusBarHeight = StatusBar.currentHeight || 0;
-  const toastPosition = statusBarHeight + 20; 
+  let iconName;
+  let iconColor;
+  let titleColor;
+  let lottieSource = null;
 
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: toastPosition,
-          duration: 300,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true
-        })
-      ]).start();
-      const timer = setTimeout(() => {
-        onClose();
-      }, duration);
-
-      return () => clearTimeout(timer);
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: -100,
-          duration: 200,
-          easing: Easing.in(Easing.cubic),
-          useNativeDriver: true
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true
-        })
-      ]).start();
-    }
-  }, [visible]);
-
-  if (!visible) return null;
-
-  const bgColor = type === 'success' ? '#4CAF50' : '#F44336';
-  const iconName = type === 'success' ? 'check-circle' : 'error';
+  switch (type) {
+    case 'success':
+      lottieSource = require('../../assets/animations/Success animation.json'); 
+      titleColor = AppColors.successGreen;
+      break;
+    case 'error':
+      iconName = 'error';
+      iconColor = AppColors.errorRed;
+      titleColor = AppColors.errorRed;
+      break;
+    case 'warning':
+      lottieSource = require('../../assets/animations/Warning animation.json'); 
+      titleColor = AppColors.warningOrange;
+      break;
+    case 'info':
+    default:
+      iconName = 'info';
+      iconColor = AppColors.primaryBlue;
+      break;
+  }
+  const dialogButtons = buttons.length > 0 ? buttons : [{ text: 'OK', onPress: onClose, gradientColors: AppGradients.primaryButton }];
 
   return (
-    <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
-      <Animated.View
-        style={[
-          styles.toastContainer,
-          {
-            backgroundColor: bgColor,
-            transform: [{ translateY: slideAnim }],
-            opacity: opacityAnim,
-            top: position === 'top' ? 0 : undefined,
-            bottom: position === 'bottom' ? 20 : undefined
-          }
-        ]}
-      >
-        <View style={styles.contentContainer}>
-          {showIcon && (
-            <MaterialIcons
-              name={iconName}
-              size={24}
-              color="white"
-              style={styles.icon}
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <View style={styles.alertContainer} onStartShouldSetResponder={() => true}>
+          {lottieSource ? (
+            <LottieView
+              source={lottieSource}
+              autoPlay
+              loop={false}
+              style={styles.lottieIcon}
             />
+          ) : (
+            iconName && (
+              <MaterialIcons name={iconName} size={65} color={iconColor} style={styles.alertIcon} />
+            )
           )}
-          <View style={styles.textContainer}>
-            {title && <Text style={styles.title}>{title}</Text>}
-            <Text style={styles.message}>{message}</Text>
+          {/* {title && <Text style={[styles.alertTitle, { color: titleColor }]}>{title}</Text>} */}
+          <Text style={styles.alertMessage}>{message}</Text>
+
+          <View style={styles.buttonContainer}>
+            {dialogButtons.map((button, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.alertButton, button.style]}
+                onPress={() => {
+                  if (button.onPress) {
+                    button.onPress();
+                  } else {
+                    onClose(); 
+                  }
+                }}
+              >
+                <LinearGradient
+                  colors={button.gradientColors || AppGradients.primaryButton}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={styles.alertButtonGradient}
+                >
+                  <Text style={styles.alertButtonText}>{button.text}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <MaterialIcons name="close" size={20} color="white" />
-          </TouchableOpacity>
         </View>
-      </Animated.View>
-    </SafeAreaView>
+      </Pressable>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    zIndex: 9999,
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: AppColors.overlay, 
   },
-  toastContainer: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 8,
-    padding: 16,
-    shadowColor: '#000',
+  alertContainer: {
+    backgroundColor: AppColors.white,
+    borderRadius: 20,
+    padding: 18,
+    marginHorizontal: 25,
+    alignItems: 'center',
+    maxWidth: 340,
+    shadowColor: AppColors.black,
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 10, 
     },
+    shadowOpacity: 0.25, 
+    shadowRadius: 15,
+    elevation: 15,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: AppColors.cardBorder,
+  },
+  alertIcon: {
+    marginBottom: 10,
+  },
+  lottieIcon: {
+    width: 140,
+    height: 140,
+    marginBottom: 8,
+  },
+  alertTitle: {
+    fontSize: 26,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  alertMessage: {
+    fontSize: 16,
+    color: AppColors.mediumText,
+    textAlign: 'center',
+    marginBottom: 25,
+    lineHeight: 22,
+    paddingHorizontal: 5,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 10,
+  },
+  alertButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: AppColors.primaryBlue,
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    shadowRadius: 10,
     elevation: 8,
   },
-  contentContainer: {
-    flexDirection: 'row',
+  alertButtonGradient: {
+    paddingVertical: 12,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
-  icon: {
-    marginRight: 12,
-  },
-  textContainer: {
-    flex: 1,
-    marginRight: 12,
-  },
-  title: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  message: {
-    color: 'white',
-    fontSize: 14,
-    opacity: 0.9,
-  },
-  closeButton: {
-    padding: 4,
-    marginLeft: 8,
+  alertButtonText: {
+    color: AppColors.white,
+    fontSize: 13,
+    fontWeight: '600',
+    paddingHorizontal: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 });
 
-export default CustomDialog;
+export default CustomAlertDialog;

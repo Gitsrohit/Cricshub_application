@@ -8,23 +8,25 @@ import {
   StatusBar,
   Animated,
   FlatList,
-  ImageBackground,
   Dimensions,
   Image,
   TouchableWithoutFeedback,
   Alert,
+  Platform,
 } from "react-native";
-import { MaterialIcons, FontAwesome, Ionicons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppGradients, AppColors } from "../../assets/constants/colors.js"; 
 
 const { width, height } = Dimensions.get("window");
+
 const Home = () => {
   const navigation = useNavigation();
   const sidebarAnim = useRef(new Animated.Value(-width)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
-  const [isSidebarVisible, setIsSidebarVisible] = React.useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [userName, setUserName] = useState("");
   useEffect(() => {
     const fetchUserName = async () => {
@@ -42,14 +44,13 @@ const Home = () => {
     };
 
     fetchUserName();
-  }, []);
-
+  })
   const sections = [
     {
       title: "Start a Match",
       buttonText: "Start",
       navigateTo: "InstantMatch",
-      icon: "sports-cricket",
+      icon: "sports-cricket", 
     },
     {
       title: "Host a Tournament",
@@ -76,23 +77,14 @@ const Home = () => {
       icon: "live-tv",
       isFullWidth: true,
     },
-     {
-    title: "WebSocket Test",
-    buttonText: "Test",
-    navigateTo: "WebSocketTest",
-    icon: "wifi-tethering",
-  }
   ];
-
   const animatedValues = sections.map(() => new Animated.Value(1));
-
   const handlePressIn = (index) => {
     Animated.spring(animatedValues[index], {
       toValue: 0.95,
       useNativeDriver: true,
     }).start();
   };
-
   const handlePressOut = (index) => {
     Animated.spring(animatedValues[index], {
       toValue: 1,
@@ -101,12 +93,11 @@ const Home = () => {
       useNativeDriver: true,
     }).start();
   };
-
   const toggleSidebar = () => {
     if (isSidebarVisible) {
       Animated.parallel([
         Animated.timing(sidebarAnim, {
-          toValue: -width,
+          toValue: -width, 
           duration: 300,
           useNativeDriver: true,
         }),
@@ -117,7 +108,7 @@ const Home = () => {
         }),
       ]).start(() => setIsSidebarVisible(false));
     } else {
-      setIsSidebarVisible(true);
+      setIsSidebarVisible(true); 
       Animated.parallel([
         Animated.timing(sidebarAnim, {
           toValue: 0,
@@ -132,274 +123,263 @@ const Home = () => {
       ]).start();
     }
   };
-
   const closeSidebar = () => {
     if (isSidebarVisible) {
       toggleSidebar();
     }
   };
-
   const LogOutHandler = async () => {
-    try {
-      await AsyncStorage.removeItem('jwtToken');
-      console.log('Token removed securely');
-    } catch (error) {
-      console.error('Error removing token:', error);
-    } finally {
-      navigation.navigate('Login');
-    }
-  }
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to log out?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes, Logout",
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem("jwtToken"); 
+              console.log("Token removed securely");
+              navigation.navigate("Login"); 
+            } catch (error) {
+              console.error("Error removing token:", error);
+              Alert.alert("Logout Failed", "Could not log out. Please try again.");
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.appContainer}>
       <StatusBar
-        barStyle="light-content"
-        backgroundColor="#34B8FF"
-        translucent={true}
+        barStyle="dark-content" 
+        backgroundColor={AppColors.background}
+        translucent={false}
       />
-      <ImageBackground
-        source={require("../../assets/images/cricsLogo.png")}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        <SafeAreaView style={styles.container}>
-
-          <View style={{ backgroundColor: 'white' }}>
-            {/* Top Bar Trigger */}
-            <View style={styles.topBar}>
-              <TouchableOpacity onPress={toggleSidebar}>
-                <Ionicons name="menu" size={30} color="#333" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Sidebar Overlay */}
-            {isSidebarVisible && (
-              <TouchableWithoutFeedback onPress={closeSidebar}>
-                <Animated.View style={[styles.overlay, { opacity: overlayAnim }]} />
-              </TouchableWithoutFeedback>
-            )}
-          </View>
-
-          {/* Sidebar */}
-          <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}>
-            <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end' }}>
-              <Ionicons name="close" color='black' size={24} onPress={closeSidebar} />
-            </View>
-            <View style={styles.sidebarHeader}>
-              <Image source={require("../../assets/defaultLogo.png")} style={styles.userImage} />
-              <Text style={styles.sidebarTitle} numberOfLines={1}>{userName}</Text>
-            </View>
-
-            {/* Sidebar Links */}
-            {[
-              { icon: "person-outline", text: "Profile", screen: "Profile" },
-              { icon: "stats-chart-outline", text: "Performance", screen: "Performance" },
-              { icon: "help-circle-outline", text: "Support", screen: "Support" },
-              { icon: "star-outline", text: "Rate Us", screen: "RateUs" },
-              { icon: "settings-outline", text: "Settings", screen: "Settings" },
-              { icon: "help-circle-outline", text: "Web", screen: "WebSocketTest"}
-            ].map(({ icon, text, screen }) => (
-              <TouchableOpacity
-                key={screen}
-                style={styles.sidebarItem}
-                onPress={() => {
-                  navigation.navigate(screen);
-                  closeSidebar();
-                }}
-              >
-                <Ionicons name={icon} size={24} color="#333" />
-                <Text style={styles.sidebarItemText}>{text}</Text>
-              </TouchableOpacity>
-            ))}
-
-            <TouchableOpacity style={styles.sidebarItem} onPress={LogOutHandler}>
-              <Ionicons name="log-out-outline" size={24} color="#333" />
-              <Text style={styles.sidebarItemText}>Logout</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.topBarWrapper}>
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={toggleSidebar} style={styles.menuButton}>
+              <Ionicons name="person-circle-outline" size={30} color={AppColors.blue} />
             </TouchableOpacity>
-
-            <View style={styles.sidebarFooter}>
-              <Text style={styles.footerText}>cricshub @2025</Text>
-            </View>
-          </Animated.View>
-
-
-          {/* Main Content */}
-          <View style={styles.mainContent}>
-
-            {/* Content */}
-            <View style={styles.content}>
-              <FlatList
-                data={sections}
-                numColumns={2}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item, index }) => {
-                  if (item.isFullWidth) {
-                    return (
-                      <View style={styles.fullWidthCardContainer}>
-                        <Animated.View
-                          style={[
-                            styles.card,
-                            styles.fullWidthCard,
-                            {
-                              transform: [{ scale: animatedValues[index] }],
-                            },
-                          ]}
-                        >
-                          <LinearGradient
-                            colors={["#0866AA", "#6BB9F0"]}
-                            style={styles.cardBackground}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                          >
-                            <MaterialIcons
-                              name={item.icon}
-                              size={40}
-                              color="#FFF"
-                              style={styles.cardIcon}
-                            />
-                            <Text style={styles.cardTitle}>{item.title}</Text>
-                            <TouchableOpacity
-                              style={styles.cardButton}
-                              onPressIn={() => handlePressIn(index)}
-                              onPressOut={() => handlePressOut(index)}
-                              onPress={() => {
-                                if (item.title === "Fantasy Cricket") {
-                                  Alert.alert('Coming Soon', 'Fantasy Cricket will be launched soon.', [{ text: 'Ok' }]);
-                                } else {
-                                  navigation.navigate(item.navigateTo);
-                                }
-                              }}
-                              activeOpacity={0.8}
-                            >
-                              <Text style={styles.cardButtonText}>
-                                {item.buttonText}
-                              </Text>
-                            </TouchableOpacity>
-                          </LinearGradient>
-                        </Animated.View>
-                      </View>
-                    );
-                  } else {
-                    return (
-                      <Animated.View
-                        style={[
-                          styles.card,
-                          {
-                            transform: [{ scale: animatedValues[index] }],
-                          },
-                        ]}
-                      >
-                        <LinearGradient
-                          colors={["#0866AA", "#6BB9F0"]}
-                          style={styles.cardBackground}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                        >
-                          <MaterialIcons
-                            name={item.icon}
-                            size={40}
-                            color="#FFF"
-                            style={styles.cardIcon}
-                          />
-                          <Text style={styles.cardTitle}>{item.title}</Text>
-                          <TouchableOpacity
-                            style={styles.cardButton}
-                            onPressIn={() => handlePressIn(index)}
-                            onPressOut={() => handlePressOut(index)}
-                            onPress={() => {
-                              if (item.title === "Fantasy Cricket") {
-                                Alert.alert('Coming Soon', 'Fantasy Cricket will be launched soon.', [{ text: 'Ok' }]);
-                              } else {
-                                navigation.navigate(item.navigateTo);
-                              }
-                            }}
-                            activeOpacity={0.8}
-                          >
-                            <Text style={styles.cardButtonText}>
-                              {item.buttonText}
-                            </Text>
-                          </TouchableOpacity>
-                        </LinearGradient>
-                      </Animated.View>
-                    );
-                  }
-                }}
-              />
-            </View>
+            <Image
+              source={require("../../assets/images/textLogo.png")}
+              style={styles.topBarImage}
+              resizeMode="contain"
+            />
           </View>
-        </SafeAreaView>
-      </ImageBackground>
+
+          {isSidebarVisible && (
+            <TouchableWithoutFeedback onPress={closeSidebar}>
+              <Animated.View
+                style={[styles.overlay, { opacity: overlayAnim }]}
+              />
+            </TouchableWithoutFeedback>
+          )}
+        </View>
+        <Animated.View
+          style={[
+            styles.sidebar,
+            { transform: [{ translateX: sidebarAnim }] },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={closeSidebar}
+            style={styles.closeSidebarButton}
+          >
+            <Ionicons name="close" color={AppColors.black} size={28} />
+          </TouchableOpacity>
+          <View style={styles.sidebarHeader}>
+            <Image
+              source={require("../../assets/defaultLogo.png")} 
+              style={styles.userImage}
+            />
+            <Text style={styles.sidebarTitle} numberOfLines={1}>
+              {userName || "Guest User"}
+            </Text>
+          </View>
+          {[
+            { icon: "person-outline", text: "Profile", screen: "Profile" },
+            {
+              icon: "stats-chart-outline",
+              text: "Performance",
+              screen: "Performance",
+            },
+            {
+              icon: "help-circle-outline",
+              text: "Support",
+              screen: "Support",
+            },
+            { icon: "star-outline", text: "Rate Us", screen: "RateUs" },
+            {
+              icon: "settings-outline",
+              text: "Settings",
+              screen: "Settings",
+            },
+            {
+              icon: "globe-outline",
+              text: "Web (WebSocket Test)",
+              screen: "WebSocketTest",
+            },
+          ].map(({ icon, text, screen }) => (
+            <TouchableOpacity
+              key={screen}
+              style={styles.sidebarItem}
+              onPress={() => {
+                navigation.navigate(screen);
+                closeSidebar();
+              }}
+            >
+              <Ionicons name={icon} size={24} color={AppColors.darkText} />
+              <Text style={styles.sidebarItemText}>{text}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity style={styles.sidebarItem} onPress={LogOutHandler}>
+            <Ionicons name="log-out-outline" size={24} color={AppColors.error} /> 
+            <Text style={styles.sidebarItemText}>Logout</Text>
+          </TouchableOpacity>
+          <View style={styles.sidebarFooter}>
+            <Text style={styles.footerText}>cricshub @2025</Text>
+          </View>
+        </Animated.View>
+        <View style={styles.mainContent}>
+          <View style={styles.content}>
+            <FlatList
+              data={sections}
+              numColumns={2} 
+              keyExtractor={(item, index) => index.toString()}
+              scrollEnabled={false}
+              renderItem={({ item, index }) => {
+                return (
+                  <Animated.View
+                    style={[
+                      styles.card,
+                      item.isFullWidth ? styles.fullWidthCard : {},
+                      {
+                        transform: [{ scale: animatedValues[index] }], 
+                      },
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={AppGradients.primaryCard} 
+                      style={styles.cardBackground}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      <MaterialIcons
+                        name={item.icon}
+                        size={40}
+                        color={AppColors.white}
+                        style={styles.cardIcon}
+                      />
+                      <Text style={styles.cardTitle}>{item.title}</Text>
+                      <TouchableOpacity
+                        style={styles.cardButton}
+                        onPressIn={() => handlePressIn(index)}
+                        onPressOut={() => handlePressOut(index)}
+                        onPress={() => {
+                          if (item.title === "Fantasy Cricket") {
+                            Alert.alert(
+                              "Coming Soon",
+                              "Fantasy Cricket will be launched soon.",
+                              [{ text: "Ok" }]
+                            );
+                          } else {
+                            navigation.navigate(item.navigateTo);
+                          }
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.cardButtonText}>
+                          {item.buttonText}
+                        </Text>
+                      </TouchableOpacity>
+                    </LinearGradient>
+                  </Animated.View>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
     </View>
   );
 };
 
 export const styles = StyleSheet.create({
-  backgroundImage: {
+  appContainer: {
     flex: 1,
-    width: "100%",
-    height: "100%",
+    backgroundColor: AppColors.white,
   },
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: "transparent",
-    // marginTop: StatusBar?.currentHeight || 0,
   },
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    zIndex: 99,
-  },
-  mainContent: {
-    flex: 1,
+  topBarWrapper: {
+    backgroundColor: AppColors.white,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    shadowColor: AppColors.black,
+    elevation: 3,
+    zIndex: 10, 
   },
   topBar: {
-    paddingTop: StatusBar.currentHeight || 40,
-    paddingHorizontal: 15,
-    paddingBottom: 10,
-    backgroundColor: "white",
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-start",
+    paddingHorizontal: 15,
+    paddingVertical: 10, 
+    minHeight: 56, 
   },
-  topBarTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 10,
+  menuButton: {
+    paddingRight: 15,
+    paddingVertical: 0,
+  },
+  topBarImage: {
+    width: 120,
+    height: 30, 
+    marginLeft: 5,
+  },
+
+  mainContent: {
+    flex: 1,
+    backgroundColor: AppColors.white,
   },
   sidebar: {
     position: "absolute",
-    top: StatusBar?.currentHeight || 0,
+    top: 0,
     left: 0,
-    width: width * 0.7,
+    width: width * 0.7, 
     height: "100%",
-    backgroundColor: "#FFF",
+    backgroundColor: AppColors.white, 
     zIndex: 100,
     padding: 20,
-    shadowColor: "#000",
+    paddingTop: Platform.OS === "ios" ? 50 : 20, 
+    shadowColor: AppColors.black,
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
   },
-  overlay: {
+  closeSidebarButton: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "#000",
-    zIndex: 50,
+    top: Platform.OS === "ios" ? 20 : 10, 
+    right: 10,
+    padding: 10,
+    zIndex: 101,
   },
   sidebarHeader: {
     marginBottom: 20,
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    width: '100%',
+    borderBottomColor: AppColors.cardBorder,
+    width: "100%",
+    paddingBottom: 15,
   },
   userImage: {
     width: 80,
@@ -409,33 +389,34 @@ export const styles = StyleSheet.create({
   },
   sidebarTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 10,
-    maxWidth: '100%',
+    fontWeight: "bold",
+    color: AppColors.darkText,
+    marginTop: 5,
+    maxWidth: "100%",
+    textAlign: "center",
   },
   sidebarItem: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: AppColors.cardBorder,
   },
   sidebarItemText: {
     fontSize: 16,
-    color: "#333",
+    color: AppColors.darkText,
     marginLeft: 10,
   },
   sidebarFooter: {
     position: "absolute",
-    bottom: 10,
+    bottom: 20,
     left: 20,
     right: 20,
     alignItems: "center",
   },
   footerText: {
     fontSize: 14,
-    color: "#888",
+    color: AppColors.lightText,
   },
   content: {
     flex: 1,
@@ -448,15 +429,21 @@ export const styles = StyleSheet.create({
     height: 180,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    borderColor: AppColors.cardBorder,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.75,
     shadowRadius: 4,
-    elevation: 4,
+    elevation: 5, 
   },
   fullWidthCardContainer: {
     width: "100%",
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
+  fullWidthCard: {
+    width: width - 40, 
+    marginHorizontal: 10,
   },
   cardBackground: {
     flex: 1,
@@ -464,13 +451,14 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
+
   cardIcon: {
     marginBottom: 10,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#FFF",
+    color: AppColors.white,
     marginBottom: 10,
     textAlign: "center",
   },
@@ -480,10 +468,10 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#FFF",
+    borderColor: AppColors.white,
   },
   cardButtonText: {
-    color: "#FFF",
+    color: AppColors.white,
     fontWeight: "600",
     fontSize: 14,
   },

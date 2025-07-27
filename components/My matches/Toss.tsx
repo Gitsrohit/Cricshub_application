@@ -1,196 +1,221 @@
-import { ImageBackground, StyleSheet, Text, View, Pressable, Alert, TouchableOpacity } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Pressable,
+  ActivityIndicator,
+} from 'react-native';
 import React, { useEffect, useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
-import stadiumBG from '../../assets/images/cricsLogo.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Modal from 'react-native-modal';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { MaterialIcons, FontAwesome, Ionicons } from '@expo/vector-icons'; // Import icons
 import apiService from '../APIservices';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import { AppGradients, AppColors, AppButtons } from '../../assets/constants/colors.js';
 
 const Toss = ({ route }) => {
   const [matchDetails, setMatchDetails] = useState(null);
   const [tossWinner, setTossWinner] = useState('');
   const [choice, setChoice] = useState('');
-  const [isTossWinnerModalVisible, setTossWinnerModalVisible] = useState(false);
-  const [isChoiceModalVisible, setChoiceModalVisible] = useState(false);
+  const [showTossWinnerOptions, setShowTossWinnerOptions] = useState(false);
+  const [showChoiceOptions, setShowChoiceOptions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' }); 
 
   const { matchId } = route.params;
   const navigation = useNavigation();
 
   useEffect(() => {
     setMatchDetails(route.params.matchDetails);
-  }, []);
+  }, [route.params.matchDetails]); 
+
+  const displayMessage = (text, type) => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+  };
 
   const handleTossSubmit = async () => {
+    // Validate selections
     if (!tossWinner || !choice) {
-      Alert.alert('Error', 'Please select both the toss winner and their choice.');
+      displayMessage('Please select both the toss winner and their choice.', 'error');
       return;
     }
 
+    setIsLoading(true); // Show loading indicator
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) throw new Error('Please login again');
+      if (!token) {
+        throw new Error('Please login again');
+      }
 
+      // API call to submit toss decision
       const response = await apiService({
-        endpoint: `matches/${route.params.matchId}/toss`,
+        endpoint: `matches/${matchId}/toss`, // Use matchId from route.params directly
         method: 'POST',
         body: { tossWinner, choice },
       });
 
       if (response.success) {
+        displayMessage('Toss decision submitted successfully!', 'success');
+        // Navigate to the next screen (SelectRoles)
         navigation.navigate('SelectRoles', { matchId, isFirstInnings: true });
       } else {
-        Alert.alert('Error', 'Failed to submit toss decision. Please try again.');
+        displayMessage('Failed to submit toss decision. Please try again.', 'error');
       }
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Failed to submit toss decision. Please try again.');
+      console.error("Toss submission error:", error);
+      displayMessage('Failed to submit toss decision. Please try again.', 'error');
+    } finally {
+      setIsLoading(false); // Hide loading indicator
     }
   };
 
-  const renderTossWinnerOptions = () => {
-    return (
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>Select Toss Winner</Text>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={() => {
-            setTossWinner(matchDetails?.team1Name);
-            setTossWinnerModalVisible(false);
-          }}
-        >
-          <MaterialIcons name="groups" size={20} color="#333" style={styles.optionIcon} />
-          <Text style={styles.optionText}>{matchDetails?.team1Name}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={() => {
-            setTossWinner(matchDetails?.team2Name);
-            setTossWinnerModalVisible(false);
-          }}
-        >
-          <MaterialIcons name="groups" size={20} color="#333" style={styles.optionIcon} />
-          <Text style={styles.optionText}>{matchDetails?.team2Name}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => setTossWinnerModalVisible(false)}
-        >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
-    );
+  // Handles selecting the toss-winning team
+  const handleSelectTossWinner = (teamName) => {
+    setTossWinner(teamName);
+    setShowTossWinnerOptions(false); // Close options after selection
   };
 
-  const renderChoiceOptions = () => {
-    return (
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>Choose Bat or Bowl</Text>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={() => {
-            setChoice('bat');
-            setChoiceModalVisible(false);
-          }}
-        >
-          {/* Cricket Bat Icon */}
-          <MaterialIcons name="sports-cricket" size={20} color="#333" style={styles.optionIcon} />
-          <Text style={styles.optionText}>Bat</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={() => {
-            setChoice('bowl');
-            setChoiceModalVisible(false);
-          }}
-        >
-          {/* Cricket Ball Icon */}
-          <MaterialIcons name="sports-baseball" size={20} color="#333" style={styles.optionIcon} />
-          <Text style={styles.optionText}>Bowl</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => setChoiceModalVisible(false)}
-        >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
-    );
+  // Handles selecting the choice (bat or bowl)
+  const handleSelectChoice = (selectedChoice) => {
+    setChoice(selectedChoice);
+    setShowChoiceOptions(false); // Close options after selection
   };
+
+  // Determine if the submit button should be disabled
+  const isSubmitDisabled = !tossWinner || !choice || isLoading;
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
-        <ImageBackground source={stadiumBG} resizeMode="cover" style={styles.background}>
-          <View style={styles.card}>
-            <Text style={styles.heading}>Toss Decision</Text>
+      <View style={styles.mainContentArea}>
+        <Text style={styles.heading}>Toss Decision</Text>
 
-            {/* Toss Winner Dropdown */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Select Toss Winner:</Text>
-              <TouchableOpacity
-                style={styles.dropdownButton}
-                onPress={() => setTossWinnerModalVisible(true)}
-              >
-                <MaterialIcons name="groups" size={20} color="#333" style={styles.dropdownIcon} />
-                <Text style={styles.dropdownButtonText}>
-                  {tossWinner || 'Select Team'}
-                </Text>
-                <MaterialIcons name="arrow-drop-down" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Choice Dropdown */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Choose Bat or Bowl:</Text>
-              <TouchableOpacity
-                style={styles.dropdownButton}
-                onPress={() => setChoiceModalVisible(true)}
-              >
-                {/* Use the cricket bat or ball icon based on the selected choice */}
-                {choice === 'bat' ? (
-                  <MaterialIcons name="sports-cricket" size={20} color="#333" style={styles.dropdownIcon} />
-                ) : (
-                  <MaterialIcons name="sports-baseball" size={20} color="#333" style={styles.dropdownIcon} />
-                )}
-                <Text style={styles.dropdownButtonText}>
-                  {choice ? (choice === 'bat' ? 'Bat' : 'Bowl') : 'Select Choice'}
-                </Text>
-                <MaterialIcons name="arrow-drop-down" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Submit Button */}
-            <Pressable style={styles.button} onPress={handleTossSubmit}>
-              <Ionicons name="checkmark-done" size={24} color="#fff" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Submit Toss</Text>
-            </Pressable>
+        {/* Custom Message Display */}
+        {message.text ? (
+          <View style={[styles.messageBox, message.type === 'error' ? styles.errorBox : styles.successBox]}>
+            <Text style={message.type === 'error' ? styles.errorText : styles.successText}>
+              {message.text}
+            </Text>
           </View>
-        </ImageBackground>
-      </LinearGradient>
+        ) : null}
 
-      {/* Toss Winner Modal */}
-      <Modal
-        isVisible={isTossWinnerModalVisible}
-        onBackdropPress={() => setTossWinnerModalVisible(false)}
-        backdropOpacity={0.5}
-        animationIn="fadeInUp"
-        animationOut="fadeOutDown"
-      >
-        {renderTossWinnerOptions()}
-      </Modal>
+        {/* Toss Winner Selection Section */}
+        <View style={styles.inputSection}>
+          <Text style={styles.label}>Select Toss Winner:</Text>
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => setShowTossWinnerOptions(!showTossWinnerOptions)}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="groups" size={20} color={AppColors.mediumText} style={styles.dropdownIcon} />
+            <Text style={styles.dropdownButtonText}>
+              {tossWinner || 'Select Team'}
+            </Text>
+            <MaterialIcons
+              name={showTossWinnerOptions ? "arrow-drop-up" : "arrow-drop-down"}
+              size={24}
+              color={AppColors.mediumText}
+            />
+          </TouchableOpacity>
 
-      {/* Choice Modal */}
-      <Modal
-        isVisible={isChoiceModalVisible}
-        onBackdropPress={() => setChoiceModalVisible(false)}
-        backdropOpacity={0.5}
-        animationIn="fadeInUp"
-        animationOut="fadeOutDown"
-      >
-        {renderChoiceOptions()}
-      </Modal>
+          {/* Options for Toss Winner */}
+          {showTossWinnerOptions && matchDetails && (
+            <View style={styles.optionsContainer}>
+              <TouchableOpacity
+                style={styles.optionItem}
+                onPress={() => handleSelectTossWinner(matchDetails?.team1Name)}
+              >
+                <MaterialIcons name="groups" size={20} color={AppColors.lightText} style={styles.optionIcon} />
+                <Text style={styles.optionText}>{matchDetails?.team1Name}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.optionItem, styles.lastOptionItem]} // Fixed: Moved comment outside style array
+                onPress={() => handleSelectTossWinner(matchDetails?.team2Name)}
+              >
+                <MaterialIcons name="groups" size={20} color={AppColors.lightText} style={styles.optionIcon} />
+                <Text style={styles.optionText}>{matchDetails?.team2Name}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Choice Selection Section */}
+        <View style={styles.inputSection}>
+          <Text style={styles.label}>Choose Bat or Bowl:</Text>
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => setShowChoiceOptions(!showChoiceOptions)}
+            activeOpacity={0.7}
+          >
+            {/* Icon dynamically changes based on selected choice */}
+            {choice === 'bat' ? (
+              <MaterialIcons name="sports-cricket" size={20} color={AppColors.mediumText} style={styles.dropdownIcon} />
+            ) : choice === 'bowl' ? (
+              <MaterialIcons name="sports-baseball" size={20} color={AppColors.mediumText} style={styles.dropdownIcon} />
+            ) : (
+              <MaterialIcons name="question-mark" size={20} color={AppColors.mediumText} style={styles.dropdownIcon} />
+            )}
+            <Text style={styles.dropdownButtonText}>
+              {choice ? (choice === 'bat' ? 'Bat' : 'Bowl') : 'Select Choice'}
+            </Text>
+            <MaterialIcons
+              name={showChoiceOptions ? "arrow-drop-up" : "arrow-drop-down"}
+              size={24}
+              color={AppColors.mediumText}
+            />
+          </TouchableOpacity>
+
+          {/* Options for Choice */}
+          {showChoiceOptions && (
+            <View style={styles.optionsContainer}>
+              <TouchableOpacity
+                style={styles.optionItem}
+                onPress={() => handleSelectChoice('bat')}
+              >
+                <MaterialIcons name="sports-cricket" size={20} color={AppColors.lightText} style={styles.optionIcon} />
+                <Text style={styles.optionText}>Bat</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.optionItem, styles.lastOptionItem]} // Fixed: Moved comment outside style array
+                onPress={() => handleSelectChoice('bowl')}
+              >
+                <MaterialIcons name="sports-baseball" size={20} color={AppColors.lightText} style={styles.optionIcon} />
+                <Text style={styles.optionText}>Bowl</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Submit Button with LinearGradient */}
+        <Pressable
+          onPress={handleTossSubmit}
+          disabled={isSubmitDisabled}
+          style={styles.submitButtonWrapper} // This Pressable acts as a wrapper for shadow and layout
+        >
+          <LinearGradient
+            // Dynamically set colors: gray if disabled, otherwise primaryButton gradient
+            colors={isSubmitDisabled ? [AppColors.gray, AppColors.gray] : AppGradients.primaryButton}
+            style={[
+              styles.submitButtonGradient,
+              // Optional: Add a subtle press effect within the gradient if desired
+              // Example: pressed && { opacity: 0.8 }
+            ]}
+            start={{ x: 0, y: 0 }} // Gradient starts from top-left
+            end={{ x: 1, y: 1 }}   // Gradient ends at bottom-right
+          >
+            {isLoading ? (
+              <ActivityIndicator color={AppColors.white} />
+            ) : (
+              <>
+                <Ionicons name="checkmark-done" size={24} color={AppColors.white} style={styles.buttonIcon} />
+                <Text style={styles.submitButtonText}>Submit Toss</Text>
+              </>
+            )}
+          </LinearGradient>
+        </Pressable>
+      </View>
     </View>
   );
 };
@@ -200,80 +225,107 @@ export default Toss;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
+    backgroundColor: AppColors.BgColor, // Main background color from constants
   },
-  background: {
+  mainContentArea: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  gradient: {
-    flex: 1,
-    width: '100%',
-  },
-  card: {
-    width: '90%',
-    borderRadius: 20,
-    padding: 20,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    paddingHorizontal: 30, // Horizontal padding for the content area
+    paddingTop: 120,       // Top padding to push content down
+    // No background color here if you want it to be transparent over container's BgColor
   },
   heading: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
+    fontSize: 28,
+    fontWeight: '700',
+    color: AppColors.darkText,
+    marginBottom: 30,
     textAlign: 'center',
   },
-  inputContainer: {
-    marginBottom: 20,
-    width: '100%',
+  inputSection: {
+    marginBottom: 25, // Space between each input/dropdown section
   },
   label: {
-    fontSize: 16,
-    color: '#555',
+    fontSize: 17,
+    color: AppColors.mediumText,
     marginBottom: 10,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   dropdownButton: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: AppColors.white, // White background for the dropdown button
     borderRadius: 10,
-    padding: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 15,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: AppColors.inputBorder,
     flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   dropdownButtonText: {
     fontSize: 16,
-    color: '#333',
+    color: AppColors.mediumText,
     flex: 1,
     marginLeft: 10,
   },
   dropdownIcon: {
     marginRight: 10,
   },
-  button: {
-    backgroundColor: '#6BB9F0',
-    paddingVertical: 12,
+  optionsContainer: {
+    backgroundColor: AppColors.white, // White background for the options list
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: AppColors.inputBorder,
+    marginTop: 8,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    overflow: 'hidden', // Ensures inner content respects borderRadius
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: AppColors.lightBackground, // Light separator for options
+  },
+  // Style for the very last option item to remove its bottom border
+  lastOptionItem: {
+    borderBottomWidth: 0,
+  },
+  optionText: {
+    fontSize: 16,
+    color: AppColors.mediumText,
+    marginLeft: 10,
+  },
+  optionIcon: {
+    marginRight: 10,
+  },
+  submitButtonWrapper: {
+    borderRadius: 10, 
+    marginTop: 30,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  submitButtonGradient: {
+    paddingVertical: 16,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
-    shadowColor: '#FF4757',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
     flexDirection: 'row',
+    width: '100%', 
   },
-  buttonText: {
-    color: '#fff',
+  submitButtonText: {
+    color: AppColors.white, 
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 10,
@@ -281,41 +333,31 @@ const styles = StyleSheet.create({
   buttonIcon: {
     marginRight: 10,
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+  messageBox: {
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 20,
-  },
-  optionButton: {
-    width: '100%',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  optionText: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 10,
+  errorBox: {
+    backgroundColor: AppColors.errorRed + '1A',
+    borderColor: AppColors.errorRed,
+    borderWidth: 1,
   },
-  optionIcon: {
-    marginRight: 10,
+  successBox: {
+    backgroundColor: AppColors.successGreen + '1A',
+    borderColor: AppColors.successGreen,
+    borderWidth: 1,
   },
-  cancelButton: {
-    marginTop: 10,
-    padding: 10,
+  errorText: {
+    color: AppColors.errorRed,
+    fontWeight: '500',
+    textAlign: 'center',
   },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#FF4757',
-    fontWeight: 'bold',
+  successText: {
+    color: AppColors.successGreen,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
