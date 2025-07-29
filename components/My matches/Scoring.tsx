@@ -222,13 +222,13 @@ const ScoringScreen = ({ route }) => {
   // }
 
   const matchStateUpdateHandler = (data) => {
-    setOverDetails((prev) => prev + " " + data.ballString);
-    setBowler({ id: data.currentBowler.id, name: data.currentBowler.name, overs: data.currentBowler.overs, runsConceded: data.currentBowler.runsConceded, wickets: data.currentBowler.wickets });
-    setStriker({ id: data.striker.id, name: data.striker.name, runs: data.striker.runs, ballsFaced: data.striker.ballsFaced });
-    setNonStriker({ id: data.nonStriker.id, name: data.nonStriker.name, runs: data.nonStriker.runs, ballsFaced: data.nonStriker.ballsFaced });
-    setCompletedOvers(data.overNumber);
-    setScore(data.totalRuns);
-    setWicket(data.wicketsLost);
+    setOverDetails((prev) => prev + " " + data?.ballString);
+    setBowler({ id: data.currentBowler?.id, name: data.currentBowler?.name, overs: data.currentBowler?.overs, runsConceded: data.currentBowler?.runsConceded, wickets: data.currentBowler?.wickets });
+    setStriker({ id: data.striker?.id, name: data.striker?.name, runs: data.striker?.runs, ballsFaced: data.striker?.ballsFaced });
+    setNonStriker({ id: data.nonStriker?.id, name: data.nonStriker?.name, runs: data.nonStriker?.runs, ballsFaced: data.nonStriker?.ballsFaced });
+    setCompletedOvers(data?.overNumber);
+    setScore(data?.totalRuns);
+    setWicket(data?.wicketsLost);
 
     if (data.ballString === null) {
       setOverDetails("");
@@ -399,6 +399,8 @@ const ScoringScreen = ({ route }) => {
         return;
       }
 
+      console.log(data);
+
       setMatchId(data.matchId);
 
       setBowler({
@@ -456,6 +458,10 @@ const ScoringScreen = ({ route }) => {
       ) {
         setOverDetails("");
         setModals((prev) => ({ ...prev, nextBowler: true }));
+      };
+
+      if (data.completedOvers === data.totalOvers && data.firstInnings === true) {
+        setModals({ ...modals, startNextInnings: true, nextBowler: false });
       }
 
       // setStrikerId(data.currentStriker?.playerId || null);
@@ -824,7 +830,7 @@ const ScoringScreen = ({ route }) => {
     });
 
     if (success) {
-      setModals({ ...modals, startNextInnings: false });
+      setModals({ ...modals, startNextInnings: false, nextBowler: false });
       navigation.navigate('SelectRoles', { matchId, isFirstInnings: false });
     } else {
       console.error('Start second innings error:', error);
@@ -855,8 +861,8 @@ const ScoringScreen = ({ route }) => {
       {/* Player Info Section */}
       <View style={styles.playerInfoContainer}>
         <View style={styles.playerInfo}>
-          <Text style={styles.playerText}>{striker.name}* - <Text style={styles.playerStats}>{striker.runs}({striker.ballsFaced})</Text></Text>
-          <Text style={styles.playerText}>{nonStriker.name} - <Text style={styles.playerStats}>{nonStriker.runs}({nonStriker.ballsFaced})</Text></Text>
+          <Text style={styles.playerText}>{striker?.name}* - <Text style={styles.playerStats}>{striker?.runs}({striker?.ballsFaced})</Text></Text>
+          <Text style={styles.playerText}>{nonStriker?.name} - <Text style={styles.playerStats}>{nonStriker?.runs}({nonStriker?.ballsFaced})</Text></Text>
         </View>
         <View style={styles.bowlerInfo}>
           <Text style={styles.playerText}>Over: {overDetails}</Text>

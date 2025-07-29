@@ -18,7 +18,7 @@ import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AppGradients, AppColors } from "../../assets/constants/colors.js"; 
+import { AppGradients, AppColors } from "../../assets/constants/colors.js";
 
 const { width, height } = Dimensions.get("window");
 
@@ -50,7 +50,7 @@ const Home = () => {
       title: "Start a Match",
       buttonText: "Start",
       navigateTo: "InstantMatch",
-      icon: "sports-cricket", 
+      icon: "sports-cricket",
     },
     {
       title: "Host a Tournament",
@@ -73,7 +73,7 @@ const Home = () => {
     {
       title: "Stream Match",
       buttonText: "Stream Now",
-      navigateTo: "StreamMatch",
+      navigateTo: "ConnectLiveStream",
       icon: "live-tv",
       isFullWidth: true,
     },
@@ -97,7 +97,7 @@ const Home = () => {
     if (isSidebarVisible) {
       Animated.parallel([
         Animated.timing(sidebarAnim, {
-          toValue: -width, 
+          toValue: -width,
           duration: 300,
           useNativeDriver: true,
         }),
@@ -108,7 +108,7 @@ const Home = () => {
         }),
       ]).start(() => setIsSidebarVisible(false));
     } else {
-      setIsSidebarVisible(true); 
+      setIsSidebarVisible(true);
       Animated.parallel([
         Animated.timing(sidebarAnim, {
           toValue: 0,
@@ -141,9 +141,9 @@ const Home = () => {
           text: "Yes, Logout",
           onPress: async () => {
             try {
-              await AsyncStorage.removeItem("jwtToken"); 
+              await AsyncStorage.removeItem("jwtToken");
               console.log("Token removed securely");
-              navigation.navigate("Login"); 
+              navigation.navigate("Login");
             } catch (error) {
               console.error("Error removing token:", error);
               Alert.alert("Logout Failed", "Could not log out. Please try again.");
@@ -158,7 +158,7 @@ const Home = () => {
   return (
     <View style={styles.appContainer}>
       <StatusBar
-        barStyle="dark-content" 
+        barStyle="dark-content"
         backgroundColor={AppColors.background}
         translucent={false}
       />
@@ -197,7 +197,7 @@ const Home = () => {
           </TouchableOpacity>
           <View style={styles.sidebarHeader}>
             <Image
-              source={require("../../assets/defaultLogo.png")} 
+              source={require("../../assets/defaultLogo.png")}
               style={styles.userImage}
             />
             <Text style={styles.sidebarTitle} numberOfLines={1}>
@@ -241,7 +241,7 @@ const Home = () => {
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={styles.sidebarItem} onPress={LogOutHandler}>
-            <Ionicons name="log-out-outline" size={24} color={AppColors.error} /> 
+            <Ionicons name="log-out-outline" size={24} color={AppColors.error} />
             <Text style={styles.sidebarItemText}>Logout</Text>
           </TouchableOpacity>
           <View style={styles.sidebarFooter}>
@@ -252,7 +252,7 @@ const Home = () => {
           <View style={styles.content}>
             <FlatList
               data={sections}
-              numColumns={2} 
+              numColumns={2}
               keyExtractor={(item, index) => index.toString()}
               scrollEnabled={false}
               renderItem={({ item, index }) => {
@@ -262,12 +262,12 @@ const Home = () => {
                       styles.card,
                       item.isFullWidth ? styles.fullWidthCard : {},
                       {
-                        transform: [{ scale: animatedValues[index] }], 
+                        transform: [{ scale: animatedValues[index] }],
                       },
                     ]}
                   >
                     <LinearGradient
-                      colors={AppGradients.primaryCard} 
+                      colors={AppGradients.primaryCard}
                       style={styles.cardBackground}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
@@ -323,18 +323,18 @@ export const styles = StyleSheet.create({
   },
   topBarWrapper: {
     backgroundColor: AppColors.white,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    // paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     shadowColor: AppColors.black,
     elevation: 3,
-    zIndex: 10, 
+    zIndex: 10,
   },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
     paddingHorizontal: 15,
-    paddingVertical: 10, 
-    minHeight: 56, 
+    paddingVertical: 10,
+    minHeight: 56,
   },
   menuButton: {
     paddingRight: 15,
@@ -342,7 +342,7 @@ export const styles = StyleSheet.create({
   },
   topBarImage: {
     width: 120,
-    height: 30, 
+    height: 30,
     marginLeft: 5,
   },
 
@@ -354,12 +354,12 @@ export const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    width: width * 0.7, 
+    width: width * 0.7,
     height: "100%",
-    backgroundColor: AppColors.white, 
+    backgroundColor: AppColors.white,
     zIndex: 100,
     padding: 20,
-    paddingTop: Platform.OS === "ios" ? 50 : 20, 
+    paddingTop: Platform.OS === "ios" ? 50 : 20,
     shadowColor: AppColors.black,
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.2,
@@ -368,7 +368,7 @@ export const styles = StyleSheet.create({
   },
   closeSidebarButton: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 20 : 10, 
+    top: Platform.OS === "ios" ? 20 : 10,
     right: 10,
     padding: 10,
     zIndex: 101,
@@ -434,7 +434,7 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.75,
     shadowRadius: 4,
-    elevation: 5, 
+    elevation: 5,
   },
   fullWidthCardContainer: {
     width: "100%",
@@ -442,7 +442,7 @@ export const styles = StyleSheet.create({
     marginBottom: 20,
   },
   fullWidthCard: {
-    width: width - 40, 
+    width: width - 40,
     marginHorizontal: 10,
   },
   cardBackground: {

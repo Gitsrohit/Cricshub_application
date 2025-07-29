@@ -12,7 +12,7 @@ import WebSocketTest from './components/Home/WebSocketTest';
 import Teams from './components/Teams/Teams';
 import Profile from './components/Settings/Profile';
 import Performance from './components/Settings/Performance';
-import Footer from './components/Footer'; 
+import Footer from './components/Footer';
 import CreateTeam from './components/Teams/CreateTeam';
 import CreateTournaments from './components/Tournaments/CreateTournaments';
 import ManageTournaments from './components/Tournaments/ManageTournaments';
@@ -37,6 +37,7 @@ import MatchStartTransition from './components/My matches/MatchStartTransition';
 
 import ScoreCard from './components/My matches/ScoreCard';
 import InternetConnectivityCheck from './components/InternetConnectivity';
+import ConnectLiveStream from './components/LiveStream/ConnectLiveStream';
 
 const Stack = createStackNavigator();
 
@@ -95,6 +96,7 @@ const MainScreens = () => {
         <Stack.Screen name="ContestDetails" component={ContestDetails} />
         <Stack.Screen name="CreateContestTeam" component={CreateContestTeam} />
         <Stack.Screen name="MatchStartTransition" component={MatchStartTransition} />
+        <Stack.Screen name="ConnectLiveStream" component={ConnectLiveStream} />
       </Stack.Navigator>
       <Footer style={styles.footer} />
     </View>

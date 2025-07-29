@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import apiService from '../../APIservices';
+import { AppColors } from '../../../assets/constants/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -40,6 +41,11 @@ const AllMatches = () => {
 
   return (
     <ImageBackground source={backgroundImage} style={styles.backgroundImage} resizeMode="cover">
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={AppColors.background}
+        translucent={false}
+      />
       <LinearGradient colors={['rgba(0, 0, 0, 0.5)', 'rgba(54, 176, 303, 0.2)']} style={styles.gradientOverlay}>
         <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
           <LinearGradient
@@ -112,22 +118,22 @@ export default AllMatches
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+    // width: '100%',
+    // height: '100%',
   },
   gradientOverlay: {
-    marginTop: StatusBar.currentHeight || 0,
+    // paddingTop: 10,
     flex: 1,
-    width: '100%',
-    height: '100%',
+    // width: '100%',
+    // height: '100%',
   },
   header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1,
-    height: 140,
+    // position: 'absolute',
+    // top: 0,
+    // left: 0,
+    // right: 0,
+    // zIndex: 1,
+    // height: 140,
     backgroundColor: 'transparent',
   },
   glassHeader: {
@@ -161,7 +167,7 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    marginTop: 5,
+    // marginTop: 5,
   },
   toggleContentContainer: {
     paddingHorizontal: 5,
@@ -203,7 +209,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    marginTop: 140,
+    // marginTop: 140,
     paddingHorizontal: 15,
   },
   cardContainer: {

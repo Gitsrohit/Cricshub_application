@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from '../APIservices';
+import { AppColors } from '../../assets/constants/colors';
 
 const logo = require('../../assets/images/cricshub.png');
 const background = require('../../assets/images/cricsLogo.png');
@@ -114,7 +115,11 @@ const Login = ({ navigation }) => {
 
   return (
     <>
-      <StatusBar />
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={AppColors.background}
+        translucent={false}
+      />
       <LinearGradient
         colors={['#000000', '#0A303B', '#36B0D5']}
         style={styles.gradient}
