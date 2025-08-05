@@ -18,6 +18,8 @@ import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
 import { useNavigation } from '@react-navigation/native';
 import apiService from '../APIservices';
+import { MaterialIcons } from "@expo/vector-icons";
+import { AppColors } from '../../assets/constants/colors';
 const driveImage = require('../../assets/images/DriveShot.png');
 const cutImage = require('../../assets/images/squareShot.png');
 const pullImage = require('../../assets/images/HookShot.png');
@@ -31,12 +33,6 @@ const loftedImage = require('../../assets/images/LoaftedShot.png');
 const ScoringScreen = ({ route }) => {
   const navigation = useNavigation();
   const [matchId, setMatchId] = useState(route.params.matchId);
-  // const [strikerId, setStrikerId] = useState(route.params.strikerId);
-  // const [nonStrikerId, setNonStrikerId] = useState(route.params.nonStrikerId);
-  // const [bowler, setBowler] = useState(route.params.bowler);
-  // const [selectedStrikerName, setSelectedStrikerName] = useState(route.params.selectedStrikerName);
-  // const [selectedNonStrikerName, setSelectedNonStrikerName] = useState(route.params.selectedNonStrikerName);
-  // const [selectedBowlerName, setSelectedBowlerName] = useState(route.params.selectedBowlerName);
   const [bowler, setBowler] = useState({ id: route.params.bowler, name: route.params.selectedBowlerName, overs: 0, runsConceded: 0, wickets: 0 });
   const [striker, setStriker] = useState({ id: route.params.strikerId, name: route.params.selectedStrikerName, runs: 0, ballsFaced: 0 });
   const [nonStriker, setNonStriker] = useState({ id: route.params.nonStrikerId, name: route.params.selectedNonStrikerName, runs: 0, ballsFaced: 0 });
@@ -58,25 +54,18 @@ const ScoringScreen = ({ route }) => {
     runout: false,
     fielderSelect: false,
   });
+  const newBowlerSelectionRef = useRef(false);
   const [battingTeamName, setBattingTeamName] = useState(route.params.battingTeamName);
   const [score, setScore] = useState(route.params.score || 0);
   const [extras, setExtras] = useState(0);
   const [bowlingTeamName, setBowlingTeamName] = useState(route.params.bowlingTeamName);
   const [wicket, setWicket] = useState(route.params.wicket || 0);
   const [completedOvers, setCompletedOvers] = useState(route.params.completedOvers || 0);
-  // const [currentBowlerName, setCurrentBowlerName] = useState(selectedBowlerName);
-  // const [strikerName, setStrikerName] = useState(selectedStrikerName);
-  // const [nonStrikerName, setNonStrikerName] = useState(selectedNonStrikerName);
-  // const [currentOver, setCurrentOver] = useState([]);
-  // const [nonStrikerStats, setNonStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
-  // const [strikerStats, setStrikerStats] = useState({ runs: 0, ballsFaced: 0 });
-  // const [bowlerStats, setBowlerStats] = useState({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
   const [overDetails, setOverDetails] = useState("");
   const [availableBatsmen, setAvailableBatsmen] = useState([]);
   const [selectedBatsman, setSelectedBatsman] = useState({ playerId: null, name: null });
   const legalDeliveriesRef = useRef(0);
   const [legalDeliveries, setLegalDeliveries] = useState(0);
-  // const [availableBowlers, setAvailableBowlers] = useState([]);
   const [selectedBowler, setSelectedBowler] = useState({
     playerId: '',
     name: ''
@@ -90,6 +79,7 @@ const ScoringScreen = ({ route }) => {
   const [selectedDirection, setSelectedDirection] = useState(null);
   const [selectedShot, setSelectedShot] = useState(null);
   const [shotModalVisible, setShotModalVisible] = useState(false);
+  const [secondInningsStartInfoModal, setSecondInningsStartInfoModal] = useState(false);
   const [selectedRunForShot, setSelectedRunForShot] = useState(null);
   const liveSocketRef = useRef(null);
   const cricketShots = [
@@ -156,71 +146,6 @@ const ScoringScreen = ({ route }) => {
     });
   };
 
-  // const matchStateUpdateHandler = (data) => {
-  //   setScore(data.totalRuns);
-  //   setWicket(data.wicketsLost);
-  //   setCompletedOvers(data.overNumber+"."+data.ballInOver);
-  //   setBattingTeamName(data.battingTeam?.name);
-  //   setBowlingTeamName(data.bowlingTeam?.name);
-  //   setScore(data.battingTeam.score);
-  //   setExtras(data.battingTeam.extras);
-  //   setWicket(data.battingTeam.wickets);
-  //   setBattingTeamII(data.battingTeamPlayingXI);
-  //   setBowlingTeamII(data.bowlingTeamPlayingXI);
-  //   setCompletedOvers(data.completedOvers);
-  //   setCurrentBowlerName(data.currentBowler?.name);
-  //   setStrikerName(data.currentStriker?.name);
-  //   setNonStrikerName(data.currentNonStriker?.name);
-  //   setCurrentOver(data.currentOver);
-
-  //   // Fetch available bowlers
-  //   const filteredBowlers = data.bowlingTeamPlayingXI.filter((player) => player.playerId !== bowler).map(({ playerId, name }) => ({ playerId, name }));
-  //   setAvailableBowlers(filteredBowlers);
-
-  //   // Fetch available batsmen
-  //   const available = data.battingTeamPlayingXI.filter(
-  //     (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
-  //   ).map(({ playerId, name }) => ({ playerId, name }));
-  //   setAvailableBatsmen(available);
-
-  //   // Extract striker details
-  //   const strikerStats = data.battingTeamPlayingXI.find(
-  //     (player) => player?.name === data.currentStriker?.name
-  //   );
-
-  //   // Extract non-striker details
-  //   const nonStrikerStats = data.battingTeamPlayingXI.find(
-  //     (player) => player?.name === data.currentNonStriker?.name
-  //   );
-  //   const bowlerStats = data.bowlingTeamPlayingXI.find(
-  //     (player) => player?.name === data.currentBowler?.name
-  //   );
-  //   const formattedOverDetails = data.currentOver.map((ball) => {
-  //     let event = ball.runs.toString();
-
-  //     if (ball.wicket) event += 'W';
-  //     if (ball.noBall) event += 'NB';
-  //     if (ball.wide) event += 'Wd';
-  //     if (ball.bye) event += 'B';
-  //     if (ball.legBye) event += 'LB';
-
-  //     return event;
-  //   });
-
-  //   setOverDetails(formattedOverDetails);
-  //   const deliveryCount = data.currentOver.reduce((count, ball) => {
-  //     return count + (ball.noBall || ball.wide ? 0 : 1);
-  //   }, 0);
-  //   setLegalDeliveries(deliveryCount);
-  //   if (data.completedOvers !== 0 && deliveryCount === 0 && (data.completedOvers !== (data.totalOvers))) {
-  //     setModals((prev) => ({ ...prev, nextBowler: true }));
-  //   }
-
-  //   setStrikerStats(strikerStats || { runs: 0, ballsFaced: 0 });
-  //   setNonStrikerStats(nonStrikerStats || { runs: 0, ballsFaced: 0 });
-  //   setBowlerStats(bowlerStats || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
-  // }
-
   const matchStateUpdateHandler = (data) => {
     setOverDetails((prev) => prev + " " + data?.ballString);
     setBowler({ id: data.currentBowler?.id, name: data.currentBowler?.name, overs: data.currentBowler?.overs, runsConceded: data.currentBowler?.runsConceded, wickets: data.currentBowler?.wickets });
@@ -230,14 +155,20 @@ const ScoringScreen = ({ route }) => {
     setScore(data?.totalRuns);
     setWicket(data?.wicketsLost);
 
-    if (data.ballString === null) {
+    if (data.overComplete === true) {
+      const newOver = true;
       setOverDetails("");
+      legalDeliveriesRef.current = 0;
       setLegalDeliveries(0);
-      setModals((prev) => ({ ...prev, nextBowler: true }));
+      if (data.overNumber !== data.totalOvers) {
+        console.log("next bowler modal open");
+        newBowlerSelectionRef.current = true;
+        setModals((prev) => ({ ...prev, nextBowler: true }));
+      }
     } else {
-      const ballStr = data.ballString.toUpperCase();
-      const isWide = ballStr.includes("WD");
-      const isNoBall = ballStr.includes("NB");
+      const ballStr = data?.ballString?.toUpperCase();
+      const isWide = ballStr?.includes("WD");
+      const isNoBall = ballStr?.includes("NB");
       const isLegalDelivery = !isWide && !isNoBall;
 
       if (isLegalDelivery) {
@@ -270,7 +201,11 @@ const ScoringScreen = ({ route }) => {
       }
     };
 
-    const setupClient = (clientRef: React.MutableRefObject<Client | null>, type: 'submit' | 'live', matchId: string | null = null) => {
+    const setupClient = (
+      clientRef: React.MutableRefObject<Client | null>,
+      type: 'submit' | 'live',
+      matchId: string | null = null
+    ) => {
       console.log(`[${type}] Initializing STOMP client...`);
       clientRef.current = new Client();
       clientRef.current.configure({
@@ -281,11 +216,13 @@ const ScoringScreen = ({ route }) => {
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
-        debug: (str) => console.log(`[${type}] DEBUG: ${str}`),
+        // debug: (str) => console.log(`[${type}] DEBUG: ${str}`),
       });
 
+      const lastProcessedTimestamps: { [key: string]: number } = {};
+      const EVENT_DEBOUNCE_MS = 1000;
+
       clientRef.current.onConnect = (frame) => {
-        console.log(`[${type}] STOMP connected ✅`, frame);
         updateConnectionState(type, true);
         reconnectAttempts.current = 0;
 
@@ -294,32 +231,43 @@ const ScoringScreen = ({ route }) => {
             try {
               const parsed = JSON.parse(message.body);
 
-              // Validate message structure
               if (!parsed.eventName || !parsed.payload) {
                 console.error('Invalid message format', parsed);
                 return;
               }
 
               const { eventName, payload } = parsed;
-              console.log(`[${eventName}] Live message received for match ${matchId}`);
 
-              // Handle different event types
+              // Debounce logic for specific event
+              const now = Date.now();
+              if (
+                eventName === 'ball-update' &&
+                now - (lastProcessedTimestamps[eventName] || 0) < EVENT_DEBOUNCE_MS
+              ) {
+                return; // Skip duplicate event within debounce time
+              }
+              lastProcessedTimestamps[eventName] = now;
+
               switch (eventName) {
                 case 'ball-update':
                   console.log('Ball update:', payload);
                   matchStateUpdateHandler(payload);
                   break;
+
                 case 'match-complete':
                   console.log('Match complete:', payload);
                   liveSocketRef.current?.close();
                   navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
                   break;
+
                 case 'innings-complete':
                   console.log('Innings complete:', payload);
                   matchStateUpdateHandler(payload);
-                  // setModals(prev => ({ ...prev, startNextInnings: true }));
-                  setModals(
-                    {
+                  setSecondInningsStartInfoModal(true);
+                  setTimeout(() => {
+                    setSecondInningsStartInfoModal(false);
+                    newBowlerSelectionRef.current = false;
+                    setModals({
                       bye: false,
                       wide: false,
                       wicket: false,
@@ -330,13 +278,15 @@ const ScoringScreen = ({ route }) => {
                       catch: false,
                       runout: false,
                       fielderSelect: false,
-                    }
-                  )
+                    });
+                  }, 12000);
                   break;
+
                 case 'second-innings-started':
                   console.log('Second innings started:', payload);
                   matchStateUpdateHandler(payload);
                   break;
+
                 default:
                   console.warn('Unknown event type:', eventName, payload);
               }
@@ -369,7 +319,6 @@ const ScoringScreen = ({ route }) => {
       };
 
       clientRef.current.activate();
-
     };
 
     return { submitConnected, liveConnected, setupClient };
@@ -388,6 +337,19 @@ const ScoringScreen = ({ route }) => {
   }, [matchId]);
 
   const getMatchState = async () => {
+    newBowlerSelectionRef.current = false;
+    setModals({
+      bye: false,
+      catch: false,
+      fielderSelect: false,
+      nextBatsman: false,
+      nextBowler: false,
+      noBall: false,
+      runout: false,
+      startNextInnings: false,
+      wicket: false,
+      wide: false,
+    })
     try {
       const { success, data, error } = await apiService({
         endpoint: `matches/matchstate/${matchId}`,
@@ -399,7 +361,7 @@ const ScoringScreen = ({ route }) => {
         return;
       }
 
-      console.log(data);
+      console.log("Match state data:" + data);
 
       setMatchId(data.matchId);
 
@@ -457,68 +419,14 @@ const ScoringScreen = ({ route }) => {
         data.completedOvers !== data.totalOvers
       ) {
         setOverDetails("");
+        newBowlerSelectionRef.current = true;
         setModals((prev) => ({ ...prev, nextBowler: true }));
       };
 
       if (data.completedOvers === data.totalOvers && data.firstInnings === true) {
+        newBowlerSelectionRef.current = false;
         setModals({ ...modals, startNextInnings: true, nextBowler: false });
       }
-
-      // setStrikerId(data.currentStriker?.playerId || null);
-      // setNonStrikerId(data.currentNonStriker?.playerId || null);
-      // setBowler(data.currentBowler?.playerId || null);
-      // setSelectedStrikerName(data.currentStriker?.name || "Unknown");
-      // setSelectedNonStrikerName(data.currentNonStriker?.name || "Unknown");
-      // setSelectedBowlerName(data.currentBowler?.name || "Unknown");
-      // setBattingTeamName(data.battingTeam?.name || "Unknown");
-      // setScore(data.battingTeam?.score || 0);
-      // setBowlingTeamName(data.bowlingTeam?.name || "Unknown");
-      // setWicket(data.battingTeam?.wickets || 0);
-      // setExtras(data.battingTeam?.extras || 0);
-      // setBattingTeamII(data.battingTeamPlayingXI || []);
-      // setBowlingTeamII(data.bowlingTeamPlayingXI || []);
-      // setCompletedOvers(data.completedOvers || 0);
-      // setCurrentOver(data.currentOver || []);
-
-      // const filteredBowlers =
-      //   data.bowlingTeamPlayingXI?.filter(
-      //     (player) => player.playerId !== data.currentBowler?.playerId
-      //   ).map(({ playerId, name }) => ({ playerId, name })) || [];
-      // setAvailableBowlers(filteredBowlers);
-
-      // const available =
-      //   data.battingTeamPlayingXI?.filter(
-      //     (player) =>
-      //       player.ballsFaced === 0 &&
-      //       player.playerId !== data.currentStriker?.playerId &&
-      //       player.playerId !== data.currentNonStriker?.playerId
-      //   ).map(({ playerId, name }) => ({ playerId, name })) || [];
-      // setAvailableBatsmen(available);
-
-      // const strikerStats =
-      //   data.battingTeamPlayingXI?.find(
-      //     (player) => player?.name === data.currentStriker?.name
-      //   ) || { runs: 0, ballsFaced: 0 };
-      // const nonStrikerStats =
-      //   data.battingTeamPlayingXI?.find(
-      //     (player) => player?.name === data.currentNonStriker?.name
-      //   ) || { runs: 0, ballsFaced: 0 };
-      // const bowlerStats =
-      //   data.bowlingTeamPlayingXI?.find(
-      //     (player) => player?.name === data.currentBowler?.name
-      //   ) || { ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 };
-
-      // setStrikerStats(strikerStats);
-      // setNonStrikerStats(nonStrikerStats);
-      // setBowlerStats(bowlerStats);
-
-      // if (
-      //   data.completedOvers !== 0 &&
-      //   deliveryCount === 0 &&
-      //   data.completedOvers !== data.totalOvers
-      // ) {
-      //   setModals((prev) => ({ ...prev, nextBowler: true }));
-      // }
     } catch (error) {
       console.log("Error fetching match state:", error);
     }
@@ -536,7 +444,9 @@ const ScoringScreen = ({ route }) => {
         method: 'GET',
       });
       setBattingPlayingXI(batting.data);
+      console.log("Bowling");
       console.log(bowling.data);
+      console.log("Batting");
       console.log(batting.data);
     } catch (error) {
       console.log(error);
@@ -622,14 +532,8 @@ const ScoringScreen = ({ route }) => {
 
     if (striker.id === selectedPlayer.playerId) {
       setStriker({ id: null, name: null, runs: 0, ballsFaced: 0 });
-      // setStrikerStats({ runs: 0, ballsFaced: 0 });
-      // setStrikerId(selectedPlayer.playerId);
-      // setStrikerName(selectedPlayer.name);
     } else {
       setNonStriker({ id: null, name: null, runs: 0, ballsFaced: 0 });
-      // setNonStrikerStats({ runs: 0, ballsFaced: 0 });
-      // setNonStrikerId(selectedPlayer.playerId);
-      // setNonStrikerName(selectedPlayer.name);
     }
     setModals({ ...modals, nextBatsman: false });
 
@@ -662,11 +566,9 @@ const ScoringScreen = ({ route }) => {
 
     // Reset the new bowler's stats
     setBowler({ id: playerId, name: playerName, overs: 0, runsConceded: 0, wickets: 0 })
-    // setBowlerStats({ ballsBowled: 0, wicketsTaken: 0, runsConceded: 0 });
-    // setBowler(playerId);
-    // setCurrentBowlerName(playerName);
     setOverDetails("");
     setLegalDeliveries(0);
+    newBowlerSelectionRef.current = false;
     setModals((prev) => ({ ...prev, nextBowler: false }));
   };
 
@@ -679,13 +581,6 @@ const ScoringScreen = ({ route }) => {
       wicketType: 'Caught',
       catcherId: selectedCatcher, // just pass the string ID
     });
-
-    // const available = battingTeamII.filter(
-    //   (player) =>
-    //     player.ballsFaced === 0 &&
-    //     player.playerId !== strikerId &&
-    //     player.playerId !== nonStrikerId
-    // ).map(({ playerId, name }) => ({ playerId, name }));
 
     setAvailableBatsmen(battingPlayingXI);
     setWicketType('');
@@ -709,9 +604,6 @@ const ScoringScreen = ({ route }) => {
       wicket: true,
       wicketType: value,
     });
-    // const available = battingTeamII.filter(
-    //   (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
-    // ).map(({ playerId, name }) => ({ playerId, name }));
     setAvailableBatsmen(battingPlayingXI);
     setWicketType('');
 
@@ -830,7 +722,9 @@ const ScoringScreen = ({ route }) => {
     });
 
     if (success) {
+      newBowlerSelectionRef.current = false;
       setModals({ ...modals, startNextInnings: false, nextBowler: false });
+      getTeamPlayingXI();
       navigation.navigate('SelectRoles', { matchId, isFirstInnings: false });
     } else {
       console.error('Start second innings error:', error);
@@ -893,42 +787,60 @@ const ScoringScreen = ({ route }) => {
       </View>
 
       <Modal visible={shotModalVisible} transparent animationType="slide">
-        <Modal visible={shotModalVisible} transparent animationType="slide">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Shot Type</Text>
-              <FlatList
-                data={cricketShots}
-                numColumns={3}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
-                  <Pressable
-                    style={styles.shotOption}
-                    onPress={() => handleShotSelection(item)}
-                  >
-                    <Image
-                      source={shotImages[item]}
-                      style={styles.shotImage}
-                      resizeMode="contain"
-                    />
-
-                    <Text style={styles.shotText}>{item}</Text>
-                  </Pressable>
-                )}
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setShotModalVisible(false)}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
               />
-              <Pressable
-                style={styles.cancelButton}
-                onPress={() => setShotModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-            </View>
+            </Pressable>
+            <Text style={styles.modalTitle}>Select Shot Type</Text>
+            <FlatList
+              data={cricketShots}
+              numColumns={3}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={styles.shotOption}
+                  onPress={() => handleShotSelection(item)}
+                >
+                  <Image
+                    source={shotImages[item]}
+                    style={styles.shotImage}
+                    resizeMode="contain"
+                  />
+
+                  <Text style={styles.shotText}>{item}</Text>
+                </Pressable>
+              )}
+            />
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => setShotModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </Pressable>
           </View>
-        </Modal>
+        </View>
       </Modal>
       <Modal visible={directionModalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setDirectionModalVisible(false)}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text style={styles.modalTitle}>Select Shot Direction</Text>
             <View style={styles.wagonWheelContainer}>
               <View style={styles.circleBackground} />
@@ -963,6 +875,16 @@ const ScoringScreen = ({ route }) => {
       <Modal visible={modals.wide} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setModals({ ...modals, wide: false })}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text>Wide Runs:</Text>
             <TextInput
               style={styles.input}
@@ -988,6 +910,16 @@ const ScoringScreen = ({ route }) => {
       <Modal visible={modals.noBall} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setModals({ ...modals, noBall: false })}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text>No ball runs:</Text>
             <TextInput
               style={styles.input}
@@ -1011,6 +943,16 @@ const ScoringScreen = ({ route }) => {
       <Modal visible={modals.bye} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setModals({ ...modals, bye: false })}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text>Bye/Leg Bye Runs:</Text>
             <TextInput
               style={styles.input}
@@ -1033,6 +975,16 @@ const ScoringScreen = ({ route }) => {
       <Modal visible={modals.wicket} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setModals({ ...modals, wicket: false })}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text>Select Wicket Type:</Text>
 
             <Picker
@@ -1083,6 +1035,16 @@ const ScoringScreen = ({ route }) => {
       <Modal visible={modals.nextBatsman} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setModals({ ...modals, nextBatsman: false })}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text style={styles.modalTitle}>Select Next Batsman</Text>
 
             <Picker
@@ -1118,9 +1080,20 @@ const ScoringScreen = ({ route }) => {
           </View>
         </View>
       </Modal>
-      <Modal visible={modals.nextBowler} transparent animationType="slide">
+      <Modal visible={newBowlerSelectionRef.current} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              // onPress={() => setModals({ ...modals, nextBowler: false })}
+              onPress={() => newBowlerSelectionRef.current = false}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text style={styles.modalTitle}>Select Next Bowler</Text>
 
             <Picker
@@ -1157,6 +1130,16 @@ const ScoringScreen = ({ route }) => {
       <Modal visible={modals.catch} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setModals({ ...modals, catch: false })}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text style={styles.modalTitle}>Select Catcher</Text>
 
             <Picker
@@ -1194,6 +1177,16 @@ const ScoringScreen = ({ route }) => {
       <Modal visible={modals.runout} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setModals({ ...modals, runout: false })}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text style={styles.modalTitle}>Who got run out?</Text>
             <Pressable
               style={styles.submitButton}
@@ -1222,6 +1215,16 @@ const ScoringScreen = ({ route }) => {
       <Modal visible={modals.fielderSelect} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setModals({ ...modals, fielderSelect: false })}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text style={styles.modalTitle}>Select Fielder</Text>
             <Picker
               selectedValue={runOutFielderId}
@@ -1277,6 +1280,16 @@ const ScoringScreen = ({ route }) => {
       <Modal visible={modals.startNextInnings} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setModals({ ...modals, startNextInnings: false })}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
             <Text style={styles.modalTitle}>Start second innings?</Text>
             <Pressable
               style={styles.submitButton}
@@ -1284,6 +1297,27 @@ const ScoringScreen = ({ route }) => {
             >
               <Text style={styles.submitText}>Yes</Text>
             </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={secondInningsStartInfoModal} transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Pressable
+              onPress={() => setSecondInningsStartInfoModal(false)}
+            >
+              <MaterialIcons
+                name='cancel'
+                color='black'
+                size={20}
+                style={{ textAlign: 'right' }}
+              />
+            </Pressable>
+            <Text style={styles.infoTextHeading}>1st Innings completed</Text>
+            <Text style={styles.infoText}>You can either start the second innings right away.</Text>
+            <Text style={styles.infoText}>Or, later the scorer can visit the live matches under the matches tab.</Text>
+            <Text style={styles.infoText}>Please wait while we process the match data.</Text>
           </View>
         </View>
       </Modal>
@@ -1504,4 +1538,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  infoTextHeading: {
+    fontSize: 18,
+    color: 'black',
+    textAlign: 'center',
+    marginVertical: 10,
+    fontWeight: 'bold'
+  },
+  infoText: {
+    fontSize: 16,
+    color: AppColors.infoGrey,
+  }
 });

@@ -42,7 +42,7 @@ const SelectRoles = ({ route, navigation }) => {
 
   const fetchPlayingXI = useCallback(async () => {
     console.log("Fetching Playing XI for matchId:", matchId);
-    let startTime = Date.now(); 
+    let startTime = Date.now();
 
     try {
       setIsLoading(true);
@@ -103,7 +103,7 @@ const SelectRoles = ({ route, navigation }) => {
 
   useEffect(() => {
     fetchPlayingXI();
-  }, [fetchPlayingXI]);
+  }, []);
 
 
   const shakeScreen = () => {

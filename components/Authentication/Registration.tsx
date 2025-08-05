@@ -71,6 +71,33 @@ const Registration = ({ navigation }) => {
     }
   };
 
+  const handleVerifyPhoneNo = async () => {
+    if (!formData.mobile) {
+      Alert.alert('Error', 'Please enter an email address to verify.');
+      return;
+    }
+
+    try {
+      const response = await apiService({
+        endpoint: `auth/send`,
+        method: 'POST',
+        params: { phone: formData.mobile },
+      });
+
+      if (response.success) {
+        Alert.alert('Success', 'OTP Successfully Sent');
+      } else {
+        Alert.alert(
+          'Error',
+          `Error ${response.status}: ${response.error.message || 'Failed to send verification message.'}`
+        );
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong.');
+      console.error(error);
+    }
+  };
+
   const handleSubmit = async () => {
     const { name, email, mobile, password, confirmPassword, otp } = formData;
 
@@ -189,6 +216,12 @@ const Registration = ({ navigation }) => {
                   value={formData.mobile}
                   onChangeText={(value) => handleInputChange('mobile', value)}
                 />
+
+                {/* Verify Phone Number Button */}
+                <TouchableOpacity style={styles.verifyEmailButton} onPress={handleVerifyPhoneNo}>
+                  <Text style={styles.verifyEmailButtonText}>Verify Phone Number</Text>
+                </TouchableOpacity>
+
                 <TextInput
                   style={styles.input}
                   placeholder="Set Password"
