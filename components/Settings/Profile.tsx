@@ -11,15 +11,13 @@ import {
   ScrollView,
   Animated,
   Easing,
-  ImageBackground,
   Dimensions,
   StatusBar,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome";
+import Icon from "react-native-vector-icons/Feather"; // modern icons
 import * as ImagePicker from "expo-image-picker";
-import backgroundImage from "../../assets/images/cricsLogo.png";
 import apiService from "../APIservices";
 import axios from "axios";
 
@@ -72,7 +70,6 @@ const PlaceholderAnimation = ({ style, shouldAnimate }) => {
     </View>
   );
 };
-
 const Notification = ({ message, type, visible }) => {
   const [fadeAnim] = useState(new Animated.Value(0));
 
@@ -108,7 +105,7 @@ const Notification = ({ message, type, visible }) => {
       ]}
     >
       <Icon
-        name={type === "success" ? "check-circle" : "exclamation-circle"}
+        name={type === "success" ? "check-circle" : "alert-circle"}
         size={20}
         color="#fff"
         style={styles.notificationIcon}
@@ -176,15 +173,7 @@ const Settings = ({ navigation }) => {
       });
     } catch (err) {
       console.error("Profile fetch error:", err);
-      let errorMessage = "Failed to load profile data";
-      if (err.response?.status === 401) {
-        errorMessage = "Session expired. Please login again";
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      showNotification(errorMessage, "error");
+      showNotification("Failed to load profile data", "error");
     } finally {
       setLoading(false);
     }
@@ -198,44 +187,33 @@ const Settings = ({ navigation }) => {
         showNotification("Please login again", "error");
         return false;
       }
-
+  
       const response = await apiService({
         endpoint: "profile/update",
         method: "PUT",
         body: updatedData,
       });
-
+  
       if (!response.success) {
         throw new Error(response.error || "Failed to update profile");
       }
 
-      const updatedProfile = response.data.data || response.data;
       setProfile((prev) => ({
         ...prev,
         ...updatedData,
-        profilePicture: updatedProfile.profilePicturePath
-          ? `${updatedProfile.profilePicturePath}?${new Date().getTime()}`
-          : prev.profilePicture,
       }));
-
+  
       showNotification("Profile updated successfully");
       return true;
     } catch (err) {
       console.error("Update error:", err);
-      let errorMessage = "Failed to update profile";
-
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      showNotification(errorMessage, "error");
+      showNotification("Failed to update profile", "error");
       return false;
     } finally {
       setIsUpdating(false);
     }
   };
+  
 
   const pickImage = async () => {
     try {
@@ -270,7 +248,7 @@ const Settings = ({ navigation }) => {
         });
 
         const token = await AsyncStorage.getItem("jwtToken");
-        const response = await axios.put(
+        await axios.put(
           "https://score360-7.onrender.com/api/v1/profile/update",
           formData,
           {
@@ -281,26 +259,12 @@ const Settings = ({ navigation }) => {
           }
         );
 
-        const updatedProfile = response.data.data || response.data;
-        setProfile((prev) => ({
-          ...prev,
-          name: updatedProfile.name || prev.name,
-          phone:
-            updatedProfile.phone || updatedProfile.phoneNumber || prev.phone,
-          profilePicture: updatedProfile.profilePicturePath
-            ? `${updatedProfile.profilePicturePath}?${new Date().getTime()}`
-            : newImageUri,
-        }));
-
-        showNotification("Profile updated successfully");
+        showNotification("Profile picture updated successfully");
       }
     } catch (err) {
       console.error("Image upload error:", err);
       fetchProfile();
-      showNotification(
-        err.response?.data?.message || "Failed to update profile picture",
-        "error"
-      );
+      showNotification("Failed to update profile picture", "error");
     } finally {
       setIsUploading(false);
     }
@@ -316,79 +280,33 @@ const Settings = ({ navigation }) => {
       showNotification("Field cannot be empty", "error");
       return;
     }
-
-    const updatedData = {
-      [editField]: tempValue,
-    };
-
-    const success = await updateProfileData(updatedData);
-    if (success) {
-      setEditField(null);
+  
+    let updatedData = {};
+  
+    if (editField === "phone") {
+      updatedData = { phoneNumber: tempValue };
+    } else if (editField === "name") {
+      updatedData = { name: tempValue };
     }
+  
+    const success = await updateProfileData(updatedData);
+    if (success) setEditField(null);
   };
-
-  const handleCancelEdit = () => {
-    setEditField(null);
-  };
+  
 
   useEffect(() => {
     fetchProfile();
   }, []);
 
-  const renderPlaceholderField = (widthPercent = 70) => {
-    return (
-      <View style={styles.placeholderField}>
-        <PlaceholderAnimation
-          style={{ width: `${widthPercent}%` }}
-          shouldAnimate={loading}
-        />
-      </View>
-    );
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ImageBackground
-          source={backgroundImage}
-          style={styles.backgroundImage}
-          imageStyle={styles.backgroundImageStyle}
+        <LinearGradient
+          colors={["#34B8FF", "#0575E6"]}
+          style={styles.gradientOverlay}
         >
-          <LinearGradient
-            colors={["rgba(8, 102, 170, 0.2)", "rgba(107, 185, 240, 0.2)"]}
-            style={styles.gradientOverlay}
-          >
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-              <View style={styles.profileContainer}>
-                {/* Profile Image Placeholder */}
-                <View style={styles.profileImageContainer}>
-                  <View style={[styles.profileImagePlaceholder, styles.placeholderImage]}>
-                    <PlaceholderAnimation
-                      style={styles.placeholderImageAnimation}
-                      shouldAnimate={loading}
-                    />
-                  </View>
-                </View>
-
-                {/* Info Placeholders */}
-                <View style={styles.infoContainer}>
-                  <View style={styles.infoItem}>
-                    {renderPlaceholderField(60)}
-                  </View>
-                  <View style={styles.infoItem}>
-                    {renderPlaceholderField(50)}
-                  </View>
-                  <View style={styles.infoItem}>
-                    {renderPlaceholderField(70)}
-                  </View>
-                  <View style={styles.infoItem}>
-                    {renderPlaceholderField(40)}
-                  </View>
-                </View>
-              </View>
-            </ScrollView>
-          </LinearGradient>
-        </ImageBackground>
+          <ActivityIndicator size="large" color="#fff" style={{ marginTop: 200 }} />
+        </LinearGradient>
       </SafeAreaView>
     );
   }
@@ -405,73 +323,63 @@ const Settings = ({ navigation }) => {
         backgroundColor="#34B8FF"
         translucent={true}
       />
-      <ImageBackground
-        source={backgroundImage}
-        style={styles.backgroundImage}
-        imageStyle={styles.backgroundImageStyle}
+      <LinearGradient
+        colors={["#34B8FF", "#0575E6"]}
+        style={styles.gradientOverlay}
       >
-        <LinearGradient
-          colors={["rgba(8, 102, 170, 0.2)", "rgba(107, 185, 240, 0.2)"]}
-          style={styles.gradientOverlay}
-        >
-          <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <TouchableOpacity
+            style={{ padding: 5 }}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Icon name="arrow-left" size={26} color="white" />
+          </TouchableOpacity>
+
+          <View style={styles.profileContainer}>
             <TouchableOpacity
-              style={{ padding: 5 }}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
+              style={styles.profileImageContainer}
+              onPress={pickImage}
+              disabled={isUploading}
             >
-              <Icon name="arrow-left" size={24} color="black" />
+              {profile.profilePicture ? (
+                <>
+                  <Image
+                    source={{ uri: profile.profilePicture }}
+                    style={styles.profileImage}
+                  />
+                  {isUploading && (
+                    <View style={styles.uploadOverlay}>
+                      <ActivityIndicator size="large" color="#fff" />
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.profileImagePlaceholder}>
+                  <Icon name="user" size={60} color="#fff" />
+                </View>
+              )}
+              <View style={styles.editPhotoButton}>
+                <Icon name="camera" size={18} color="#fff" />
+              </View>
             </TouchableOpacity>
-            <View style={styles.profileContainer}>
-              <TouchableOpacity
-                style={styles.profileImageContainer}
-                onPress={pickImage}
-                disabled={isUploading}
-              >
-                {profile.profilePicture ? (
-                  <>
-                    <Image
-                      source={{
-                        uri: profile.profilePicture,
-                        cache: "reload",
-                      }}
-                      style={styles.profileImage}
-                      onError={() => fetchProfile()}
-                    />
-                    {isUploading && (
-                      <View style={styles.uploadOverlay}>
-                        <ActivityIndicator size="large" color="#fff" />
-                      </View>
-                    )}
-                  </>
-                ) : (
-                  <View style={styles.profileImagePlaceholder}>
-                    <Image
-                      source={require("../../assets/defaultLogo.png")}
-                      style={styles.userImage}
-                    />
-                  </View>
-                )}
-                <View style={styles.editPhotoButton}>
-                  <Icon name="camera" size={16} color="#fff" />
-                </View>
-              </TouchableOpacity>
 
-              <View style={styles.infoContainer}>
-                <View style={styles.infoItem}>
-                  {editField === "name" ? (
+            <View style={styles.infoContainer}>
+              {["name", "phone"].map((field) => (
+                <View style={styles.infoItem} key={field}>
+                  {editField === field ? (
                     <View style={styles.editContainer}>
                       <TextInput
                         style={styles.editInput}
                         value={tempValue}
                         onChangeText={setTempValue}
+                        placeholder={`Enter your ${field}`}
                         autoFocus
-                        placeholder="Enter your name"
+                        keyboardType={field === "phone" ? "phone-pad" : "default"}
                       />
                       <TouchableOpacity
                         style={styles.saveButton}
                         onPress={handleSave}
-                        disabled={isUpdating}
                       >
                         {isUpdating ? (
                           <ActivityIndicator size="small" color="#fff" />
@@ -481,93 +389,47 @@ const Settings = ({ navigation }) => {
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.cancelButton}
-                        onPress={handleCancelEdit}
-                        disabled={isUpdating}
+                        onPress={() => setEditField(null)}
                       >
-                        <Icon name="times" size={18} color="#fff" />
+                        <Icon name="x" size={18} color="#fff" />
                       </TouchableOpacity>
                     </View>
                   ) : (
                     <View style={styles.infoTextContainer}>
-                      <Text style={styles.infoLabel}>Name:</Text>
-                      <Text style={styles.infoValue}>{profile.name}</Text>
+                      <Text style={styles.infoLabel}>
+                        {field === "name" ? "Name:" : "Phone:"}
+                      </Text>
+                      <Text style={styles.infoValue}>{profile[field]}</Text>
                       <TouchableOpacity
                         style={styles.editButton}
-                        onPress={() => handleEdit("name")}
-                        disabled={isUpdating || isUploading}
+                        onPress={() => handleEdit(field)}
                       >
-                        <Icon name="pencil" size={16} color="#4e8cff" />
+                        <Icon name="edit-2" size={16} color="#34B8FF" />
                       </TouchableOpacity>
                     </View>
                   )}
                 </View>
-                <View style={styles.infoItem}>
-                  {editField === "phone" ? (
-                    <View style={styles.editContainer}>
-                      <TextInput
-                        style={styles.editInput}
-                        value={tempValue}
-                        onChangeText={setTempValue}
-                        keyboardType="phone-pad"
-                        autoFocus
-                        placeholder="Enter your phone"
-                      />
-                      <TouchableOpacity
-                        style={styles.saveButton}
-                        onPress={handleSave}
-                        disabled={isUpdating}
-                      >
-                        {isUpdating ? (
-                          <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                          <Icon name="check" size={18} color="#fff" />
-                        )}
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.cancelButton}
-                        onPress={handleCancelEdit}
-                        disabled={isUpdating}
-                      >
-                        <Icon name="times" size={18} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.infoTextContainer}>
-                      <Text style={styles.infoLabel}>Phone:</Text>
-                      <Text style={styles.infoValue}>{profile.phone}</Text>
-                      <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => handleEdit("phone")}
-                        disabled={isUpdating || isUploading}
-                      >
-                        <Icon name="pencil" size={16} color="#4e8cff" />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
+              ))}
 
-                {/* Email Field (read-only) */}
-                <View style={styles.infoItem}>
-                  <View style={styles.infoTextContainer}>
-                    <Text style={styles.infoLabel}>Email:</Text>
-                    <Text style={styles.infoValue}>
-                      {profile.email || "Not set"}
-                    </Text>
-                  </View>
+              <View style={styles.infoItem}>
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.infoLabel}>Email:</Text>
+                  <Text style={styles.infoValue}>
+                    {profile.email || "Not set"}
+                  </Text>
                 </View>
+              </View>
 
-                {/* Role Field (read-only) */}
-                <View style={styles.infoItem}>
-                  <View style={styles.infoTextContainer}>
-                    <Text style={styles.infoLabel}>Role:</Text>
-                    <Text style={styles.infoValue}>{profile.role}</Text>
-                  </View>
+              <View style={styles.infoItem}>
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.infoLabel}>Role:</Text>
+                  <Text style={styles.infoValue}>{profile.role}</Text>
                 </View>
               </View>
             </View>
-          </ScrollView>
-        </LinearGradient>
-      </ImageBackground>
+          </View>
+        </ScrollView>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
@@ -576,13 +438,6 @@ const styles = StyleSheet.create({
   container: {
     marginTop: StatusBar.currentHeight || 0,
     flex: 1,
-  },
-  backgroundImage: {
-    flex: 1,
-    resizeMode: "cover",
-  },
-  backgroundImageStyle: {
-    opacity: 0.9,
   },
   gradientOverlay: {
     flex: 1,
@@ -606,6 +461,10 @@ const styles = StyleSheet.create({
     borderRadius: 75,
     borderWidth: 3,
     borderColor: "#fff",
+    shadowColor: "#34B8FF",
+    shadowOpacity: 0.6,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 4 },
   },
   profileImagePlaceholder: {
     width: 150,
@@ -616,12 +475,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 3,
     borderColor: "#fff",
-    overflow: "hidden",
-  },
-  placeholderImageAnimation: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
   },
   uploadOverlay: {
     position: "absolute",
@@ -636,7 +489,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "#4e8cff",
+    backgroundColor: "#34B8FF",
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -647,16 +500,12 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 15,
+    backgroundColor: "white",
+    borderRadius: 20,
     padding: 20,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
     elevation: 5,
   },
   infoItem: {
@@ -683,7 +532,9 @@ const styles = StyleSheet.create({
   },
   editButton: {
     marginLeft: 10,
-    padding: 5,
+    padding: 6,
+    backgroundColor: "rgba(52,184,255,0.1)",
+    borderRadius: 8,
   },
   editContainer: {
     flexDirection: "row",
@@ -700,34 +551,26 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: "#4CAF50",
-    borderRadius: 8,
+    borderRadius: 25,
     padding: 10,
     marginLeft: 10,
   },
   cancelButton: {
     backgroundColor: "#F44336",
-    borderRadius: 8,
+    borderRadius: 25,
     padding: 10,
     marginLeft: 5,
   },
   notificationContainer: {
     position: "absolute",
-    top: 40,
+    top: 50,
     left: 20,
     right: 20,
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     zIndex: 1000,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   notificationIcon: {
     marginRight: 10,
@@ -736,37 +579,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     flex: 1,
-  },
-  userImage: {
-    width: 160,
-    height: 160,
-    borderRadius: 40,
-    marginBottom: 10,
-  },
-  placeholderContainer: {
-    height: 20,
-    backgroundColor: "#e1e1e1",
-    borderRadius: 4,
-    overflow: "hidden",
-    position: "relative",
-  },
-  placeholderAnimation: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(255,255,255,0.6)",
-  },
-  placeholderField: {
-    height: 20,
-    marginBottom: 8,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  placeholderImage: {
-    backgroundColor: "#e1e1e1",
   },
 });
 

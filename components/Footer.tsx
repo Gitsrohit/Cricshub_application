@@ -2,142 +2,130 @@ import React, { useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient'; // For gradient backgrounds
+import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const Footer = () => {
   const [activeTab, setActiveTab] = useState('HOME');
-  const navigation = useNavigation(); // Navigation context
+  const navigation = useNavigation();
 
   const footerTabs = [
-    { key: 'MATCHES', icon: 'sports-cricket', label: 'My Matches', route: 'Main', nestedRoute: 'MyMatches' },
+    { key: 'MATCHES', icon: 'sports-cricket', label: 'Matches', route: 'Main', nestedRoute: 'MyMatches' },
     { key: 'TOURNAMENTS', icon: 'trophy', label: 'Tournaments', route: 'Main', nestedRoute: 'Tournaments' },
     { key: 'HOME', icon: 'home', label: 'Home', route: 'Main', nestedRoute: 'Home' },
     { key: 'TEAMS', icon: 'users', label: 'Teams', route: 'Main', nestedRoute: 'Teams' },
-    // { key: 'SETTINGS', icon: 'cogs', label: 'Settings', route: 'Main', nestedRoute: 'Settings' },
   ];
 
-  // Animation values for interactivity
   const animatedValues = footerTabs.map(() => new Animated.Value(1));
 
   const handleTabPress = (tab, index) => {
-    setActiveTab(tab.key); // Update active tab
-    Animated.spring(animatedValues[index], {
-      toValue: 0.9,
-      friction: 3,
-      tension: 40,
-      useNativeDriver: true,
-    }).start(() => {
+    setActiveTab(tab.key);
+
+    Animated.sequence([
+      Animated.spring(animatedValues[index], {
+        toValue: 1.2,
+        useNativeDriver: true,
+      }),
       Animated.spring(animatedValues[index], {
         toValue: 1,
-        friction: 3,
-        tension: 40,
         useNativeDriver: true,
-      }).start();
-    });
+      }),
+    ]).start();
 
     if (tab.route && tab.nestedRoute) {
       navigation.navigate(tab.route, { screen: tab.nestedRoute });
-    } else {
-      console.error(`Route or nested route not defined for tab: ${tab.key}`);
     }
   };
 
   return (
-    <View style={styles.footer}>
-      {footerTabs.map((tab, index) => (
-        <TouchableOpacity
-          key={tab.key}
-          style={styles.footerButton}
-          onPress={() => handleTabPress(tab, index)}
-          activeOpacity={0.8}
-        >
-          <Animated.View
-            style={[
-              styles.iconContainer,
-              {
-                transform: [{ scale: animatedValues[index] }],
-              },
-            ]}
+    <View style={styles.footerWrapper}>
+      <LinearGradient
+        colors={['rgba(255,255,255,0.9)', 'rgba(245,245,245,0.9)']}
+        style={styles.footer}
+      >
+        {footerTabs.map((tab, index) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={styles.footerButton}
+            onPress={() => handleTabPress(tab, index)}
+            activeOpacity={0.8}
           >
-            {activeTab === tab.key ? (
-              <LinearGradient
-                colors={['#4A90E2', '#6BB9F0']} // Blue gradient for active tab
-                style={styles.activeCircle}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                {tab.key !== 'MATCHES' ?
-                  <Icon name={tab.icon} size={28} color="#FFFFFF" />
-                  :
-                  <MaterialIcons
-                    name={tab.icon}
-                    size={28}
-                    color="#FFFFFF"
-                  />}
-              </LinearGradient>
-            ) : (
-              <>
-                {tab.key !== 'MATCHES' ?
-                  <Icon name={tab.icon} size={28} color="#333" />
-                  :
-                  <MaterialIcons
-                    name={tab.icon}
-                    size={28}
-                    color="#333"
-                  />}
-                <Text style={styles.footerButtonText}>{tab.label}</Text>
-              </>
-            )}
-          </Animated.View>
-        </TouchableOpacity>
-      ))}
+            <Animated.View
+              style={[
+                styles.iconContainer,
+                { transform: [{ scale: animatedValues[index] }] },
+              ]}
+            >
+              {tab.key !== 'MATCHES' ? (
+                <Icon
+                  name={tab.icon}
+                  size={26}
+                  color={activeTab === tab.key ? '#4A90E2' : '#777'}
+                />
+              ) : (
+                <MaterialIcons
+                  name={tab.icon}
+                  size={28}
+                  color={activeTab === tab.key ? '#4A90E2' : '#777'}
+                />
+              )}
+              {activeTab === tab.key && (
+                <>
+                  <Text style={styles.activeText}>{tab.label}</Text>
+                  <View style={styles.activeDot} />
+                </>
+              )}
+            </Animated.View>
+          </TouchableOpacity>
+        ))}
+      </LinearGradient>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  footerWrapper: {
+    position: 'absolute',
+    bottom: 10,
+    left: 20,
+    right: 20,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,   // Stronger shadow
+    shadowOffset: { width: 0, height: 6 }, 
+    shadowRadius: 12,      // More spread
+    elevation: 15,         // Higher for Android
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    height: 60, // Increased height for better spacing
-    paddingHorizontal: 10,
-    backgroundColor: '#FFFFFF', // Light background for footer
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0', // Subtle border
+    height: 70,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.95)',
   },
   footerButton: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
   },
   iconContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: 60, // Fixed height for the button to avoid shifting
   },
-  footerButtonText: {
-    color: '#333', // Dark gray text for inactive tabs
-    fontSize: 10,
-    marginTop: 5,
-    fontWeight: '500', // Slightly bold text
+  activeText: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4A90E2',
   },
-  activeCircle: {
-    position: 'absolute',
-    top: -20, // Circle positioned upwards
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1, // Keep active circle above other elements
-    shadowColor: '#4A90E2', // Blue glow effect
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4A90E2',
+    marginTop: 4,
   },
 });
+
 
 export default Footer;
