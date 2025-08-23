@@ -82,6 +82,7 @@ const ScoringScreen = ({ route }) => {
   const [secondInningsStartInfoModal, setSecondInningsStartInfoModal] = useState(false);
   const [selectedRunForShot, setSelectedRunForShot] = useState(null);
   const liveSocketRef = useRef(null);
+  const canReconnectRef = useRef(true);
   const cricketShots = [
     'Drive',
     'Cut',
@@ -120,6 +121,7 @@ const ScoringScreen = ({ route }) => {
   const center = 150;
 
   const handleRunSelection = (run) => {
+    console.log(run);
     setSelectedRunForShot(run);
     setShotModalVisible(true);
   };
@@ -165,7 +167,8 @@ const ScoringScreen = ({ route }) => {
         newBowlerSelectionRef.current = true;
         setModals((prev) => ({ ...prev, nextBowler: true }));
       }
-    } else {
+    }
+    if (data.overComplete === false) {
       const ballStr = data?.ballString?.toUpperCase();
       const isWide = ballStr?.includes("WD");
       const isNoBall = ballStr?.includes("NB");
@@ -206,6 +209,11 @@ const ScoringScreen = ({ route }) => {
       type: 'submit' | 'live',
       matchId: string | null = null
     ) => {
+      if (clientRef.current && clientRef.current.active) {
+        console.log(`[${type}] Connection already exists, skipping re-initialization.`);
+        return;
+      }
+
       console.log(`[${type}] Initializing STOMP client...`);
       clientRef.current = new Client();
       clientRef.current.configure({
@@ -218,9 +226,6 @@ const ScoringScreen = ({ route }) => {
         heartbeatOutgoing: 10000,
         // debug: (str) => console.log(`[${type}] DEBUG: ${str}`),
       });
-
-      const lastProcessedTimestamps: { [key: string]: number } = {};
-      const EVENT_DEBOUNCE_MS = 1000;
 
       clientRef.current.onConnect = (frame) => {
         updateConnectionState(type, true);
@@ -238,16 +243,6 @@ const ScoringScreen = ({ route }) => {
 
               const { eventName, payload } = parsed;
 
-              // Debounce logic for specific event
-              const now = Date.now();
-              if (
-                eventName === 'ball-update' &&
-                now - (lastProcessedTimestamps[eventName] || 0) < EVENT_DEBOUNCE_MS
-              ) {
-                return; // Skip duplicate event within debounce time
-              }
-              lastProcessedTimestamps[eventName] = now;
-
               switch (eventName) {
                 case 'ball-update':
                   console.log('Ball update:', payload);
@@ -257,16 +252,24 @@ const ScoringScreen = ({ route }) => {
                 case 'match-complete':
                   console.log('Match complete:', payload);
                   liveSocketRef.current?.close();
+                  stompLiveClientRef.current?.deactivate();
+                  stompSubmitClientRef.current?.deactivate();
+                  canReconnectRef.current = false;
                   navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
                   break;
 
                 case 'innings-complete':
                   console.log('Innings complete:', payload);
                   matchStateUpdateHandler(payload);
+                  liveSocketRef.current?.close();
+                  stompLiveClientRef.current?.deactivate();
+                  stompSubmitClientRef.current?.deactivate();
+                  canReconnectRef.current = false;
                   setSecondInningsStartInfoModal(true);
+                  newBowlerSelectionRef.current = false;
+                  setModals((prev) => ({ ...prev, nextBowler: false }));
                   setTimeout(() => {
                     setSecondInningsStartInfoModal(false);
-                    newBowlerSelectionRef.current = false;
                     setModals({
                       bye: false,
                       wide: false,
@@ -305,8 +308,9 @@ const ScoringScreen = ({ route }) => {
       clientRef.current.onWebSocketClose = (event) => {
         console.warn(`[${type}] WebSocket closed:`, event);
         updateConnectionState(type, false);
+        console.log(canReconnectRef.current);
 
-        if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
+        if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS && canReconnectRef.current === true) {
           reconnectAttempts.current++;
           console.log(`[${type}] Attempting reconnect (${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS})`);
           setTimeout(() => clientRef.current?.activate(), 5000);
@@ -361,7 +365,7 @@ const ScoringScreen = ({ route }) => {
         return;
       }
 
-      console.log("Match state data:" + data);
+      console.log(data);
 
       setMatchId(data.matchId);
 
@@ -614,6 +618,7 @@ const ScoringScreen = ({ route }) => {
       }
     }, 10000);
   };
+
   const waitForStomp = (client, timeout = 3000) =>
     new Promise((resolve, reject) => {
       const interval = 100;
@@ -645,7 +650,6 @@ const ScoringScreen = ({ route }) => {
       check();
     });
   };
-
 
   const submitScore = async (data, isConnectedFn) => {
     const payload = {
@@ -731,6 +735,7 @@ const ScoringScreen = ({ route }) => {
       Alert.alert('Error', 'Failed to start second innings');
     }
   };
+
   const { submitConnected, setupClient } = useStompConnection();
 
   const handleSubmit = async (data) => {
