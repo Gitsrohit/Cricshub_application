@@ -37,13 +37,10 @@ const AddPlayersToTeam = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { teamName, logoUri } = route.params;
-
-  // Animation values
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(50))[0];
 
   useEffect(() => {
-    // Animation on mount
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,

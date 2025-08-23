@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import {
   View,
   Text,
@@ -12,33 +12,112 @@ import {
   Animated,
   TouchableWithoutFeedback,
   StatusBar,
-  ImageBackground,
   RefreshControl,
-  Dimensions
+  Dimensions,
+  Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AntDesign, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import LottieView from 'lottie-react-native';
 import apiService from "../APIservices";
 import CustomDialog from "../Customs/CustomDialog.js";
+import { SvgUri } from 'react-native-svg';
 
-
-const background = require('../../assets/images/cricsLogo.png');
-const loaderAnimation =  require('../../assets/animations/loader.json');
-
+const loaderAnimation = require('../../assets/animations/Search for Players.json');
 const { width } = Dimensions.get('window');
+
+interface Player {
+  id: string;
+  name: string;
+  profilePic: string;
+  role: string;
+  phone: string;
+}
+
+interface PlayerCardProps {
+  player: Player;
+  index: number;
+  canEdit: boolean;
+  teamCaptain: Player | null;
+  onRemove: (playerId: string, player: Player) => void;
+}
+
+const PlayerCard = memo<PlayerCardProps>(({ player, index, canEdit, teamCaptain, onRemove }) => {
+  const isFirstDesign = index % 2 === 0;
+  const cardAnim = useRef(new Animated.Value(0)).current;
+  const handleRemove = () => {
+    Animated.timing(cardAnim, {
+      toValue: -width,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      onRemove(player.id, player);
+    });
+  };
+
+  const isSvg = player.profilePic && player.profilePic.endsWith('.svg');
+
+  return (
+    <Animated.View
+      style={[
+        styles.cardContainer,
+        {
+          transform: [{ translateX: cardAnim }],
+        },
+      ]}
+    >
+      <LinearGradient
+        colors={isFirstDesign ? ['#8FDFFF', '#104B62'] : ['#209FFF', '#00354A']}
+        style={styles.playerCard}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.playerInfo}>
+          {isSvg ? (
+            <SvgUri
+              width="40"
+              height="40"
+              uri={player.profilePic}
+              style={styles.searchResultAvatar}
+            />
+          ) : (
+            <Image
+              source={player.profilePic ? { uri: player.profilePic } : require('../../assets/defaultLogo.png')}
+              style={styles.searchResultAvatar}
+              defaultSource={require('../../assets/defaultLogo.png')}
+            />
+          )}
+          <View style={styles.playerDetails}>
+            <Text style={styles.playerName}>{player?.name}</Text>
+            <Text style={styles.playerStats}>
+              {player.role} • {teamCaptain?.id === player.id && 'Captain'}
+            </Text>
+          </View>
+        </View>
+        {canEdit && (
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={handleRemove}
+          >
+            <MaterialIcons name="remove-circle" size={24} color="#fff" />
+          </TouchableOpacity>
+        )}
+      </LinearGradient>
+    </Animated.View>
+  );
+});
 
 const TeamDetailsScreen = ({ route, navigation }) => {
   const { teamId } = route.params;
   const [team, setTeam] = useState(null);
-  const [players, setPlayers] = useState([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState<Player[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [addingPlayerId, setAddingPlayerId] = useState(null);
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -49,7 +128,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
   const [canEdit, setCanEdit] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
 
-  const showDialog = (title, message, type = 'success') => {
+  const showDialog = (title: string, message: string, type: 'success' | 'error' = 'success') => {
     setDialogTitle(title);
     setDialogMessage(message);
     setDialogType(type);
@@ -62,7 +141,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
       duration: 500,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [fadeAnim]);
 
   useEffect(() => {
     if (modalVisible) {
@@ -78,19 +157,10 @@ const TeamDetailsScreen = ({ route, navigation }) => {
         useNativeDriver: true,
       }).start();
     }
-  }, [modalVisible]);
-
-  const roleCheck = async () => {
-    const userId = await AsyncStorage.getItem('userUUID');
-    setCanEdit(userId === team?.creator?.id || userId === team?.captain?.id);
-    console.log(team?.creator?.id);
-    console.log(team?.captain?.id);
-    console.log(userId);
-  };
+  }, [modalVisible, slideAnim]);
 
   useEffect(() => {
     fetchTeamDetails();
-    // roleCheck();
   }, []);
 
   const fetchTeamDetails = async () => {
@@ -100,15 +170,17 @@ const TeamDetailsScreen = ({ route, navigation }) => {
         endpoint: `teams/${teamId}`,
         method: "GET",
       });
-
+  
       if (response.success && response.data?.data) {
-        setPlayers(response.data.data.players || []);
+        const allPlayers = response.data.data.players || [];
+        const uniquePlayers = allPlayers.filter((player: Player, index: number, self: Player[]) => 
+          index === self.findIndex(p => p.id === player.id)
+        );
+        setPlayers(uniquePlayers);
         setTeam(response.data?.data);
         const userId = await AsyncStorage.getItem('userUUID');
         setCanEdit(userId === response.data?.data?.creator?.id || userId === response.data?.data?.captain?.id);
         setDataLoaded(true);
-        console.log(response.data);
-
       }
     } catch (err) {
       console.error("Error fetching team details:", err);
@@ -119,8 +191,11 @@ const TeamDetailsScreen = ({ route, navigation }) => {
   };
 
   const debouncedFetchPlayers = useCallback(
-    debounce(async (query) => {
-      if (!query.trim()) return;
+    debounce(async (query: string) => {
+      if (!query.trim()) {
+        setSearchResults([]);
+        return;
+      }
       setLoading(true);
       try {
         const [nameRes, phoneRes] = await Promise.all([
@@ -135,19 +210,17 @@ const TeamDetailsScreen = ({ route, navigation }) => {
             params: { query },
           }),
         ]);
-
         const nameData = nameRes.success ? nameRes.data.data || [] : [];
         const phoneData = phoneRes.success ? phoneRes.data.data || [] : [];
-
-        const merged = [...nameData, ...phoneData];
-        const uniquePlayers = Array.from(
-          new Map(merged.map(player => [player.id, player])).values()
+        const allPlayers = [...nameData, ...phoneData];
+        const uniquePlayers = allPlayers.filter((player: Player, index: number, self: Player[]) =>
+          index === self.findIndex((p) => p.id === player.id)
         );
-
         setSearchResults(uniquePlayers);
       } catch (err) {
         console.error('Error fetching players:', err);
         showDialog('Error', 'Failed to fetch players', 'error');
+        setSearchResults([]);
       } finally {
         setLoading(false);
       }
@@ -155,9 +228,9 @@ const TeamDetailsScreen = ({ route, navigation }) => {
     []
   );
 
-  function debounce(func, delay) {
-    let timer;
-    return function (...args) {
+  function debounce(func: Function, delay: number) {
+    let timer: NodeJS.Timeout;
+    return function (...args: any[]) {
       clearTimeout(timer);
       timer = setTimeout(() => {
         func.apply(this, args);
@@ -165,11 +238,12 @@ const TeamDetailsScreen = ({ route, navigation }) => {
     };
   }
 
-  const handleInputChange = (value) => {
+  const handleInputChange = (value: string) => {
+    setSearchQuery(value);
     debouncedFetchPlayers(value);
   };
 
-  const addPlayer = async (player) => {
+  const addPlayer = async (player: Player) => {
     setAddingPlayerId(player.id);
     try {
       const response = await apiService({
@@ -177,7 +251,6 @@ const TeamDetailsScreen = ({ route, navigation }) => {
         method: 'PUT',
         body: { playerId: player.id, action: 'Add' },
       });
-
       if (response.success) {
         setPlayers((prev) => [...prev, player]);
         setModalVisible(false);
@@ -194,7 +267,10 @@ const TeamDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  const removePlayer = async (playerId) => {
+
+  const removePlayerFromBackend = async (playerId: string, player: Player) => {
+    setPlayers(prevPlayers => prevPlayers.filter(p => p.id !== playerId));
+
     try {
       const response = await apiService({
         endpoint: `teams/${team.id}/${playerId}`,
@@ -203,78 +279,52 @@ const TeamDetailsScreen = ({ route, navigation }) => {
       });
 
       if (response.success) {
-        setPlayers(players.filter(p => p.id !== playerId));
-        showDialog('Success', 'Player removed successfully!');
+        // showDialog('Success', 'Player removed successfully!');
       } else {
+        setPlayers(prevPlayers => [...prevPlayers, player].sort((a, b) => a.id.localeCompare(b.id)));
         showDialog('Error', response.error?.message || 'Failed to remove player.', 'error');
       }
     } catch (err) {
+      setPlayers(prevPlayers => [...prevPlayers, player].sort((a, b) => a.id.localeCompare(b.id)));
       showDialog('Error', 'Failed to remove player.', 'error');
     }
   };
 
-  const renderPlayerCard = ({ item, index }) => {
-    const isFirstDesign = index % 2 === 0;
+  const renderSearchResultItem = ({ item }: { item: Player }) => {
+    const isSvg = item.profilePic && item.profilePic.endsWith('.svg');
 
     return (
-      <Animated.View style={[styles.cardContainer, { opacity: fadeAnim }]}>
-        <LinearGradient
-          colors={isFirstDesign ?
-            ['#8FDFFF', '#104B62'] :
-            ['#209FFF', '#00354A']
-          }
-          style={styles.playerCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.playerInfo}>
-            <Image
-              source={item.profilePic ? { uri: item.profilePic } : require('../../assets/defaultLogo.png')}
-              style={styles.searchResultAvatar}
-              defaultSource={require('../../assets/defaultLogo.png')}
-            />
-            <View style={styles.playerDetails}>
-              <Text style={styles.playerName}>{item?.name}</Text>
-              <Text style={styles.playerStats}>
-                {item.role} • {team.captain?.id === item.id && 'Captain'}
-              </Text>
-            </View>
-          </View>
-          {canEdit && (
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={() => removePlayer(item.id)}
-            >
-              <MaterialIcons name="remove-circle" size={24} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </LinearGradient>
-      </Animated.View>
+      <TouchableOpacity
+        style={styles.searchResultItem}
+        onPress={() => addPlayer(item)}
+        disabled={addingPlayerId === item.id}
+      >
+        {isSvg ? (
+          <SvgUri
+            width="40"
+            height="40"
+            uri={item.profilePic}
+            style={styles.searchResultAvatar}
+          />
+        ) : (
+          <Image
+            source={item.profilePic ? { uri: item.profilePic } : require('../../assets/defaultLogo.png')}
+            style={styles.searchResultAvatar}
+            defaultSource={require('../../assets/defaultLogo.png')}
+          />
+        )}
+        <View style={styles.searchResultTextContainer}>
+          <Text style={styles.searchResultName}>{item.name}</Text>
+          <Text style={styles.searchResultPhone}>{item.phone}</Text>
+        </View>
+        {addingPlayerId === item.id ? (
+          <ActivityIndicator size="small" color="#34B8FF" />
+        ) : (
+          <AntDesign name="pluscircleo" size={20} color="#34B8FF" />
+        )}
+      </TouchableOpacity>
     );
   };
-
-  const renderSearchResultItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.searchResultItem}
-      onPress={() => addPlayer(item)}
-      disabled={addingPlayerId === item.id}
-    >
-      <Image
-        source={item.profilePic ? { uri: item.profilePic } : require('../../assets/defaultLogo.png')}
-        style={styles.searchResultAvatar}
-        defaultSource={require('../../assets/defaultLogo.png')}
-      />
-      <View style={styles.searchResultTextContainer}>
-        <Text style={styles.searchResultName}>{item.name}</Text>
-        <Text style={styles.searchResultPhone}>{item.phone}</Text>
-      </View>
-      {addingPlayerId === item.id ? (
-        <ActivityIndicator size="small" color="#34B8FF" />
-      ) : (
-        <AntDesign name="pluscircleo" size={20} color="#34B8FF" />
-      )}
-    </TouchableOpacity>
-  );
 
   if (!dataLoaded) {
     return (
@@ -290,139 +340,135 @@ const TeamDetailsScreen = ({ route, navigation }) => {
   }
 
   return (
-    <>
+    <View style={styles.container}>
       <StatusBar
         barStyle="light-content"
         backgroundColor="#34B8FF"
         translucent={true}
       />
-      <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradientOverlay}>
-        <ImageBackground source={background} style={styles.background} resizeMode="cover" imageStyle={styles.backgroundImage}>
-          <BlurView intensity={50} tint="light" style={styles.container}>
-            <View style={styles.headerContainer}>
-              <LinearGradient
-                colors={['#34B8FF', '#0866AA']}
-                style={styles.headerGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
+      <View style={styles.headerContainer}>
+        <LinearGradient
+          colors={['#34B8FF', '#0866AA']}
+          style={styles.headerGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back" size={28} color="#FFF" />
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {team?.name}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {players.length} {players.length === 1 ? 'Member' : 'Members'} • Captain: {team?.captain?.name}
+            </Text>
+          </View>
+
+          <View style={{ width: 40 }} />
+        </LinearGradient>
+      </View>
+
+      <FlatList
+        data={players}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item, index }) => (
+          <PlayerCard
+            player={item}
+            index={index}
+            canEdit={canEdit}
+            teamCaptain={team?.captain}
+            onRemove={removePlayerFromBackend}
+          />
+        )}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={fetchTeamDetails}
+            colors={['#34B8FF']}
+            tintColor="#34B8FF"
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyList}>
+            <Text style={styles.emptyText}>No players in this team yet</Text>
+          </View>
+        }
+      />
+
+      {canEdit && (
+        <TouchableOpacity
+          style={styles.floatingAddButton}
+          onPress={() => setModalVisible(true)}
+        >
+          <MaterialIcons name="add" size={28} color="#FFF" />
+        </TouchableOpacity>
+      )}
+
+      <Modal visible={modalVisible} transparent animationType="none">
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1, justifyContent: 'flex-end' }}
+            >
+              <Animated.View style={[styles.modalContent, { transform: [{ translateY: slideAnim }] }]}>
+                <View style={styles.searchContainer}>
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search player by name or phone..."
+                    placeholderTextColor="#888"
+                    value={searchQuery}
+                    onChangeText={handleInputChange}
+                  />
+                  <AntDesign name="search1" size={20} color="#005a7f" style={styles.searchIcon} />
+                </View>
+
+                {loading ? (
+                  <View style={styles.modalLoader}>
+                    <ActivityIndicator size="large" color="#34B8FF" />
+                  </View>
+                ) : searchResults.length > 0 ? (
+                  <FlatList
+                    data={searchResults}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderSearchResultItem}
+                    contentContainerStyle={styles.searchResultsContainer}
+                  />
+                ) : (
+                  <View style={styles.noResults}>
+                    <Text style={styles.noResultsText}>
+                      {searchQuery ? 'No players found' : 'Search for players to add'}
+                    </Text>
+                  </View>
+                )}
+
                 <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => navigation.goBack()}
-                  activeOpacity={0.7}
+                  style={styles.closeButton}
+                  onPress={() => setModalVisible(false)}
                 >
-                  <MaterialIcons name="arrow-back" size={28} color="#FFF" />
+                  <Text style={styles.closeButtonText}>Close</Text>
                 </TouchableOpacity>
+              </Animated.View>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
-                <View style={styles.headerTitleContainer}>
-                  <Text style={styles.headerTitle} numberOfLines={1}>
-                    {team?.name}
-                  </Text>
-                  <Text style={styles.headerSubtitle}>
-                    {players.length} {players.length === 1 ? 'Member' : 'Members'} • Captain: {team?.captain?.name}
-                  </Text>
-                </View>
-
-                <View style={{ width: 40 }} />
-              </LinearGradient>
-            </View>
-
-            <FlatList
-              data={players}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderPlayerCard}
-              contentContainerStyle={styles.listContent}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={fetchTeamDetails}
-                  colors={['#34B8FF']}
-                  tintColor="#34B8FF"
-                />
-              }
-              ListEmptyComponent={
-                <View style={styles.emptyList}>
-                  <Text style={styles.emptyText}>No players in this team yet</Text>
-                </View>
-              }
-            />
-
-            {canEdit && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setModalVisible(true)}
-              >
-                <LinearGradient
-                  colors={["#0866AA", "#34B8FF"]}
-                  style={styles.addButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <MaterialIcons name="add" size={24} color="#FFF" />
-                  <Text style={styles.addButtonText}>Add Player</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            <Modal visible={modalVisible} transparent animationType="none">
-              <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-                <View style={styles.modalOverlay}>
-                  <Animated.View style={[styles.modalContent, { transform: [{ translateY: slideAnim }] }]}>
-                    <View style={styles.searchContainer}>
-                      <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search player by name or phone..."
-                        placeholderTextColor="#888"
-                        value={searchQuery}
-                        onChangeText={(text) => {
-                          setSearchQuery(text);
-                          handleInputChange(text);
-                        }}
-                      />
-                      <AntDesign name="search1" size={20} color="#005a7f" style={styles.searchIcon} />
-                    </View>
-
-                    {loading ? (
-                      <View style={styles.modalLoader}>
-                        <ActivityIndicator size="large" color="#34B8FF" />
-                      </View>
-                    ) : searchResults.length > 0 ? (
-                      <FlatList
-                        data={searchResults}
-                        keyExtractor={(item) => item.id.toString()}
-                        renderItem={renderSearchResultItem}
-                        contentContainerStyle={styles.searchResultsContainer}
-                      />
-                    ) : (
-                      <View style={styles.noResults}>
-                        <Text style={styles.noResultsText}>
-                          {searchQuery ? 'No players found' : 'Search for players to add'}
-                        </Text>
-                      </View>
-                    )}
-
-                    <TouchableOpacity
-                      style={styles.closeButton}
-                      onPress={() => setModalVisible(false)}
-                    >
-                      <Text style={styles.closeButtonText}>Close</Text>
-                    </TouchableOpacity>
-                  </Animated.View>
-                </View>
-              </TouchableWithoutFeedback>
-            </Modal>
-
-            <CustomDialog
-              visible={dialogVisible}
-              title={dialogTitle}
-              message={dialogMessage}
-              type={dialogType}
-              onClose={() => setDialogVisible(false)}
-            />
-          </BlurView>
-        </ImageBackground>
-      </LinearGradient>
-    </>
+      <CustomDialog
+        visible={dialogVisible}
+        title={dialogTitle}
+        message={dialogMessage}
+        type={dialogType}
+        onClose={() => setDialogVisible(false)}
+      />
+    </View>
   );
 };
 
@@ -437,27 +483,11 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
   },
-  gradientOverlay: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  background: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  backgroundImage: {
-    opacity: 0.5,
-  },
   container: {
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    borderRadius: 20,
     flex: 1,
+    backgroundColor: 'white',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    overflow: 'hidden',
   },
   headerContainer: {
     marginBottom: 16,
@@ -542,23 +572,22 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
   },
-  addButton: {
-    marginTop: 12,
-    borderRadius: 25,
-    overflow: 'hidden',
-  },
-  addButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  floatingAddButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 25,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#34B8FF',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-  },
-  addButtonText: {
-    color: '#FFF',
-    fontWeight: '600',
-    fontSize: 16,
-    marginLeft: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
+    zIndex: 10,
   },
   modalOverlay: {
     flex: 1,

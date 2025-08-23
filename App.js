@@ -15,7 +15,7 @@ import Performance from './components/Settings/Performance';
 import Footer from './components/Footer';
 import CreateTeam from './components/Teams/CreateTeam';
 import CreateTournaments from './components/Tournaments/CreateTournaments';
-import ManageTournaments from './components/Tournaments/ManageTournaments';
+import ManageTournaments from './components/Tournaments/Tournaments Overview/ManageTournaments';
 import TeamDetailsScreen from './components/Teams/TeamDetailsScreen';
 import InstantMatch from './components/My matches/ScheduleMatch/InstantMatch';
 import SelectPlayingII from './components/My matches/SelectPlayingII';
@@ -34,6 +34,10 @@ import ContestDetails from './components/Fantasy/ContestDetails';
 import CreateContestTeam from './components/Fantasy/CreateContestTeam';
 // import Performance from './components/Settings/Performance';
 import MatchStartTransition from './components/My matches/MatchStartTransition';
+import Info from './components/Tournaments/Tournaments Overview/TournamentInfo';
+import { Matches } from './components/Tournaments/Tournaments Overview/TournamentMatches';
+import Teams1 from './components/Tournaments/Tournaments Overview/TournamentTeams';
+import PointsTable from './components/Tournaments/Tournaments Overview/TournamentPointtable';
 
 import ScoreCard from './components/My matches/ScoreCard';
 import InternetConnectivityCheck from './components/InternetConnectivity';
@@ -97,6 +101,10 @@ const MainScreens = () => {
         <Stack.Screen name="CreateContestTeam" component={CreateContestTeam} />
         <Stack.Screen name="MatchStartTransition" component={MatchStartTransition} />
         <Stack.Screen name="ConnectLiveStream" component={ConnectLiveStream} />
+        <Stack.Screen name="Info" component={Info} />
+        <Stack.Screen name="Matches" component={Matches} />
+        <Stack.Screen name="Teams1" component={Teams1} />
+        <Stack.Screen name="PointsTable" component={PointsTable} />
       </Stack.Navigator>
       <Footer style={styles.footer} />
     </View>
