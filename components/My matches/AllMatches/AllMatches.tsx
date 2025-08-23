@@ -22,7 +22,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import apiService from '../../APIservices';
-import { AppColors } from '../../../assets/constants/colors';
 
 const { width } = Dimensions.get('window');
 
