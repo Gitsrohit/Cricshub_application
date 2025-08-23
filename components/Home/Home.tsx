@@ -18,9 +18,9 @@ import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AppGradients, AppColors } from "../../assets/constants/colors.js"; 
+import { AppGradients, AppColors } from "../../assets/constants/colors.js";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const Home = () => {
   const navigation = useNavigation();
@@ -28,29 +28,45 @@ const Home = () => {
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [userName, setUserName] = useState("");
+  const [viewableItems, setViewableItems] = useState([]);
+  const animatedValues = useRef(new Map()).current;
+
   useEffect(() => {
     const fetchUserName = async () => {
       try {
         const name = await AsyncStorage.getItem("userName");
-        console.log("Fetched name from storage:", name);
         if (name) {
           setUserName(name);
-        } else {
-          console.log("No name found in storage");
         }
       } catch (error) {
         console.error("Failed to fetch user name:", error);
       }
     };
-
     fetchUserName();
-  })
+  }, []);
+
+  useEffect(() => {
+    viewableItems.forEach((item) => {
+      if (item.isViewable) {
+        if (!animatedValues.has(item.index)) {
+          animatedValues.set(item.index, new Animated.Value(0));
+        }
+        Animated.spring(animatedValues.get(item.index), {
+          toValue: 1,
+          friction: 5,
+          tension: 40,
+          useNativeDriver: true,
+        }).start();
+      }
+    });
+  }, [viewableItems]);
+
   const sections = [
     {
       title: "Start a Match",
       buttonText: "Start",
       navigateTo: "InstantMatch",
-      icon: "sports-cricket", 
+      icon: "sports-cricket",
     },
     {
       title: "Host a Tournament",
@@ -78,26 +94,34 @@ const Home = () => {
       isFullWidth: true,
     },
   ];
-  const animatedValues = sections.map(() => new Animated.Value(1));
-  const handlePressIn = (index) => {
-    Animated.spring(animatedValues[index], {
+
+  const handleButtonPressIn = (index) => {
+    if (!animatedValues.has(index)) {
+      animatedValues.set(index, new Animated.Value(1));
+    }
+    Animated.spring(animatedValues.get(index), {
       toValue: 0.95,
       useNativeDriver: true,
     }).start();
   };
-  const handlePressOut = (index) => {
-    Animated.spring(animatedValues[index], {
+
+  const handleButtonPressOut = (index) => {
+    if (!animatedValues.has(index)) {
+      animatedValues.set(index, new Animated.Value(1));
+    }
+    Animated.spring(animatedValues.get(index), {
       toValue: 1,
       friction: 3,
       tension: 40,
       useNativeDriver: true,
     }).start();
   };
+
   const toggleSidebar = () => {
     if (isSidebarVisible) {
       Animated.parallel([
         Animated.timing(sidebarAnim, {
-          toValue: -width, 
+          toValue: -width,
           duration: 300,
           useNativeDriver: true,
         }),
@@ -108,7 +132,7 @@ const Home = () => {
         }),
       ]).start(() => setIsSidebarVisible(false));
     } else {
-      setIsSidebarVisible(true); 
+      setIsSidebarVisible(true);
       Animated.parallel([
         Animated.timing(sidebarAnim, {
           toValue: 0,
@@ -123,27 +147,25 @@ const Home = () => {
       ]).start();
     }
   };
+
   const closeSidebar = () => {
     if (isSidebarVisible) {
       toggleSidebar();
     }
   };
+
   const LogOutHandler = async () => {
     Alert.alert(
       "Logout",
       "Are you sure you want to log out?",
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Yes, Logout",
           onPress: async () => {
             try {
-              await AsyncStorage.removeItem("jwtToken"); 
-              console.log("Token removed securely");
-              navigation.navigate("Login"); 
+              await AsyncStorage.removeItem("jwtToken");
+              navigation.navigate("Login");
             } catch (error) {
               console.error("Error removing token:", error);
               Alert.alert("Logout Failed", "Could not log out. Please try again.");
@@ -155,18 +177,29 @@ const Home = () => {
     );
   };
 
+  const onViewableItemsChanged = useRef(({ viewableItems: vItems }) => {
+    setViewableItems(vItems);
+  }).current;
+
+  const viewabilityConfig = { itemVisiblePercentThreshold: 50 };
+
   return (
     <View style={styles.appContainer}>
       <StatusBar
-        barStyle="dark-content" 
+        barStyle="dark-content"
         backgroundColor={AppColors.background}
         translucent={false}
       />
       <SafeAreaView style={styles.safeArea}>
+        {/* Top bar */}
         <View style={styles.topBarWrapper}>
           <View style={styles.topBar}>
             <TouchableOpacity onPress={toggleSidebar} style={styles.menuButton}>
-              <Ionicons name="person-circle-outline" size={30} color={AppColors.blue} />
+              <Ionicons
+                name="person-circle-outline"
+                size={30}
+                color={AppColors.blue}
+              />
             </TouchableOpacity>
             <Image
               source={require("../../assets/images/textLogo.png")}
@@ -174,7 +207,6 @@ const Home = () => {
               resizeMode="contain"
             />
           </View>
-
           {isSidebarVisible && (
             <TouchableWithoutFeedback onPress={closeSidebar}>
               <Animated.View
@@ -183,91 +215,112 @@ const Home = () => {
             </TouchableWithoutFeedback>
           )}
         </View>
+
+        {/* Sidebar */}
         <Animated.View
-          style={[
-            styles.sidebar,
-            { transform: [{ translateX: sidebarAnim }] },
-          ]}
+          style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}
         >
-          <TouchableOpacity
-            onPress={closeSidebar}
-            style={styles.closeSidebarButton}
+          <LinearGradient
+            colors={AppGradients.primaryCard}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.sidebarBackground}
           >
-            <Ionicons name="close" color={AppColors.black} size={28} />
-          </TouchableOpacity>
-          <View style={styles.sidebarHeader}>
-            <Image
-              source={require("../../assets/defaultLogo.png")} 
-              style={styles.userImage}
-            />
-            <Text style={styles.sidebarTitle} numberOfLines={1}>
-              {userName || "Guest User"}
-            </Text>
-          </View>
-          {[
-            { icon: "person-outline", text: "Profile", screen: "Profile" },
-            {
-              icon: "stats-chart-outline",
-              text: "Performance",
-              screen: "Performance",
-            },
-            {
-              icon: "help-circle-outline",
-              text: "Support",
-              screen: "Support",
-            },
-            { icon: "star-outline", text: "Rate Us", screen: "RateUs" },
-            {
-              icon: "settings-outline",
-              text: "Settings",
-              screen: "Settings",
-            },
-            {
-              icon: "globe-outline",
-              text: "Web (WebSocket Test)",
-              screen: "WebSocketTest",
-            },
-          ].map(({ icon, text, screen }) => (
             <TouchableOpacity
-              key={screen}
-              style={styles.sidebarItem}
-              onPress={() => {
-                navigation.navigate(screen);
-                closeSidebar();
-              }}
+              onPress={closeSidebar}
+              style={styles.closeSidebarButton}
             >
-              <Ionicons name={icon} size={24} color={AppColors.darkText} />
-              <Text style={styles.sidebarItemText}>{text}</Text>
+              <Ionicons name="close" color={AppColors.white} size={28} />
             </TouchableOpacity>
-          ))}
-          <TouchableOpacity style={styles.sidebarItem} onPress={LogOutHandler}>
-            <Ionicons name="log-out-outline" size={24} color={AppColors.error} /> 
-            <Text style={styles.sidebarItemText}>Logout</Text>
-          </TouchableOpacity>
-          <View style={styles.sidebarFooter}>
-            <Text style={styles.footerText}>cricshub @2025</Text>
-          </View>
+
+            <View style={styles.sidebarHeader}>
+              <View style={styles.userImageWrapper}>
+                <Image
+                  source={require("../../assets/defaultLogo.png")}
+                  style={styles.userImage}
+                />
+              </View>
+              <Text style={styles.sidebarTitle}>
+                {userName || "Guest User"}
+              </Text>
+            </View>
+
+            {[
+              { icon: "person-outline", text: "Profile", screen: "Profile" },
+              { icon: "stats-chart-outline", text: "Performance", screen: "Performance" },
+              { icon: "help-circle-outline", text: "Support", screen: "Support" },
+              { icon: "star-outline", text: "Rate Us", screen: "RateUs" },
+              { icon: "settings-outline", text: "Settings", screen: "Settings" },
+              { icon: "globe-outline", text: "Web", screen: "WebSocketTest" },
+            ].map(({ icon, text, screen }) => (
+              <TouchableOpacity
+                key={screen}
+                style={styles.sidebarItem}
+                onPress={() => {
+                  navigation.navigate(screen);
+                  closeSidebar();
+                }}
+              >
+                <Ionicons name={icon} size={22} color={AppColors.white} />
+                <Text style={styles.sidebarItemText}>{text}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity style={styles.sidebarItem} onPress={LogOutHandler}>
+              <Ionicons
+                name="log-out-outline"
+                size={22}
+                color={AppColors.error}
+              />
+              <Text style={styles.sidebarItemText}>Logout</Text>
+            </TouchableOpacity>
+
+            <View style={styles.sidebarFooter}>
+              <Text style={styles.footerText}>cricshub ©2025</Text>
+            </View>
+          </LinearGradient>
         </Animated.View>
+
+        {/* Main content */}
         <View style={styles.mainContent}>
           <View style={styles.content}>
             <FlatList
               data={sections}
-              numColumns={2} 
+              numColumns={2}
               keyExtractor={(item, index) => index.toString()}
-              scrollEnabled={false}
+              scrollEnabled={true}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={viewabilityConfig}
               renderItem={({ item, index }) => {
+                const animatedStyle = {
+                  opacity: animatedValues.has(index)
+                    ? animatedValues.get(index).interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0, 0.5, 1],
+                      })
+                    : 0,
+                  transform: [
+                    {
+                      scale: animatedValues.has(index)
+                        ? animatedValues.get(index).interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [0.5, 1.1, 1],
+                          })
+                        : 0.5,
+                    },
+                  ],
+                };
+
                 return (
                   <Animated.View
                     style={[
                       styles.card,
                       item.isFullWidth ? styles.fullWidthCard : {},
-                      {
-                        transform: [{ scale: animatedValues[index] }], 
-                      },
+                      animatedStyle,
                     ]}
                   >
                     <LinearGradient
-                      colors={AppGradients.primaryCard} 
+                      colors={AppGradients.primaryCard}
                       style={styles.cardBackground}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
@@ -281,8 +334,8 @@ const Home = () => {
                       <Text style={styles.cardTitle}>{item.title}</Text>
                       <TouchableOpacity
                         style={styles.cardButton}
-                        onPressIn={() => handlePressIn(index)}
-                        onPressOut={() => handlePressOut(index)}
+                        onPressIn={() => handleButtonPressIn(index)}
+                        onPressOut={() => handleButtonPressOut(index)}
                         onPress={() => {
                           if (item.title === "Fantasy Cricket") {
                             Alert.alert(
@@ -313,148 +366,115 @@ const Home = () => {
 };
 
 export const styles = StyleSheet.create({
-  appContainer: {
-    flex: 1,
-    backgroundColor: AppColors.white,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
+  appContainer: { flex: 1, backgroundColor: AppColors.white },
+  safeArea: { flex: 1, backgroundColor: "transparent" },
   topBarWrapper: {
     backgroundColor: AppColors.white,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
     shadowColor: AppColors.black,
     elevation: 3,
-    zIndex: 10, 
+    zIndex: 10,
   },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
     paddingHorizontal: 15,
-    paddingVertical: 10, 
-    minHeight: 56, 
+    paddingVertical: 10,
+    minHeight: 56,
   },
-  menuButton: {
-    paddingRight: 15,
-    paddingVertical: 0,
-  },
-  topBarImage: {
-    width: 120,
-    height: 30, 
-    marginLeft: 5,
-  },
+  menuButton: { paddingRight: 15, paddingVertical: 0 },
+  topBarImage: { width: 120, height: 30, marginLeft: 5 },
+  mainContent: { flex: 1, backgroundColor: AppColors.white },
 
-  mainContent: {
-    flex: 1,
-    backgroundColor: AppColors.white,
-  },
   sidebar: {
     position: "absolute",
     top: 0,
     left: 0,
-    width: width * 0.7, 
+    width: width * 0.75,
     height: "100%",
-    backgroundColor: AppColors.white, 
+    borderTopRightRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: "hidden",
     zIndex: 100,
-    padding: 20,
-    paddingTop: Platform.OS === "ios" ? 50 : 20, 
-    shadowColor: AppColors.black,
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
   },
+  sidebarBackground: { flex: 1 },
   closeSidebarButton: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 20 : 10, 
-    right: 10,
+    top: Platform.OS === "ios" ? 40 : 20,
+    right: 15,
     padding: 10,
     zIndex: 101,
   },
-  sidebarHeader: {
-    marginBottom: 20,
+  sidebarHeader: { marginTop: 80, marginBottom: 30, alignItems: "center" },
+  userImageWrapper: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: "center",
     alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: AppColors.cardBorder,
-    width: "100%",
-    paddingBottom: 15,
+    marginBottom: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
   },
-  userImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 10,
-  },
+  userImage: { width: 80, height: 80, borderRadius: 40 },
   sidebarTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: AppColors.darkText,
-    marginTop: 5,
-    maxWidth: "100%",
+    fontWeight: "700",
+    color: AppColors.white,
     textAlign: "center",
   },
   sidebarItem: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: AppColors.cardBorder,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    marginVertical: 5,
   },
   sidebarItemText: {
     fontSize: 16,
-    color: AppColors.darkText,
-    marginLeft: 10,
+    marginLeft: 15,
+    fontWeight: "500",
+    color: AppColors.white,
   },
   sidebarFooter: {
     position: "absolute",
-    bottom: 20,
+    bottom: 25,
     left: 20,
     right: 20,
     alignItems: "center",
   },
-  footerText: {
-    fontSize: 14,
-    color: AppColors.lightText,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
+  footerText: { fontSize: 14, color: AppColors.white, opacity: 0.8 },
+
+  // Content
+  content: { flex: 1, padding: 20 },
   card: {
     flex: 1,
     borderRadius: 15,
     margin: 10,
     height: 180,
     overflow: "hidden",
-    borderWidth: 1,
+    borderWidth: 3,
     borderColor: AppColors.cardBorder,
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.75,
     shadowRadius: 4,
-    elevation: 5, 
+    elevation: 5,
   },
-  fullWidthCardContainer: {
-    width: "100%",
-    paddingHorizontal: 10,
-    marginBottom: 20,
-  },
-  fullWidthCard: {
-    width: width - 40, 
-    marginHorizontal: 10,
-  },
+  fullWidthCard: { width: width - 40, marginHorizontal: 10 },
   cardBackground: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
   },
-
-  cardIcon: {
-    marginBottom: 10,
-  },
+  cardIcon: { marginBottom: 10 },
   cardTitle: {
     fontSize: 18,
     fontWeight: "600",
