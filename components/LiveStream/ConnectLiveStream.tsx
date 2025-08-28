@@ -10,7 +10,8 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScrollView, TextInput } from 'react-native-gesture-handler';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import uuid from 'react-native-uuid';
 import { AppColors, AppGradients } from '../../assets/constants/colors';
@@ -131,12 +132,14 @@ const manualScenes = [
 ];
 
 const ConnectLiveStream = () => {
+  const navigation = useNavigation();
   const [obsIp, setObsIp] = useState('192.168.1.X');
   const [obsPassword, setObsPassword] = useState('');
   const [isObsConnected, setIsObsConnected] = useState(false);
   const [obsConnectionLoading, setObsConnectionLoading] = useState(false);
   const [obsConfigLoading, setObsConfigLoading] = useState(false);
   const [availableScenes, setAvailableScenes] = useState([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const wsRef = useRef(null);
   const pendingRequestsRef = useRef({});
@@ -326,29 +329,82 @@ const ConnectLiveStream = () => {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={AppColors.background} />
-      <SafeAreaView style={{ flex: 1 }}>
+      <StatusBar barStyle="dark-content" backgroundColor={AppColors.white} />
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.topBarWrapper}>
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color={AppColors.blue} />
+            </TouchableOpacity>
+            <Text style={styles.topBarTitle}>OBS Studio Connection</Text>
+          </View>
+        </View>
+
         <ScrollView style={styles.container}>
           <View style={styles.section}>
-            <LinearGradient style={styles.card} colors={AppGradients.primaryCard}>
-              <MaterialCommunityIcons name="cast-connected" color="white" size={120} />
-              <Text style={styles.sectionTitle}>OBS Studio Configuration</Text>
-              <Text style={styles.inputLabel}>IP Address:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="OBS IP (e.g., 192.168.1.X)"
-                placeholderTextColor="black"
-                value={obsIp}
-                onChangeText={setObsIp}
-                keyboardType="numeric"
-              />
+            <LinearGradient 
+              colors={AppGradients.primaryCard} 
+              style={styles.card}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.cardHeader}>
+                <MaterialCommunityIcons name="cast-connected" color="white" size={28} />
+                <Text style={styles.sectionTitle}>OBS Studio Configuration</Text>
+              </View>
+              
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>IP Address:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="OBS IP (e.g., 192.168.1.X)"
+                  placeholderTextColor="#aaa"
+                  value={obsIp}
+                  onChangeText={setObsIp}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <TouchableOpacity 
+                style={styles.advancedToggle} 
+                onPress={() => setShowAdvanced(!showAdvanced)}
+              >
+                <Text style={styles.advancedToggleText}>
+                  Advanced Settings
+                </Text>
+                <MaterialIcons 
+                  name={showAdvanced ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+                  size={24} 
+                  color="#fff" 
+                />
+              </TouchableOpacity>
+
+              {showAdvanced && (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Password (if required):</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="OBS WebSocket Password"
+                    placeholderTextColor="#aaa"
+                    value={obsPassword}
+                    onChangeText={setObsPassword}
+                    secureTextEntry
+                  />
+                </View>
+              )}
             </LinearGradient>
 
             {!isObsConnected ? (
-              <TouchableOpacity style={[styles.button, styles.obsButton]} onPress={connectToOBS}>
-                {obsConnectionLoading ? <ActivityIndicator color="black" /> : (
+              <TouchableOpacity 
+                style={[styles.button, styles.connectButton, obsConnectionLoading && styles.buttonDisabled]} 
+                onPress={connectToOBS}
+                disabled={obsConnectionLoading}
+              >
+                {obsConnectionLoading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
                   <>
-                    <MaterialCommunityIcons name="connection" size={20} color="#2196F3" />
+                    <MaterialCommunityIcons name="connection" size={20} color="#fff" />
                     <Text style={styles.buttonText}> Connect to OBS</Text>
                   </>
                 )}
@@ -356,12 +412,20 @@ const ConnectLiveStream = () => {
             ) : (
               <>
                 <View style={styles.connectionStatusContainer}>
-                  <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
-                  <Text style={styles.connectionStatusText}>Connected to OBS</Text>
+                  <View style={styles.connectionStatus}>
+                    <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
+                    <Text style={styles.connectionStatusText}>Connected to OBS</Text>
+                  </View>
                 </View>
 
-                <TouchableOpacity style={[styles.button, styles.configureButton]} onPress={configureOBS}>
-                  {obsConfigLoading ? <ActivityIndicator color="black" /> : (
+                <TouchableOpacity 
+                  style={[styles.button, styles.configureButton, obsConfigLoading && styles.buttonDisabled]} 
+                  onPress={configureOBS}
+                  disabled={obsConfigLoading}
+                >
+                  {obsConfigLoading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
                     <>
                       <MaterialCommunityIcons name="cog" size={20} color="#fff" />
                       <Text style={styles.buttonText}> Configure OBS</Text>
@@ -369,12 +433,21 @@ const ConnectLiveStream = () => {
                   )}
                 </TouchableOpacity>
 
-                {manualScenes.map((scene) => (
-                  <TouchableOpacity key={scene} style={[styles.button, styles.obsButton]} onPress={() => switchScene(scene)}>
-                    <MaterialCommunityIcons name="monitor" size={20} color="#fff" />
-                    <Text style={styles.buttonText}> Show {scene}</Text>
-                  </TouchableOpacity>
-                ))}
+                <View style={styles.scenesSection}>
+                  <Text style={styles.scenesTitle}>Scene Controls</Text>
+                  <View style={styles.scenesGrid}>
+                    {manualScenes.map((scene) => (
+                      <TouchableOpacity 
+                        key={scene} 
+                        style={styles.sceneButton} 
+                        onPress={() => switchScene(scene)}
+                      >
+                        <MaterialCommunityIcons name="monitor" size={18} color="#fff" />
+                        <Text style={styles.sceneButtonText}>{scene.replace('Scene', '')}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
                 <TouchableOpacity style={[styles.button, styles.disconnectButton]} onPress={disconnectFromOBS}>
                   <MaterialCommunityIcons name="connection-off" size={20} color="#fff" />
@@ -392,69 +465,110 @@ const ConnectLiveStream = () => {
 export default ConnectLiveStream;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
-  section: {
-    marginTop: 20,
-    marginBottom: 15,
-    width: '100%',
-    padding: 10,
+  safeArea: { 
+    flex: 1, 
+    backgroundColor: AppColors.white 
+  },
+  topBarWrapper: {
+    backgroundColor: AppColors.white,
     shadowColor: AppColors.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.75,
-    shadowRadius: 4,
-    elevation: 5,
+    elevation: 3,
+    zIndex: 10,
+  },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    minHeight: 56,
+  },
+  backButton: {
+    paddingRight: 15,
+    paddingVertical: 5,
+  },
+  topBarTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: AppColors.blue,
+  },
+  container: { 
+    flex: 1, 
+    backgroundColor: AppColors.white 
+  },
+  section: {
+    padding: 16,
   },
   card: {
-    flex: 1,
     borderRadius: 15,
-    marginVertical: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 3,
     borderColor: AppColors.cardBorder,
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.75,
     shadowRadius: 4,
     elevation: 5,
+  },
+  cardHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    marginBottom: 20,
   },
   sectionTitle: {
     color: AppColors.white,
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
+    marginLeft: 10,
   },
-  input: {
-    width: '100%',
-    padding: 15,
-    color: 'black',
-    borderRadius: 8,
+  inputContainer: {
     marginBottom: 15,
-    backgroundColor: 'rgb(255, 255, 255)',
-    shadowColor: AppColors.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.75,
-    shadowRadius: 4,
-    elevation: 5,
-    fontSize: 16,
   },
   inputLabel: {
-    width: '100%',
+    color: AppColors.white,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 10,
+    padding: 15,
+    color: '#333',
     fontSize: 16,
-    textAlign: 'left',
-    color: 'white',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  advancedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  advancedToggleText: {
+    color: AppColors.white,
+    fontSize: 14,
+    fontWeight: '500',
   },
   button: {
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
-  obsButton: {
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  connectButton: {
     backgroundColor: '#2196F3',
   },
   configureButton: {
@@ -464,20 +578,59 @@ const styles = StyleSheet.create({
     backgroundColor: '#F44336',
   },
   buttonText: {
-    color: '#fff',
+    color: AppColors.white,
     fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 5,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   connectionStatusContainer: {
+    marginBottom: 20,
+  },
+  connectionStatus: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.5)',
   },
   connectionStatusText: {
     color: '#4CAF50',
     fontSize: 16,
-    marginLeft: 5,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  scenesSection: {
+    marginBottom: 20,
+  },
+  scenesTitle: {
+    color: AppColors.blue,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  scenesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  sceneButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: AppColors.blue,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 10,
+    width: '48%',
+  },
+  sceneButtonText: {
+    color: AppColors.white,
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+    flexShrink: 1,
   },
 });

@@ -9,18 +9,21 @@ import {
   ActivityIndicator,
   Image,
   Alert,
-  ImageBackground,
   SafeAreaView,
   StatusBar,
   Keyboard,
   TouchableWithoutFeedback,
   Animated,
-  Easing
+  Easing,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons, FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Animatable from 'react-native-animatable';
+import { LinearGradient } from 'expo-linear-gradient';
 import apiService from '../APIservices';
 
 const AddPlayersToTeam = () => {
@@ -28,15 +31,16 @@ const AddPlayersToTeam = () => {
   const [filteredPlayers, setFilteredPlayers] = useState([]);
   const [teamPlayers, setTeamPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(null);
   const [playerId, setPlayerId] = useState([]);
   const [captainId, setCaptainId] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [creatingTeam, setCreatingTeam] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+
   const navigation = useNavigation();
   const route = useRoute();
   const { teamName, logoUri } = route.params;
+
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(50))[0];
 
@@ -54,21 +58,17 @@ const AddPlayersToTeam = () => {
         useNativeDriver: true,
       }),
     ]).start();
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      () => setKeyboardOpen(true)
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => setKeyboardOpen(false)
-    );
+
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
 
     return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
+      show.remove();
+      hide.remove();
     };
   }, []);
 
+  // 🔎 Search debounce
   useEffect(() => {
     const debounceSearch = setTimeout(() => {
       if (searchQuery.trim() !== '') {
@@ -77,56 +77,23 @@ const AddPlayersToTeam = () => {
         setFilteredPlayers([]);
       }
     }, 500);
-
     return () => clearTimeout(debounceSearch);
   }, [searchQuery]);
-  const getToken = async () => {
-    try {
-      return await AsyncStorage.getItem('jwtToken');
-    } catch (error) {
-      console.error('Error retrieving token:', error);
-      return null;
-    }
-  };
 
-  const getUserUUID = async () => {
-    try {
-      const userId = await AsyncStorage.getItem('userUUID');
-      if (userId) {
-        return userId;
-      } else {
-        console.log('No User UUID found');
-        return null;
-      }
-    } catch (error) {
-      console.error('Error retrieving User UUID:', error);
-      return null;
-    }
-  };
+  const getToken = async () => await AsyncStorage.getItem('jwtToken');
+  const getUserUUID = async () => await AsyncStorage.getItem('userUUID');
 
   const fetchPlayers = async (query) => {
     try {
       setLoading(true);
-
       const [nameRes, phoneRes] = await Promise.all([
-        apiService({
-          endpoint: `teams/players/search/name`,
-          method: 'GET',
-          params: { query },
-        }),
-        apiService({
-          endpoint: `teams/players/search/phone`,
-          method: 'GET',
-          params: { query },
-        }),
+        apiService({ endpoint: `teams/players/search/name`, method: 'GET', params: { query } }),
+        apiService({ endpoint: `teams/players/search/phone`, method: 'GET', params: { query } }),
       ]);
-
       const nameData = nameRes.success ? nameRes.data.data || [] : [];
       const phoneData = phoneRes.success ? phoneRes.data.data || [] : [];
-
       setFilteredPlayers([...nameData, ...phoneData]);
-    } catch (error) {
-      console.error('Error fetching players:', error);
+    } catch {
       setFilteredPlayers([]);
     } finally {
       setLoading(false);
@@ -134,90 +101,54 @@ const AddPlayersToTeam = () => {
   };
 
   const addPlayerToTeam = (player) => {
-    if (!playerId.includes(player.id)) {
-      setPlayerId((prev) => [...prev, player.id]);
-      setTeamPlayers((prev) => [...prev, player]);
-      Animated.sequence([
-        Animated.timing(fadeAnim, {
-          toValue: 0.5,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
+    if (playerId.includes(player.id)) {
+      Alert.alert("Player Already Added", `${player.name} is already in the team.`);
+      return;
     }
+    setPlayerId((prev) => [...prev, player.id]);
+    setTeamPlayers((prev) => [...prev, player]);
     setSearchQuery('');
     setFilteredPlayers([]);
     Keyboard.dismiss();
   };
 
-  const removePlayerFromTeam = (playerId) => {
-    setPlayerId((prev) => prev.filter((id) => id !== playerId));
-    setTeamPlayers((prev) => prev.filter((player) => player.id !== playerId));
-    if (captainId === playerId) {
-      setCaptainId(null);
-    }
+  const removePlayerFromTeam = (id) => {
+    setPlayerId((prev) => prev.filter((p) => p !== id));
+    setTeamPlayers((prev) => prev.filter((p) => p.id !== id));
+    if (captainId === id) setCaptainId(null);
   };
 
-  const makeCaptain = (playerId) => {
-    setCaptainId(playerId);
-    Alert.alert(
-      "Captain Assigned",
-      `This player is now the team captain.`,
-      [{ text: "OK" }],
-      { cancelable: true }
-    );
+  const makeCaptain = (id) => {
+    setCaptainId(id);
+    Alert.alert("Captain Assigned", "This player is now the team captain.");
   };
 
   const createTeam = async () => {
     if (teamPlayers.length === 0) {
-      Alert.alert('Error', 'Please add at least one player to the team.');
+      Alert.alert('Error', 'Please add at least one player.');
+      return;
+    }
+    if (!captainId) {
+      setErrorMessage('Please assign a captain.');
       return;
     }
 
     setCreatingTeam(true);
-    setErrorMessage('');
-
     try {
       const token = await getToken();
       const userId = await getUserUUID();
-
-      if (!captainId) {
-        setErrorMessage('Please assign a captain before creating the team.');
-        return;
-      }
-
-      if (!userId) {
-        setErrorMessage('Unable to retrieve the creator’s user ID.');
-        return;
-      }
 
       const formData = new FormData();
       formData.append('name', teamName);
       formData.append('captainId', captainId);
       formData.append('playerIds', playerId.join(','));
-
       if (logoUri) {
         const fileName = logoUri.split('/').pop();
         const fileType = fileName.split('.').pop();
-        formData.append('logo', {
-          uri: logoUri,
-          name: fileName,
-          type: `image/${fileType}`,
-        });
+        formData.append('logo', { uri: logoUri, name: fileName, type: `image/${fileType}` });
       }
 
-      // Make request using apiService
-      const response = await apiService({
-        endpoint: `teams/${userId}`,
-        method: 'POST',
-        body: formData,
-        isMultipart: true,
-      });
+      const response = await apiService({ endpoint: `teams/${userId}`, method: 'POST', body: formData, isMultipart: true });
 
       if (response.success) {
         setTeamPlayers([]);
@@ -226,80 +157,56 @@ const AddPlayersToTeam = () => {
         Alert.alert('Success', 'Team created successfully!');
         navigation.navigate('Teams');
       } else {
-        const message = response.error?.message || 'Failed to create team.';
-        setErrorMessage(message);
-        Alert.alert('Error', message);
+        Alert.alert('Error', response.error?.message || 'Failed to create team.');
       }
-    } catch (error) {
-      console.error('Error creating team:', error);
-      setErrorMessage('Error creating team.');
-      Alert.alert('Error', 'Error creating team.');
     } finally {
       setCreatingTeam(false);
     }
   };
 
-  const renderPlayerItem = ({ item, index }) => (
-    <Animatable.View
-      animation="fadeIn"
-      duration={500}
-      delay={index * 50}
-      style={styles.dropdownItem}
-    >
-      <Image
-        source={{ uri: item.profilePic || 'https://via.placeholder.com/50' }}
-        style={styles.dropdownPlayerProfilePic}
-      />
-      <View style={styles.dropdownPlayerInfo}>
-        <Text style={styles.dropdownPlayerName}>{item.name}</Text>
-        <Text style={styles.dropdownPlayerRole}>{item.role || 'All-rounder'}</Text>
+  // 🔹 UI
+  const renderPlayerItem = ({ item }) => (
+    <Animatable.View animation="fadeIn" duration={300} style={styles.dropdownItem}>
+      <View style={styles.dropdownLeft}>
+        <Image
+          source={ item.profilePic ? { uri: item.profilePic } : require("../../assets/defaultLogo.png") }
+          style={styles.dropdownPlayerProfilePic}
+        />
+        <View style={styles.dropdownPlayerInfo}>
+          <Text style={styles.dropdownPlayerName}>{item.name}</Text>
+          <Text style={styles.dropdownPlayerRole}>{item.role || 'All-rounder'}</Text>
+        </View>
       </View>
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => addPlayerToTeam(item)}
-      >
-        <Ionicons name="add-circle" size={28} color="#fff" />
+      <TouchableOpacity onPress={() => addPlayerToTeam(item)}>
+        <Ionicons name="add-circle" size={28} color="#4A90E2" />
       </TouchableOpacity>
     </Animatable.View>
   );
 
   const renderTeamPlayer = ({ item }) => (
-    <Animatable.View
-      animation="slideInRight"
-      duration={300}
-      style={[
-        styles.teamPlayerCard,
-        captainId === item.id && styles.captainCard
-      ]}
-    >
+    <Animatable.View animation="slideInRight" duration={300} style={styles.teamPlayerCard}>
       <View style={styles.playerMainInfo}>
-        <Image
-          source={{ uri: item.profilePic || 'https://via.placeholder.com/50' }}
-          style={styles.playerProfilePic}
-        />
+        <View style={[styles.playerProfileWrapper, captainId === item.id && styles.captainHighlight]}>
+          <Image
+            source={ item.profilePic ? { uri: item.profilePic } : require("../../assets/defaultLogo.png") }
+            style={styles.playerProfilePic}
+          />
+          {captainId === item.id && (
+            <View style={styles.captainBadge}>
+              <FontAwesome name="star" size={14} color="#FFD700" />
+            </View>
+          )}
+        </View>
         <View style={styles.playerInfo}>
           <Text style={styles.playerName}>{item.name}</Text>
           <Text style={styles.playerRole}>{item.role || 'All-rounder'}</Text>
         </View>
       </View>
       <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={[
-            styles.captainButton,
-            captainId === item.id && styles.activeCaptainButton
-          ]}
-          onPress={() => makeCaptain(item.id)}
-        >
-          <FontAwesome
-            name="star"
-            size={16}
-            color={captainId === item.id ? "#FFD700" : "#fff"}
-          />
+        <TouchableOpacity style={[styles.captainButton, captainId === item.id && styles.activeCaptainButton]} onPress={() => makeCaptain(item.id)}>
+          <FontAwesome name="star" size={16} color={captainId === item.id ? "#FFD700" : "#4A90E2"} />
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => removePlayerFromTeam(item.id)}
-          style={styles.deleteButton}
-        >
+        <TouchableOpacity onPress={() => removePlayerFromTeam(item.id)}>
           <MaterialIcons name="delete" size={22} color="#F44336" />
         </TouchableOpacity>
       </View>
@@ -307,414 +214,169 @@ const AddPlayersToTeam = () => {
   );
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" />
-        <ImageBackground
-          source={require('../../assets/images/cricsLogo.png')}
-          style={styles.backgroundImage}
-          resizeMode="cover"
-          blurRadius={2}
-        >
-          <SafeAreaView style={styles.safeArea}>
-            <Animated.View
-              style={[
-                styles.contentContainer,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }]
-                }
-              ]}
-            >
-              <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => navigation.goBack()}
-                >
-                  <Ionicons name="arrow-back" size={24} color="#fff" />
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+    >
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <Animated.View style={[styles.contentContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color="#4A90E2" />
+            </TouchableOpacity>
+            <Text style={styles.headerText}>Add Players</Text>
+            <View style={styles.teamNameContainer}>
+              <Text style={styles.teamName}>{teamName}</Text>
+            </View>
+          </View>
+
+          {/* Search */}
+          <View style={{ position: 'relative', marginBottom: 10 }}>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#4A90E2" />
+              <TextInput
+                style={styles.input}
+                placeholder="Search by name or phone..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery !== '' && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={20} color="#999" />
                 </TouchableOpacity>
-                <Text style={styles.headerText}>Add Players</Text>
-                <View style={styles.teamNameContainer}>
-                  <Text style={styles.teamName}>{teamName}</Text>
-                </View>
-              </View>
-
-              <View style={styles.searchContainer}>
-                <Ionicons
-                  name="search"
-                  size={20}
-                  color="#4A90E2"
-                  style={styles.searchIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Search by name or phone..."
-                  placeholderTextColor="#90CAF9"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                />
-                {searchQuery !== '' && (
-                  <TouchableOpacity
-                    style={styles.clearButton}
-                    onPress={() => setSearchQuery('')}
-                  >
-                    <Ionicons name="close-circle" size={20} color="#4A90E2" />
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {loading && (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#4A90E2" />
-                </View>
               )}
+            </View>
 
-              {filteredPlayers.length > 0 && (
-                <Animatable.View
-                  animation="fadeInUp"
-                  style={styles.dropdownContainer}
+            {/* Floating Search Results */}
+            {filteredPlayers.length > 0 && (
+              <View style={styles.dropdownContainer}>
+                <ScrollView 
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled={true}
                 >
-                  <FlatList
-                    data={filteredPlayers}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderPlayerItem}
-                    keyboardShouldPersistTaps="handled"
-                    contentContainerStyle={styles.filteredPlayersList}
-                  />
-                </Animatable.View>
-              )}
-
-              <View style={styles.teamPlayersContainer}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Team Players ({teamPlayers.length})</Text>
-                  {captainId && (
-                    <View style={styles.captainIndicator}>
-                      <FontAwesome name="star" size={14} color="#FFD700" />
-                      <Text style={styles.captainText}>Captain selected</Text>
-                    </View>
-                  )}
-                </View>
-
-                {teamPlayers.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="people" size={50} color="#4A90E2" />
-                    <Text style={styles.emptyStateText}>No players added yet</Text>
-                    <Text style={styles.emptyStateSubtext}>
-                      Search and add players to build your team
-                    </Text>
-                  </View>
-                ) : (
-                  <FlatList
-                    data={teamPlayers}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderTeamPlayer}
-                    contentContainerStyle={styles.selectedPlayersList}
-                    showsVerticalScrollIndicator={false}
-                  />
-                )}
+                  {filteredPlayers.map((player) => (
+                    <View key={player.id}>{renderPlayerItem({ item: player })}</View>
+                  ))}
+                </ScrollView>
               </View>
+            )}
+          </View>
 
-              {!keyboardOpen && (
-                <Animatable.View
-                  animation="fadeInUp"
-                  duration={500}
-                  style={styles.footer}
+          {/* Loader */}
+          {loading && <ActivityIndicator size="large" color="#4A90E2" style={{ marginVertical: 10 }} />}
+
+          {/* Team Players */}
+          <View style={styles.teamPlayersContainer}>
+            <Text style={styles.sectionTitle}>Team Players ({teamPlayers.length})</Text>
+            <FlatList
+              data={teamPlayers}
+              keyExtractor={(item) => item.id}
+              renderItem={renderTeamPlayer}
+              contentContainerStyle={teamPlayers.length === 0 ? styles.emptyListContainer : styles.listContainer}
+              showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
+              style={styles.playersList}
+            />
+          </View>
+
+          {/* Footer */}
+          {!keyboardOpen && (
+            <View style={styles.footer}>
+              {errorMessage !== '' && <Text style={styles.errorMessage}>{errorMessage}</Text>}
+              <TouchableOpacity onPress={createTeam} disabled={creatingTeam || teamPlayers.length === 0}>
+                <LinearGradient
+                  colors={teamPlayers.length === 0 ? ['#ccc', '#aaa'] : ['#4A90E2', '#357ABD']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.createButton}
                 >
-                  {errorMessage && (
-                    <Text style={styles.errorMessage}>{errorMessage}</Text>
-                  )}
-                  <TouchableOpacity
-                    onPress={createTeam}
-                    style={[
-                      styles.createButton,
-                      teamPlayers.length === 0 && styles.disabledButton
-                    ]}
-                    disabled={creatingTeam || teamPlayers.length === 0}
-                  >
-                    {creatingTeam ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.createButtonText}>
-                        Create Team {teamPlayers.length > 0 && `(${teamPlayers.length})`}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </Animatable.View>
-              )}
-            </Animated.View>
-          </SafeAreaView>
-        </ImageBackground>
-      </View>
-    </TouchableWithoutFeedback>
+                  {creatingTeam ? <ActivityIndicator color="#fff" /> : <Text style={styles.createButtonText}>Create Team</Text>}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Animated.View>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0A1F3A',
-    marginTop: StatusBar?.currentHeight || 0,
-  },
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: 'rgba(10, 31, 58, 0.16)',
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 20,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 25,
-    position: 'relative',
-  },
-  backButton: {
-    position: 'absolute',
-    left: 0,
-    top: 5,
-    padding: 5,
-  },
-  headerText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  teamNameContainer: {
-    backgroundColor: 'rgba(74, 144, 226, 0.2)',
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#4A90E2',
-  },
-  teamName: {
-    color: '#4A90E2',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1A365D',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    height: 50,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 16,
-    height: '100%',
-  },
-  clearButton: {
-    padding: 5,
-  },
-  loadingContainer: {
-    paddingVertical: 10,
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  contentContainer: { flex: 1, padding: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  headerText: { fontSize: 22, fontWeight: 'bold', color: '#333' },
+  teamNameContainer: { borderWidth: 1, borderColor: '#4A90E2', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  teamName: { fontSize: 14, fontWeight: '600', color: '#4A90E2' },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f7f7f7', borderRadius: 10, paddingHorizontal: 12, height: 50, borderWidth: 1, borderColor: '#ddd' },
+  input: { flex: 1, fontSize: 16, color: '#333', marginLeft: 8 },
   dropdownContainer: {
-    backgroundColor: '#6BB9F0',
+    position: 'absolute',
+    top: 55,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
     borderRadius: 10,
-    maxHeight: 250,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#ddd',
     elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    zIndex: 10,
+    maxHeight: 200,
   },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  dropdownPlayerProfilePic: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: '#4A90E2',
-  },
-  dropdownPlayerInfo: {
-    flex: 1,
-  },
-  dropdownPlayerName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  dropdownPlayerRole: {
-    color: '#90CAF9',
-    fontSize: 14,
-  },
-  addButton: {
-    padding: 5,
-  },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  dropdownLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  dropdownPlayerProfilePic: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
+  dropdownPlayerName: { fontSize: 16, fontWeight: '600', color: '#333' },
+  dropdownPlayerRole: { fontSize: 14, color: '#777' },
   teamPlayersContainer: {
     flex: 1,
-    marginTop: 10,
+    marginBottom: 80,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
+  playersList: {
+    flex: 1,
   },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  listContainer: {
+    paddingVertical: 10,
   },
-  captainIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#000',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
-  },
-  captainText: {
-    color: '#FFD700',
-    fontSize: 12,
-    marginLeft: 5,
-  },
-  emptyState: {
+  emptyListContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#1A365D',
-    borderRadius: 10,
+    paddingVertical: 20,
   },
-  emptyStateText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 15,
-  },
-  emptyStateSubtext: {
-    color: '#90CAF9',
-    fontSize: 14,
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  teamPlayerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#6BB9F0',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  captainCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#FFD700',
-  },
-  playerMainInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  playerProfilePic: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: '#4A90E2',
-  },
-  playerInfo: {
-    flex: 1,
-  },
-  playerName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  playerRole: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  captainButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  activeCaptainButton: {
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    borderColor: '#FFD700',
-  },
-  deleteButton: {
-    padding: 5,
-  },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 10 },
+  teamPlayerCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#eee', marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
+  playerMainInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  playerProfileWrapper: { position: 'relative' },
+  captainHighlight: { borderWidth: 2, borderColor: '#FFD700', borderRadius: 25, padding: 2 },
+  captainBadge: { position: 'absolute', bottom: -2, right: -2, backgroundColor: '#fff', borderRadius: 10, padding: 2, elevation: 2 },
+  playerProfilePic: { width: 50, height: 50, borderRadius: 25 },
+  playerInfo: { flex: 1, marginLeft: 10 },
+  playerName: { fontSize: 16, fontWeight: '600', color: '#333' },
+  playerRole: { fontSize: 14, color: '#555' },
+  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  captainButton: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: '#4A90E2', justifyContent: 'center', alignItems: 'center' },
+  activeCaptainButton: { backgroundColor: '#eaf4ff' },
   footer: {
-    paddingTop: 15,
-    paddingBottom: 5,
-  },
-  createButton: {
-    backgroundColor: '#4A90E2',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 5,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
   },
-  disabledButton: {
-    backgroundColor: '#1A365D',
-    shadowOpacity: 0,
-  },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  errorMessage: {
-    color: '#F44336',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  filteredPlayersList: {
-    paddingBottom: 5,
-  },
-  selectedPlayersList: {
-    paddingBottom: 20,
-  },
+  createButton: { padding: 16, borderRadius: 12, alignItems: 'center' },
+  createButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  errorMessage: { color: '#F44336', textAlign: 'center', marginBottom: 10 },
 });
 
 export default AddPlayersToTeam;

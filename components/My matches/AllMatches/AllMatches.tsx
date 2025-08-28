@@ -151,12 +151,12 @@ const AllMatches = () => {
   );
 };
 
-// Enhanced Match Card Component
-const MatchCard = ({
-  item,
-  onPress,
-  status = 'UPCOMING',
-  showScores = true,
+
+const MatchCard = ({ 
+  item, 
+  onPress, 
+  status = 'UPCOMING', 
+  showScores = true, 
   showWinner = false,
   userId
 }) => {
@@ -216,7 +216,7 @@ const MatchCard = ({
           style={styles.matchCardHeader}
         >
           <Text style={styles.tournamentName} numberOfLines={1}>
-            {item?.tournamentResponse?.name || 'Tournament Match'}
+            {item?.tournamentResponse?.name || 'Individual Match'}
           </Text>
         </LinearGradient>
 
@@ -786,7 +786,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingBottom: 20,
-    paddingTop: Platform.OS === 'ios' ? 30 : 20,
+    paddingTop: Platform.OS === 'ios' ? 30 : 40,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
     overflow: 'hidden',
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 25,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 0,
     paddingHorizontal: 15,
   },
   searchIcon: {
@@ -864,17 +864,15 @@ const styles = StyleSheet.create({
     padding: 15,
     paddingBottom: 20,
   },
-  // Match Card Styles
   matchCard: {
     backgroundColor: AppColors.white,
     borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 15,
-    shadowColor: AppColors.black,
-    shadowOffset: { width: 0, height: 5 },
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 6,
   },
   statusBadge: {
     position: 'absolute',
@@ -902,11 +900,12 @@ const styles = StyleSheet.create({
     padding: 15,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    alignItems: 'center',
   },
   tournamentName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: AppColors.darkText,
+    fontSize: 17,
+    fontWeight: '700',
+    color: AppColors.secondaryBlue,
     textAlign: 'center',
   },
   matchCardContent: {
@@ -923,10 +922,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   teamLogo: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 8,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginBottom: 6,
+    borderWidth: 2,
+    borderColor: AppColors.primaryBlue,
     backgroundColor: AppColors.lightBackground,
   },
   teamName: {
@@ -1012,6 +1013,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     paddingVertical: 12,
     borderRadius: 25,
+  },
+  scoreBadge: {
+    backgroundColor: AppColors.lightBackground,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
   },
   refreshButtonText: {
     color: AppColors.white,

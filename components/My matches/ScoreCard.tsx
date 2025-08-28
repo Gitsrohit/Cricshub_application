@@ -51,7 +51,6 @@ const ScoreCard = ({ route, navigation }) => {
       if (response.success && response.data) {
         setMatchState(response.data);
         setTeam(response.data.team1.name);
-        console.log(response.data);
       } else {
         setLoadingError('No match data received');
         setMatchState({ error: true });
@@ -75,7 +74,6 @@ const ScoreCard = ({ route, navigation }) => {
     }
   };
 
-
   const onRefresh = () => {
     getMatchState();
   };
@@ -89,9 +87,11 @@ const ScoreCard = ({ route, navigation }) => {
   }, [navigation]);
 
   const renderBattingTable = (teamData, battingOrder) => {
+    if (!teamData || !teamData.playingXI) return null;
+    
     const orderedBatting = [
-      ...battingOrder,
-      ...teamData?.playingXI.filter(
+      ...(battingOrder || []),
+      ...teamData.playingXI.filter(
         (player) => !battingOrder?.some((b) => b?.playerId === player?.playerId)
       ),
     ];
@@ -116,11 +116,11 @@ const ScoreCard = ({ route, navigation }) => {
 
         {orderedBatting.map((item, index) => {
           const playerStats = teamData.playingXI.find((p) => p.playerId === item.playerId) || {};
-          const isBatted = battingOrder.some((b) => b.playerId === item.playerId);
+          const isBatted = battingOrder?.some((b) => b.playerId === item.playerId);
 
           return (
             <View
-              key={item.playerId}
+              key={item.playerId || index}
               style={[
                 styles.statsRow,
                 index % 2 === 0 && styles.evenRow
@@ -128,7 +128,7 @@ const ScoreCard = ({ route, navigation }) => {
             >
               <View style={styles.nameCol}>
                 <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>{item.name}</Text>
+                  <Text style={styles.playerName}>{item.name || 'Unknown Player'}</Text>
                   {isBatted && (
                     <Ionicons
                       name={item.dismissalInfo ? 'close-circle' : 'checkmark-circle'}
@@ -138,7 +138,7 @@ const ScoreCard = ({ route, navigation }) => {
                   )}
                 </View>
                 <Text style={styles.dismissal}>
-                  {isBatted ? item.dismissalInfo || 'Not out' : 'Yet to bat'}
+                  {isBatted ? (item.dismissalInfo || 'Not out') : 'Yet to bat'}
                 </Text>
               </View>
               <Text style={[styles.statCol, styles.statText]}>{playerStats.runs || 0}</Text>
@@ -156,7 +156,9 @@ const ScoreCard = ({ route, navigation }) => {
   };
 
   const renderBowlingTable = (bowlingTeamData) => {
-    const bowlers = bowlingTeamData.playingXI.filter(bowler => bowler.ballsBowled);
+    if (!bowlingTeamData || !bowlingTeamData.playingXI) return null;
+    
+    const bowlers = bowlingTeamData.playingXI.filter(bowler => bowler.ballsBowled > 0);
 
     return (
       <View style={styles.card}>
@@ -170,32 +172,38 @@ const ScoreCard = ({ route, navigation }) => {
         <View style={styles.statsHeader}>
           <Text style={[styles.nameCol, styles.headerText]}>Bowler</Text>
           <Text style={[styles.statCol, styles.headerText]}>O</Text>
-          {/* <Text style={[styles.statCol, styles.headerText]}>M</Text> */}
           <Text style={[styles.statCol, styles.headerText]}>R</Text>
           <Text style={[styles.statCol, styles.headerText]}>W</Text>
           <Text style={[styles.statCol, styles.headerText]}>Econ</Text>
         </View>
 
-        {bowlers.map((bowler, index) => (
-          <View
-            key={bowler.playerId}
-            style={[
-              styles.statsRow,
-              index % 2 === 0 && styles.evenRow
-            ]}
-          >
-            <Text style={[styles.nameCol, styles.playerName]}>
-              {bowler.name}
-            </Text>
-            <Text style={[styles.statCol, styles.statText]}>{bowler.ballsBowled / 6}.{bowler.ballsBowled % 6}</Text>
-            {/* <Text style={[styles.statCol, styles.statText]}>{bowler.maidens || 0}</Text> */}
-            <Text style={[styles.statCol, styles.statText]}>{bowler.runsConceded || 0}</Text>
-            <Text style={[styles.statCol, styles.statText]}>{bowler.wicketsTaken || 0}</Text>
-            <Text style={[styles.statCol, styles.statText]}>
-              {bowler.economyRate ? bowler.economyRate.toFixed(1) : '0.0'}
-            </Text>
+        {bowlers.length > 0 ? (
+          bowlers.map((bowler, index) => (
+            <View
+              key={bowler.playerId || index}
+              style={[
+                styles.statsRow,
+                index % 2 === 0 && styles.evenRow
+              ]}
+            >
+              <Text style={[styles.nameCol, styles.playerName]}>
+                {bowler.name || 'Unknown Bowler'}
+              </Text>
+              <Text style={[styles.statCol, styles.statText]}>
+                {Math.floor(bowler.ballsBowled / 6)}.{bowler.ballsBowled % 6}
+              </Text>
+              <Text style={[styles.statCol, styles.statText]}>{bowler.runsConceded || 0}</Text>
+              <Text style={[styles.statCol, styles.statText]}>{bowler.wicketsTaken || 0}</Text>
+              <Text style={[styles.statCol, styles.statText]}>
+                {bowler.economyRate ? bowler.economyRate.toFixed(1) : '0.0'}
+              </Text>
+            </View>
+          ))
+        ) : (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>No bowling data available</Text>
           </View>
-        ))}
+        )}
       </View>
     );
   };
@@ -234,6 +242,27 @@ const ScoreCard = ({ route, navigation }) => {
     );
   }
 
+  if (matchState.error) {
+    return (
+      <View style={styles.errorContainer}>
+        <LinearGradient
+          colors={['#ff6b6b', '#ee5a52']}
+          style={styles.errorGradient}
+        >
+          <MaterialCommunityIcons name="alert-circle" size={40} color="#fff" />
+          <Text style={styles.errorTitle}>Failed to Load Match</Text>
+          <Text style={styles.errorMessage}>{loadingError}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={getMatchState}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      </View>
+    );
+  }
+
   return (
     <ImageBackground
       source={background}
@@ -261,7 +290,7 @@ const ScoreCard = ({ route, navigation }) => {
           <View style={styles.matchTitleContainer}>
             <MaterialCommunityIcons name="cricket" size={24} color="#fff" style={styles.cricketIcon} />
             <Text style={styles.matchTitle}>
-              {matchState.team1.name} vs {matchState.team2.name}
+              {matchState.team1?.name || 'Team 1'} vs {matchState.team2?.name || 'Team 2'}
             </Text>
           </View>
           <Text style={styles.matchSubtitle}>{matchState.tournament || 'Cricket Match'}</Text>
@@ -274,11 +303,11 @@ const ScoreCard = ({ route, navigation }) => {
         {/* Team Scores */}
         <View style={styles.scoreContainer}>
           <View style={styles.teamScore}>
-            <Text style={styles.teamName}>{matchState.team1.name}</Text>
+            <Text style={styles.teamName}>{matchState.team1?.name || 'Team 1'}</Text>
             <Text style={styles.teamRuns}>
-              {matchState.team1.score}/{matchState.team1.wickets}
+              {matchState.team1?.score || 0}/{matchState.team1?.wickets || 0}
             </Text>
-            {matchState.team1.overs && (
+            {matchState.team1?.overs && (
               <Text style={styles.teamOvers}>{matchState.team1.overs} overs</Text>
             )}
           </View>
@@ -288,11 +317,11 @@ const ScoreCard = ({ route, navigation }) => {
           </View>
 
           <View style={styles.teamScore}>
-            <Text style={styles.teamName}>{matchState.team2.name}</Text>
+            <Text style={styles.teamName}>{matchState.team2?.name || 'Team 2'}</Text>
             <Text style={styles.teamRuns}>
-              {matchState.team2.score}/{matchState.team2.wickets}
+              {matchState.team2?.score || 0}/{matchState.team2?.wickets || 0}
             </Text>
-            {matchState.team2.overs && (
+            {matchState.team2?.overs && (
               <Text style={styles.teamOvers}>{matchState.team2.overs} overs</Text>
             )}
           </View>
@@ -302,18 +331,18 @@ const ScoreCard = ({ route, navigation }) => {
         <View style={styles.teamSelector}>
           {[matchState.team1, matchState.team2].map((t) => (
             <TouchableOpacity
-              key={t.name}
+              key={t?.name}
               style={[
                 styles.teamButton,
-                team === t.name && styles.activeButton,
+                team === t?.name && styles.activeButton,
               ]}
-              onPress={() => setTeam(t.name)}
+              onPress={() => setTeam(t?.name)}
             >
               <Text style={[
                 styles.buttonText,
-                team === t.name && styles.activeButtonText
+                team === t?.name && styles.activeButtonText
               ]}>
-                {t.name}
+                {t?.name || 'Team'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -367,14 +396,14 @@ const ScoreCard = ({ route, navigation }) => {
         </View>
 
         {/* Stats Content */}
-        {activeTab === 'batting' && team === matchState.team1.name &&
+        {activeTab === 'batting' && team === matchState.team1?.name &&
           renderBattingTable(matchState.team1, matchState.team1BattingOrder)}
-        {activeTab === 'batting' && team === matchState.team2.name &&
+        {activeTab === 'batting' && team === matchState.team2?.name &&
           renderBattingTable(matchState.team2, matchState.team2BattingOrder)}
 
-        {activeTab === 'bowling' && team === matchState.team1.name &&
+        {activeTab === 'bowling' && team === matchState.team1?.name &&
           renderBowlingTable(matchState.team2)}
-        {activeTab === 'bowling' && team === matchState.team2.name &&
+        {activeTab === 'bowling' && team === matchState.team2?.name &&
           renderBowlingTable(matchState.team1)}
       </ScrollView>
     </ImageBackground>
@@ -395,17 +424,45 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loadingGradient: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  errorGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   loadingText: {
     fontSize: 18,
     color: '#fff',
     marginTop: 10,
     fontWeight: '500',
+    textAlign: 'center',
+  },
+  errorTitle: {
+    fontSize: 20,
+    color: '#fff',
+    marginTop: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#fff',
+    marginTop: 10,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   spinner: {
     marginTop: 20,
@@ -419,14 +476,17 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 20,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   retryButtonText: {
     color: '#fff',
     fontWeight: '600',
+    fontSize: 16,
   },
   scrollContainer: {
     paddingBottom: 20,
@@ -440,6 +500,7 @@ const styles = StyleSheet.create({
   matchTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 5,
   },
   cricketIcon: {
     marginRight: 10,
@@ -453,12 +514,12 @@ const styles = StyleSheet.create({
   matchSubtitle: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.8)',
-    marginTop: 5,
+    marginBottom: 5,
   },
   matchStatusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 5,
   },
   matchStatusText: {
     fontSize: 14,
@@ -476,13 +537,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 15,
     padding: 15,
     elevation: 3,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
   teamName: {
     fontSize: 16,
@@ -502,7 +563,7 @@ const styles = StyleSheet.create({
   },
   vsContainer: {
     justifyContent: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 15,
   },
   vsText: {
     fontSize: 16,
@@ -512,15 +573,20 @@ const styles = StyleSheet.create({
   teamSelector: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginHorizontal: 16,
-    marginBottom: 15,
+    marginHorizontal: 20,
+    marginBottom: 20,
     borderRadius: 25,
     backgroundColor: '#e3f2fd',
     padding: 5,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
   teamButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -536,24 +602,30 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#0A5A9C',
     fontWeight: '600',
+    fontSize: 14,
   },
   activeButtonText: {
     color: '#fff',
   },
   statsTabs: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 15,
-    borderRadius: 10,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 12,
     backgroundColor: '#e3f2fd',
     padding: 5,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
   statsTab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 8,
   },
   activeStatsTab: {
@@ -570,22 +642,24 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginBottom: 15,
+    borderRadius: 15,
+    marginHorizontal: 20,
+    marginBottom: 20,
     elevation: 3,
-    shadowColor: '#aaa',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    padding: 15,
     borderBottomWidth: 1,
     borderColor: '#eee',
+    backgroundColor: '#f8fbff',
   },
   sectionTitle: {
     fontSize: 18,
@@ -594,9 +668,9 @@ const styles = StyleSheet.create({
   },
   teamIndicator: {
     backgroundColor: '#e3f2fd',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
   },
   teamIndicatorText: {
     fontSize: 12,
@@ -605,19 +679,24 @@ const styles = StyleSheet.create({
   },
   statsHeader: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
     backgroundColor: '#f5f9ff',
+    borderBottomWidth: 1,
+    borderColor: '#eee',
   },
   headerText: {
     fontSize: 13,
     fontWeight: '700',
     color: '#0A5A9C',
+    textAlign: 'center',
   },
   statsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
+    paddingHorizontal: 15,
     paddingVertical: 12,
+    alignItems: 'center',
+    minHeight: 50,
   },
   evenRow: {
     backgroundColor: '#fafcff',
@@ -633,11 +712,13 @@ const styles = StyleSheet.create({
   playerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 3,
   },
   playerName: {
     fontWeight: '600',
     fontSize: 14,
     color: '#1a1a1a',
+    marginRight: 5,
   },
   statText: {
     fontSize: 14,
@@ -647,7 +728,16 @@ const styles = StyleSheet.create({
   dismissal: {
     fontSize: 12,
     color: '#777',
-    marginTop: 3,
+  },
+  noDataContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });
 

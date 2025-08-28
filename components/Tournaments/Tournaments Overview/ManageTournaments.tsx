@@ -298,8 +298,10 @@ export default function ManageTournaments({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#f8f9fa" },
+
   gradientOverlay: { flex: 1 },
+
   headerArea: { 
     position: "absolute", 
     top: 0, 
@@ -307,43 +309,54 @@ const styles = StyleSheet.create({
     right: 0, 
     overflow: "hidden", 
     zIndex: 10, 
-    backgroundColor: "#34B8FF", 
     paddingTop: StatusBar.currentHeight, 
     alignItems: "center", 
-    justifyContent: "center" 
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
+
   headerContentWrapper: { 
     width: "100%", 
     paddingHorizontal: 20, 
     justifyContent: "center", 
     alignItems: "center" 
   },
+
   backButton: { 
     position: "absolute", 
     top: StatusBar.currentHeight + 15, 
     left: 15, 
     zIndex: 1, 
-    // backgroundColor: "rgba(0,0,0,0.2)", 
+    backgroundColor: "rgba(255,255,255,0.2)", 
     borderRadius: 20, 
     padding: 8 
   },
+
   tournamentDetailsTextContainer: { 
-    alignItems: "center" 
+    alignItems: "center",
+    marginTop: 10,
   },
+
   tournamentNameHeader: { 
-    fontSize: 24, 
+    fontSize: 26, 
     fontWeight: "bold", 
-    color: "white", 
+    color: "#fff", 
     textAlign: "center", 
-    marginBottom: 5 
+    marginBottom: 6 
   },
+
   tournamentSubDetail: { 
     fontSize: 14, 
-    color: "rgba(255,255,255,0.9)", 
+    color: "rgba(255,255,255,0.85)", 
     textAlign: "center", 
-    marginBottom: 3, 
-    fontWeight: "500" 
+    marginBottom: 4, 
+    fontWeight: "500",
   },
+
   collapsedHeader: { 
     position: "absolute", 
     top: 0, 
@@ -354,63 +367,64 @@ const styles = StyleSheet.create({
     justifyContent: "center", 
     alignItems: "center", 
     paddingTop: StatusBar.currentHeight, 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 4 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 4.65, 
-    elevation: 8, 
     zIndex: 11, 
-    flexDirection: "row" 
+    flexDirection: "row",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
+
   collapsedHeaderText: { 
     color: "white", 
     fontSize: 18, 
     fontWeight: "bold", 
     marginLeft: 50, 
-    marginRight: 20, 
     flexShrink: 1 
   },
+
   backButtonCollapsed: { 
     position: "absolute", 
     top: StatusBar.currentHeight + 15, 
     left: 15, 
     zIndex: 1, 
-    backgroundColor: "transparent", 
+    backgroundColor: "rgba(255,255,255,0.2)", 
     borderRadius: 20, 
     padding: 8 
   },
+
   toggleContainer: { 
     position: "absolute", 
-    left: 0, 
-    right: 0, 
+    left: 10, 
+    right: 10, 
     height: TAB_BAR_HEIGHT, 
-    backgroundColor: "rgba(255,255,255,0.2)", 
-    justifyContent: "center", 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 3 }, 
-    shadowOpacity: 0.25, 
-    shadowRadius: 3.84, 
-    elevation: 5, 
-    borderBottomWidth: 1, 
-    borderBottomColor: "rgba(255,255,255,0.2)", 
-    zIndex: 9 
+    backgroundColor: "rgba(255,255,255,0.15)", 
+    borderRadius: 30,
+    justifyContent: "center",
+    marginHorizontal: 10,
+    marginTop: 5,
+    zIndex: 9,
   },
+
   toggleScrollViewContent: { 
     alignItems: "center", 
-    paddingHorizontal: 10, 
+    paddingHorizontal: 5, 
     justifyContent: 'center' 
   },
+
   toggleButton: { 
     paddingVertical: 8, 
-    paddingHorizontal: 18, 
+    paddingHorizontal: 20, 
     marginHorizontal: 4, 
     backgroundColor: "transparent", 
-    borderRadius: 20, 
+    borderRadius: 25, 
     justifyContent: "center", 
     alignItems: "center", 
     borderWidth: 1, 
     borderColor: 'rgba(255,255,255,0.5)' 
   },
+
   activeToggleButton: { 
     backgroundColor: "#fff", 
     borderWidth: 0, 
@@ -418,57 +432,65 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 }, 
     shadowOpacity: 0.2, 
     shadowRadius: 2.62, 
-    elevation: 4 
+    elevation: 3 
   },
+
   toggleText: { 
     color: "#fff", 
     fontWeight: "600", 
     fontSize: 14, 
     letterSpacing: 0.5 
   },
+
   activeToggleText: { 
     color: "#34B8FF", 
     fontSize: 15, 
     fontWeight: "bold" 
   },
+
   mainContentScrollView: { flex: 1 },
+
   loadingOverlay: { 
     flex: 1, 
     minHeight: Dimensions.get("window").height - (HEADER_MIN_HEIGHT + TAB_BAR_HEIGHT + (StatusBar.currentHeight || 0) + 30), 
     justifyContent: "center", 
     alignItems: "center", 
-    backgroundColor: "rgba(255,255,255,0.85)", 
+    backgroundColor: "rgba(255,255,255,0.95)", 
     borderRadius: 15, 
     marginVertical: 10, 
+    padding: 15,
     shadowColor: "#000", 
     shadowOffset: { width: 0, height: 2 }, 
     shadowOpacity: 0.1, 
     shadowRadius: 3, 
     elevation: 3 
   },
+
   loadingText: { 
-    marginTop: 15, 
-    fontSize: 17, 
+    marginTop: 12, 
+    fontSize: 16, 
     color: "#555", 
     fontWeight: "500" 
   },
+
   errorContainer: { 
     flex: 1, 
     minHeight: Dimensions.get("window").height - (HEADER_MIN_HEIGHT + TAB_BAR_HEIGHT + (StatusBar.currentHeight || 0) + 30), 
     justifyContent: "center", 
     alignItems: "center", 
-    backgroundColor: "#FFEBEE", 
+    backgroundColor: "#FFF3F3", 
     borderRadius: 15, 
     padding: 25, 
     marginVertical: 10, 
     borderWidth: 1, 
-    borderColor: "#EF9A9A", 
+    borderColor: "#FFCDD2", 
     shadowColor: "#000", 
     shadowOffset: { width: 0, height: 2 }, 
     shadowOpacity: 0.1, 
     shadowRadius: 3, 
     elevation: 3 
   },
+
   errorText: { 
     fontSize: 17, 
     color: "#D32F2F", 
@@ -476,17 +498,19 @@ const styles = StyleSheet.create({
     marginBottom: 20, 
     fontWeight: "500" 
   },
+
   retryButton: { 
     backgroundColor: "#34B8FF", 
     paddingVertical: 12, 
     paddingHorizontal: 25, 
-    borderRadius: 10, 
+    borderRadius: 12, 
     shadowColor: "#000", 
     shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.2, 
-    shadowRadius: 3, 
-    elevation: 4 
+    shadowOpacity: 0.25, 
+    shadowRadius: 3.5, 
+    elevation: 5 
   },
+
   retryButtonText: { 
     color: "white", 
     fontSize: 16, 

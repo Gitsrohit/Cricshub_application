@@ -184,13 +184,13 @@ const Home = () => {
   const viewabilityConfig = { itemVisiblePercentThreshold: 50 };
 
   return (
-    <View style={styles.appContainer}>
+    <SafeAreaView style={styles.appContainer}>
       <StatusBar
         barStyle="dark-content"
         backgroundColor={AppColors.background}
         translucent={false}
       />
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.safeArea}>
         {/* Top bar */}
         <View style={styles.topBarWrapper}>
           <View style={styles.topBar}>
@@ -217,69 +217,65 @@ const Home = () => {
         </View>
 
         {/* Sidebar */}
-        <Animated.View
-          style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}
+<Animated.View
+  style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}
+>
+  <View style={styles.sidebarBackground}>
+    <TouchableOpacity
+      onPress={closeSidebar}
+      style={styles.closeSidebarButton}
+    >
+      <Ionicons name="close" color={AppColors.black} size={28} />
+    </TouchableOpacity>
+
+    {/* Sidebar Header */}
+    <View style={styles.sidebarHeader}>
+      <View style={styles.userImageWrapper}>
+        <Image
+          source={require("../../assets/defaultLogo.png")}
+          style={styles.userImage}
+        />
+      </View>
+      <Text style={styles.sidebarTitle}>{userName || "Guest User"}</Text>
+    </View>
+
+    {/* Sidebar Options */}
+    <View style={styles.sidebarOptionsWrapper}>
+      {[
+        { icon: "person-outline", text: "Profile", screen: "Profile" },
+        { icon: "stats-chart-outline", text: "Performance", screen: "Performance" },
+        { icon: "help-circle-outline", text: "Support", screen: "Support" },
+        { icon: "star-outline", text: "Rate Us", screen: "RateUs" },
+        { icon: "settings-outline", text: "Settings", screen: "Settings" },
+        { icon: "globe-outline", text: "Web", screen: "WebSocketTest" },
+      ].map(({ icon, text, screen }) => (
+        <TouchableOpacity
+          key={screen}
+          style={styles.sidebarItemPatch}
+          onPress={() => {
+            navigation.navigate(screen);
+            closeSidebar();
+          }}
         >
-          <LinearGradient
-            colors={AppGradients.primaryCard}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.sidebarBackground}
-          >
-            <TouchableOpacity
-              onPress={closeSidebar}
-              style={styles.closeSidebarButton}
-            >
-              <Ionicons name="close" color={AppColors.white} size={28} />
-            </TouchableOpacity>
+          <Ionicons name={icon} size={22} color={AppColors.blue} />
+          <Text style={styles.sidebarItemTextDark}>{text}</Text>
+        </TouchableOpacity>
+      ))}
 
-            <View style={styles.sidebarHeader}>
-              <View style={styles.userImageWrapper}>
-                <Image
-                  source={require("../../assets/defaultLogo.png")}
-                  style={styles.userImage}
-                />
-              </View>
-              <Text style={styles.sidebarTitle}>
-                {userName || "Guest User"}
-              </Text>
-            </View>
+      {/* Logout Button */}
+      <TouchableOpacity style={[styles.sidebarItemPatch, styles.logoutPatch]} onPress={LogOutHandler}>
+        <Ionicons name="log-out-outline" size={22} color={AppColors.error} />
+        <Text style={[styles.sidebarItemTextDark, { color: AppColors.error }]}>Logout</Text>
+      </TouchableOpacity>
+    </View>
 
-            {[
-              { icon: "person-outline", text: "Profile", screen: "Profile" },
-              { icon: "stats-chart-outline", text: "Performance", screen: "Performance" },
-              { icon: "help-circle-outline", text: "Support", screen: "Support" },
-              { icon: "star-outline", text: "Rate Us", screen: "RateUs" },
-              { icon: "settings-outline", text: "Settings", screen: "Settings" },
-              { icon: "globe-outline", text: "Web", screen: "WebSocketTest" },
-            ].map(({ icon, text, screen }) => (
-              <TouchableOpacity
-                key={screen}
-                style={styles.sidebarItem}
-                onPress={() => {
-                  navigation.navigate(screen);
-                  closeSidebar();
-                }}
-              >
-                <Ionicons name={icon} size={22} color={AppColors.white} />
-                <Text style={styles.sidebarItemText}>{text}</Text>
-              </TouchableOpacity>
-            ))}
+    {/* Footer */}
+    <View style={styles.sidebarFooter}>
+      <Text style={styles.footerTextDark}>cricshub ©2025</Text>
+    </View>
+  </View>
+</Animated.View>
 
-            <TouchableOpacity style={styles.sidebarItem} onPress={LogOutHandler}>
-              <Ionicons
-                name="log-out-outline"
-                size={22}
-                color={AppColors.error}
-              />
-              <Text style={styles.sidebarItemText}>Logout</Text>
-            </TouchableOpacity>
-
-            <View style={styles.sidebarFooter}>
-              <Text style={styles.footerText}>cricshub ©2025</Text>
-            </View>
-          </LinearGradient>
-        </Animated.View>
 
         {/* Main content */}
         <View style={styles.mainContent}>
@@ -360,8 +356,8 @@ const Home = () => {
             />
           </View>
         </View>
-      </SafeAreaView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
@@ -407,21 +403,76 @@ export const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
     overflow: "hidden",
     zIndex: 100,
+    backgroundColor: AppColors.white,
     shadowColor: "#000",
     shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 10, 
   },
-  sidebarBackground: { flex: 1 },
+  sidebarBackground: { flex: 1, backgroundColor: AppColors.white },
+  sidebarHeader: { marginTop: 80, marginBottom: 20, alignItems: "center" },
+  sidebarTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: AppColors.black,
+    textAlign: "center",
+  },
+  sidebarOptionsWrapper: {
+    marginTop: 10,
+    paddingHorizontal: 15,
+  },
+  sidebarItemPatch: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa", 
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  sidebarItemTextDark: {
+    fontSize: 16,
+    marginLeft: 15,
+    fontWeight: "500",
+    color: AppColors.black,
+  },
+  logoutPatch: {
+    backgroundColor: "#fff0f0", // light red bg for logout
+  },
+  footerTextDark: { fontSize: 14, color: AppColors.black, opacity: 0.6 },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 90,
+  },
   closeSidebarButton: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 40 : 20,
-    right: 15,
-    padding: 10,
-    zIndex: 101,
+    top: Platform.OS === "ios" ? 50 : 20,
+    right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    zIndex: 101, // above sidebar content
   },
-  sidebarHeader: { marginTop: 80, marginBottom: 30, alignItems: "center" },
+  
+  
+ 
   userImageWrapper: {
     width: 90,
     height: 90,
@@ -432,12 +483,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.15)",
   },
   userImage: { width: 80, height: 80, borderRadius: 40 },
-  sidebarTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: AppColors.white,
-    textAlign: "center",
-  },
+  
   sidebarItem: {
     flexDirection: "row",
     alignItems: "center",

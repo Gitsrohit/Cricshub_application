@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ImageBackground,
   Image,
   Alert,
 } from 'react-native';
@@ -14,8 +13,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { useNavigation } from '@react-navigation/native';
-
-const background = require('../../assets/images/cricsLogo.png');
 
 const CreateTeam = () => {
   const [teamName, setTeamName] = useState('');
@@ -54,130 +51,108 @@ const CreateTeam = () => {
       logoUri,
     });
   };
-   const handleWeb = () => {
-    // if (!teamName.trim() || !logoUri) {
-    //   Alert.alert('Error', 'Please fill in the team name and upload a logo.');
-    //   return;
-    // }
-    navigation.navigate('WebSocketTest');
-  };
-
 
   return (
-    <ImageBackground source={background} style={styles.background}>
-      <LinearGradient colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']} style={styles.gradient}>
-        <View style={styles.container}>
-          <LinearGradient
-            colors={['#4A90E2', '#6BB9F0']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradientCard}
-          >
-            <View style={styles.logoContainer}>
+    <View style={styles.background}>
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#4A90E2', '#6BB9F0']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientCard}
+        >
+          <View style={styles.logoContainer}>
+            <TouchableOpacity onPress={pickImage} activeOpacity={0.7}>
               <View style={styles.logoPlaceholder}>
                 {logoUri ? (
                   <Image source={{ uri: logoUri }} style={styles.logo} />
                 ) : (
-                  <MaterialIcons name="add-a-photo" size={40} color="#fff" />
+                  <MaterialIcons name="add-a-photo" size={40} color="#4A90E2" />
                 )}
               </View>
-              <TouchableOpacity onPress={pickImage} style={styles.uploadLogoButton}>
-                <Text style={styles.uploadLogoText}>Upload Logo</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Team Name"
-              placeholderTextColor="#ccc"
-              value={teamName}
-              onChangeText={setTeamName}
-            />
-
-            <TouchableOpacity onPress={handleContinue} style={styles.continueButton}>
-              <Text style={styles.continueButtonText}>Continue</Text>
             </TouchableOpacity>
-             <TouchableOpacity onPress={handleWeb} style={styles.continueButton}>
-              <Text style={styles.continueButtonText}>Web</Text>
-            </TouchableOpacity>
-          </LinearGradient>
-        </View>
-      </LinearGradient>
-    </ImageBackground>
+          </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Team Name"
+            placeholderTextColor="#999"
+            value={teamName}
+            onChangeText={setTeamName}
+          />
+
+          <TouchableOpacity onPress={handleContinue} style={styles.continueButton}>
+            <Text style={styles.continueButtonText}>Continue</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    resizeMode: 'cover',
-  },
-  gradient: {
-    flex: 1,
+    backgroundColor: '#fff', // Solid white background
     justifyContent: 'center',
+    alignItems: 'center',
   },
   container: {
-    flex: 1,
-    justifyContent: 'center',
+    width: '100%',
     alignItems: 'center',
     padding: 20,
   },
   gradientCard: {
     width: '90%',
+    borderWidth: 2,
+    borderColor: '#4A90E2',
     borderRadius: 20,
-    padding: 20,
+    padding: 25,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
     shadowRadius: 10,
-    elevation: 10,
+    elevation: 8,
+    backgroundColor: '#fff',
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 20,
   },
   logoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#4A90E2',
   },
   logo: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  uploadLogoButton: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 5,
-  },
-  uploadLogoText: {
-    color: '#fff',
+    width: 110,
+    height: 110,
+    borderRadius: 55,
   },
   input: {
-    borderColor: '#fff',
+    borderColor: '#ddd',
     borderWidth: 1,
-    padding: 10,
-    color: '#fff',
-    borderRadius: 5,
+    padding: 12,
+    color: '#333',
+    borderRadius: 8,
     marginBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#f9f9f9',
   },
   continueButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 15,
-    borderRadius: 5,
+    backgroundColor: '#4A90E2',
+    paddingVertical: 15,
+    borderRadius: 10,
     alignItems: 'center',
   },
   continueButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
   },
 });
 

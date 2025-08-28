@@ -10,28 +10,27 @@ import {
   Vibration,
   Platform,
   Animated,
-  Alert, // Added for showing creation errors
+  Alert,
+  ActivityIndicator,
 } from "react-native";
-import React, { useEffect, useState, useRef, useCallback } from "react"; // Added useCallback
+import React, { useEffect, useState, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import apiService from "../APIservices";
-import { AppColors } from '../../assets/constants/colors.js'
-import { AppGradients } from '../../assets/constants/colors.js'
-import CustomAlertDialog from '../Customs/CustomDialog.js'
-import LottieView from 'lottie-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { AppColors } from "../../assets/constants/colors.js";
+import { AppGradients } from "../../assets/constants/colors.js";
+import CustomAlertDialog from "../Customs/CustomDialog.js";
+import LottieView from "lottie-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 const SelectPlayingXI = ({ route }) => {
   const navigation = useNavigation();
-  // We now receive matchDetails and the requestBody to create the match
   const { matchDetails, requestBody } = route.params;
 
-  const [isLoading, setIsLoading] = useState(true); // For initial data fetch (match creation + team details)
-  const [error, setError] = useState(null); // For any error during the initial loading phase
-  const [matchId, setMatchId] = useState(null); // New state to hold the created match's ID
-
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [matchId, setMatchId] = useState(null);
   const [team1Details, setTeam1Details] = useState(null);
   const [team2Details, setTeam2Details] = useState(null);
   const [selectedTeam1, setSelectedTeam1] = useState([]);
@@ -45,8 +44,11 @@ const SelectPlayingXI = ({ route }) => {
   const [alertDialogType, setAlertDialogType] = useState("info");
   const shakeAnimation = useRef(new Animated.Value(0)).current;
 
-  // Function to create the match and then fetch team details
-  const initializeMatchAndTeams = useCallback(async () => {
+  // guard to prevent duplicate API call in StrictMode
+  const initialized = useRef(false);
+
+  // ✅ Initialize match and fetch only Team1
+  const initializeMatchAndTeams = async () => {
     setIsLoading(true);
     setError(null);
     const token = await AsyncStorage.getItem("jwtToken");
@@ -57,80 +59,99 @@ const SelectPlayingXI = ({ route }) => {
     }
 
     try {
-      // 1. Create the Match First
-      console.log("SelectPlayingXI: Attempting to create match with requestBody:", requestBody);
+      console.log("Creating match with requestBody:", requestBody);
       const matchCreationResponse = await apiService({
-        endpoint: 'matches/schedule',
-        method: 'POST',
+        endpoint: "matches/schedule",
+        method: "POST",
         body: requestBody,
         token: token,
       });
 
-      if (matchCreationResponse.success && matchCreationResponse.data.data && matchCreationResponse.data.data.id) {
+      if (matchCreationResponse.success && matchCreationResponse.data.data?.id) {
         const newMatchId = matchCreationResponse.data.data.id;
-        setMatchId(newMatchId); // Store the matchId
+        setMatchId(newMatchId);
 
-        console.log("SelectPlayingXI: Match created successfully, ID:", newMatchId);
+        console.log("Match created successfully, ID:", newMatchId);
 
-        // 2. Then, Fetch Team Details
-        const [response1, response2] = await Promise.all([
-          apiService({
-            endpoint: `teams/${matchDetails.team1Id}`,
-            method: 'GET',
-            token: token,
-          }),
-          apiService({
-            endpoint: `teams/${matchDetails.team2Id}`,
-            method: 'GET',
-            token: token,
-          }),
-        ]);
+        // ✅ Fetch only team1 here
+        const response1 = await apiService({
+          endpoint: `teams/${matchDetails.team1Id}`,
+          method: "GET",
+          token: token,
+        });
 
-        if (response1.success && response2.success) {
+        if (response1.success) {
           setTeam1Details(response1.data.data);
-          setTeam2Details(response2.data.data);
-          setFilteredTeam1Players(response1.data.data.players);
-          setFilteredTeam2Players(response2.data.data.players);
-          console.log("SelectPlayingXI: Team details fetched.");
+          setFilteredTeam1Players(response1.data.data.players || []);
+          console.log("Team 1 details fetched.");
         } else {
-          let teamFetchError = "Failed to fetch team details.";
-          if (response1.error && !response1.success) teamFetchError += ` Team 1: ${response1.error.message || response1.error}`;
-          if (response2.error && !response2.success) teamFetchError += ` Team 2: ${response2.error.message || response2.error}`;
-          setError(teamFetchError);
-          console.error("SelectPlayingXI: Error fetching team details:", teamFetchError);
+          setError(
+            `Failed to fetch team 1 details: ${
+              response1.error?.message || "Unknown error"
+            }`
+          );
         }
       } else {
-        // Handle match creation failure
-        const creationErrorMsg = matchCreationResponse.error?.message || "Unknown error creating match.";
-        setError(`Failed to create match: ${creationErrorMsg}`);
-        console.error("SelectPlayingXI: Match creation failed:", matchCreationResponse.error);
-        Alert.alert("Match Creation Failed", `Could not create the match: ${creationErrorMsg}. Please try again.`);
+        setError("Failed to create match.");
       }
     } catch (err) {
-      setError("An unexpected error occurred during match setup: " + err.message);
-      console.error("SelectPlayingXI: Overall setup error:", err);
-      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+      setError("An unexpected error occurred: " + err.message);
+      console.error("Initialize error:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [matchDetails.team1Id, matchDetails.team2Id, requestBody]); 
+  };
+
+  // ✅ Fetch team2 only when needed
+  const fetchTeam2Details = async () => {
+    setIsLoading(true);
+    const token = await AsyncStorage.getItem("jwtToken");
+    try {
+      const response2 = await apiService({
+        endpoint: `teams/${matchDetails.team2Id}`,
+        method: "GET",
+        token: token,
+      });
+
+      if (response2.success) {
+        setTeam2Details(response2.data.data);
+        setFilteredTeam2Players(response2.data.data.players || []);
+        console.log("Team 2 details fetched.");
+      } else {
+        setError(
+          `Failed to fetch team 2 details: ${
+            response2.error?.message || "Unknown error"
+          }`
+        );
+      }
+    } catch (err) {
+      setError("Error fetching team 2: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    initializeMatchAndTeams();
-  }, [initializeMatchAndTeams]);
+    if (!initialized.current) {
+      initializeMatchAndTeams();
+      initialized.current = true;
+    }
+  }, []);
 
   const handleSearch = (query, teamNum) => {
     setSearchQuery(query);
     let playersToFilter = [];
     if (teamNum === 1 && team1Details) {
-      playersToFilter = team1Details.players;
+      playersToFilter = team1Details.players || [];
     } else if (teamNum === 2 && team2Details) {
-      playersToFilter = team2Details.players;
+      playersToFilter = team2Details.players || [];
     }
 
-    const filtered = playersToFilter.filter((player) =>
-      player.name.toLowerCase().includes(query.toLowerCase()) ||
-      (player.role && player.role.toLowerCase().includes(query.toLowerCase()))
+    const filtered = playersToFilter.filter(
+      (player) =>
+        player.name.toLowerCase().includes(query.toLowerCase()) ||
+        (player.role &&
+          player.role.toLowerCase().includes(query.toLowerCase()))
     );
 
     teamNum === 1
@@ -146,8 +167,8 @@ const SelectPlayingXI = ({ route }) => {
       prev.includes(playerId)
         ? prev.filter((id) => id !== playerId)
         : prev.length < 11
-          ? [...prev, playerId]
-          : prev
+        ? [...prev, playerId]
+        : prev
     );
   };
 
@@ -160,7 +181,7 @@ const SelectPlayingXI = ({ route }) => {
       <View style={styles.playerInfoContainer}>
         <View style={styles.profileIconContainer}>
           <Image
-            source={require("../../assets/defaultLogo.png")} 
+            source={require("../../assets/defaultLogo.png")}
             style={styles.userImage}
           />
         </View>
@@ -173,7 +194,10 @@ const SelectPlayingXI = ({ route }) => {
           </Text>
           {item.role && (
             <Text
-              style={[styles.playerRole, isSelected && styles.selectedPlayerRole]}
+              style={[
+                styles.playerRole,
+                isSelected && styles.selectedPlayerRole,
+              ]}
             >
               {item.role}
             </Text>
@@ -184,7 +208,10 @@ const SelectPlayingXI = ({ route }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.playerButton, !isSelected && styles.unselectedPlayerButton]}
+        style={[
+          styles.playerButton,
+          !isSelected && styles.unselectedPlayerButton,
+        ]}
         onPress={() => togglePlayerSelection(team, item.id)}
         activeOpacity={0.7}
       >
@@ -204,9 +231,7 @@ const SelectPlayingXI = ({ route }) => {
             />
           </LinearGradient>
         ) : (
-          <>
-            {PlayerContent}
-          </>
+          <>{PlayerContent}</>
         )}
       </TouchableOpacity>
     );
@@ -215,10 +240,26 @@ const SelectPlayingXI = ({ route }) => {
   const shakeScreen = () => {
     shakeAnimation.setValue(0);
     Animated.sequence([
-      Animated.timing(shakeAnimation, { toValue: 10, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnimation, { toValue: -10, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnimation, { toValue: 10, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnimation, { toValue: 0, duration: 50, useNativeDriver: true })
+      Animated.timing(shakeAnimation, {
+        toValue: 10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: -10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 0,
+        duration: 50,
+        useNativeDriver: true,
+      }),
     ]).start();
   };
 
@@ -228,20 +269,21 @@ const SelectPlayingXI = ({ route }) => {
     setAlertDialogType("info");
   };
 
-  const handleContinueToTeam2 = () => {
+  const handleContinueToTeam2 = async () => {
     if (selectedTeam1.length !== 11) {
       setAlertDialogMessage(
         `Please select exactly 11 players for ${team1Details?.name} to continue.`
       );
       setAlertDialogType("error");
       setIsAlertDialogVisible(true);
-      Platform.OS === 'ios' ? Vibration.vibrate() : Vibration.vibrate(500);
+      Platform.OS === "ios" ? Vibration.vibrate() : Vibration.vibrate(500);
       shakeScreen();
       return;
     }
+
+    await fetchTeam2Details(); // ✅ Fetch team2 only here
     setCurrentSelectionTeam(2);
     setSearchQuery("");
-    setFilteredTeam2Players(team2Details?.players || []);
   };
 
   const handleStartMatch = async () => {
@@ -251,14 +293,14 @@ const SelectPlayingXI = ({ route }) => {
       );
       setAlertDialogType("error");
       setIsAlertDialogVisible(true);
-      Platform.OS === 'ios' ? Vibration.vibrate() : Vibration.vibrate(500);
+      Platform.OS === "ios" ? Vibration.vibrate() : Vibration.vibrate(500);
       shakeScreen();
       return;
     }
 
     navigation.navigate("TossScreen", {
       matchDetails,
-      matchId, 
+      matchId,
       team1PlayingXIIds: selectedTeam1,
       team2PlayingXIIds: selectedTeam2,
     });
@@ -268,7 +310,7 @@ const SelectPlayingXI = ({ route }) => {
     return (
       <View style={styles.loadingContainer}>
         <LottieView
-          source={require('../../assets/animations/Search for Players.json')}
+          source={require("../../assets/animations/Search for Players.json")}
           autoPlay
           loop
           style={styles.lottieLoader}
@@ -283,22 +325,26 @@ const SelectPlayingXI = ({ route }) => {
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={initializeMatchAndTeams}
+          onPress={
+            currentSelectionTeam === 1
+              ? initializeMatchAndTeams
+              : fetchTeam2Details
+          }
         >
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
   }
-  if (!matchId || !team1Details || !team2Details) {
-      return (
-        <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={AppColors.primaryBlue} />
-            <Text style={styles.loadingText}>Initializing match...</Text>
-        </View>
-      );
-  }
 
+  if (!matchId || !team1Details) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={AppColors.primaryBlue} />
+        <Text style={styles.loadingText}>Initializing match...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -313,16 +359,23 @@ const SelectPlayingXI = ({ route }) => {
       <Animated.View
         style={[
           styles.mainScreenContent,
-          { transform: [{ translateX: shakeAnimation }] }
+          { transform: [{ translateX: shakeAnimation }] },
         ]}
       >
         {currentSelectionTeam === 1 && (
           <>
             <Text style={styles.sectionTitle}>
-              <Text style={styles.teamNameHighlight}>{team1Details?.name}</Text> - Select Playing XI
+              <Text style={styles.teamNameHighlight}>
+                {team1Details?.name}
+              </Text>{" "}
+              - Select Playing XI
             </Text>
             <Text style={styles.selectedCount}>
-              Selected: <Text style={styles.countHighlight}>{selectedTeam1.length}</Text>/11
+              Selected:{" "}
+              <Text style={styles.countHighlight}>
+                {selectedTeam1.length}
+              </Text>
+              /11
             </Text>
 
             <TextInput
@@ -335,7 +388,9 @@ const SelectPlayingXI = ({ route }) => {
 
             <FlatList
               data={filteredTeam1Players}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item) =>
+                `team-${team1Details.id}-player-${item.id}`
+              }
               renderItem={({ item }) => renderPlayerItem({ item, team: 1 })}
               contentContainerStyle={styles.playerList}
               keyboardShouldPersistTaps="handled"
@@ -349,19 +404,29 @@ const SelectPlayingXI = ({ route }) => {
               onPress={handleContinueToTeam2}
             >
               <Text style={styles.actionButtonText}>
-                Continue to <Text style={styles.teamNameHighlightSmall}>{team2Details?.name}</Text>
+                Continue to{" "}
+                <Text style={styles.teamNameHighlightSmall}>
+                  {team2Details?.name || "Team 2"}
+                </Text>
               </Text>
             </Pressable>
           </>
         )}
 
-        {currentSelectionTeam === 2 && (
+        {currentSelectionTeam === 2 && team2Details && (
           <>
             <Text style={styles.sectionTitle}>
-              <Text style={styles.teamNameHighlight}>{team2Details?.name}</Text> - Select Playing XI
+              <Text style={styles.teamNameHighlight}>
+                {team2Details?.name}
+              </Text>{" "}
+              - Select Playing XI
             </Text>
             <Text style={styles.selectedCount}>
-              Selected: <Text style={styles.countHighlight}>{selectedTeam2.length}</Text>/11
+              Selected:{" "}
+              <Text style={styles.countHighlight}>
+                {selectedTeam2.length}
+              </Text>
+              /11
             </Text>
 
             <TextInput
@@ -374,7 +439,9 @@ const SelectPlayingXI = ({ route }) => {
 
             <FlatList
               data={filteredTeam2Players}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item) =>
+                `team-${team2Details.id}-player-${item.id}`
+              }
               renderItem={({ item }) => renderPlayerItem({ item, team: 2 })}
               contentContainerStyle={styles.playerList}
               keyboardShouldPersistTaps="handled"

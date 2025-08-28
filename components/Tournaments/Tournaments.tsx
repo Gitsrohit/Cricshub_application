@@ -99,6 +99,7 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
   const statusInfo = getStatusInfo();
 
   return (
+    <SafeAreaView>
     <Animated.View 
       style={[
         styles.cardContainerWrapper, 
@@ -187,6 +188,7 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
         </View>
       </TouchableOpacity>
     </Animated.View>
+    </SafeAreaView>
   );
 };
 
@@ -447,7 +449,6 @@ const Tournaments = () => {
     debouncedFetchTournaments(activeTab.toUpperCase(), text);
   };
 
-  // Set StatusBar color based on the first color of primaryCard gradient
   useEffect(() => {
     StatusBar.setBackgroundColor(AppGradients.primaryCard[0], true);
     StatusBar.setBarStyle('light-content', true); // Use 'light-content' for dark backgrounds
@@ -460,10 +461,10 @@ const Tournaments = () => {
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={AppGradients.primaryCard} // Use primaryCard gradient for the header
+        colors={AppGradients.primaryCard} 
         style={styles.header}
-        start={{ x: 0, y: 0 }} // Start from top-left
-        end={{ x: 1, y: 1 }}   // End at bottom-right for a classic diagonal gradient
+        start={{ x: 0, y: 0 }} 
+        end={{ x: 1, y: 1 }}  
       >
         <View style={styles.headerContentRow}>
           <TouchableOpacity
@@ -591,7 +592,7 @@ const styles = StyleSheet.create({
 
   header: {
     paddingBottom: 20,
-    paddingTop: Platform.OS === 'ios' ? 30 : 20, 
+    paddingTop: Platform.OS === 'ios' ? 30 : 50,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
     overflow: 'hidden',
@@ -613,7 +614,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 25,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 0,
     paddingHorizontal: 15,
   },
   searchIcon: {

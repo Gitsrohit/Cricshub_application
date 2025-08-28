@@ -1,13 +1,11 @@
-import React from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { SafeAreaView, StyleSheet, View } from 'react-native';
+import { NavigationContainer, useNavigationState } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Login from './components/Authentication/Login';
 import Registration from './components/Authentication/Registration';
-import CricketAppScreen from './components/My matches/CricketAppScreen';
 import Tournaments from './components/Tournaments/Tournaments';
 import Home from './components/Home/Home';
-
 import Teams from './components/Teams/Teams';
 import Profile from './components/Settings/Profile';
 import Performance from './components/Settings/Performance';
@@ -31,20 +29,25 @@ import FantasyCricketScreen from './components/Fantasy/FantasyHome';
 import Contests from './components/Fantasy/Contests';
 import ContestDetails from './components/Fantasy/ContestDetails';
 import CreateContestTeam from './components/Fantasy/CreateContestTeam';
-// import Performance from './components/Settings/Performance';
 import MatchStartTransition from './components/My matches/MatchStartTransition';
 import Info from './components/Tournaments/Tournaments Overview/TournamentInfo';
 import { Matches } from './components/Tournaments/Tournaments Overview/TournamentMatches';
 import Teams1 from './components/Tournaments/Tournaments Overview/TournamentTeams';
 import PointsTable from './components/Tournaments/Tournaments Overview/TournamentPointtable';
-
 import ScoreCard from './components/My matches/ScoreCard';
 import InternetConnectivityCheck from './components/InternetConnectivity';
 import ConnectLiveStream from './components/LiveStream/ConnectLiveStream';
+import AnimatedSplash from './assets/animations/SplashScreen.js'
 
 const Stack = createStackNavigator();
 
 const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <AnimatedSplash onFinish={() => setShowSplash(false)} />;
+  }
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <NavigationContainer>
@@ -53,11 +56,8 @@ const App = () => {
             initialRouteName="Login"
             screenOptions={{ headerShown: false }}
           >
-            {/* Authentication Screens */}
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Registration" component={Registration} />
-
-            {/* Main App Screens */}
             <Stack.Screen name="Main" component={MainScreens} />
           </Stack.Navigator>
         </InternetConnectivityCheck>
@@ -67,6 +67,35 @@ const App = () => {
 };
 
 const MainScreens = () => {
+  const state = useNavigationState((state) => state);
+  const currentRoute =
+    state.routes[state.index]?.state?.routes[
+      state.routes[state.index]?.state?.index || 0
+    ]?.name || state.routes[state.index]?.name;
+
+  const hideFooterScreens = [
+    "SelectPlayingII",
+    "TossScreen",
+    "Profile",
+    "Toss",
+    "Scoring",
+    "SelectRoles",
+    "SelectRoles2ndInnings",
+    "MatchStartTransition",
+    "ScoreCard",
+    "ScheduleMatch",
+    "CommentaryScorecard",
+    "CreateTournaments",
+    "ManageTournaments",
+    "TeamDetailsScreen",
+    "AddPlayersToTeam",
+    "ConnectLiveStream",
+    "ContestDetails",
+    "CreateContestTeam",
+  ];
+
+  const shouldShowFooter = !hideFooterScreens.includes(currentRoute);
+
   return (
     <View style={{ flex: 1 }}>
       <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
@@ -103,7 +132,8 @@ const MainScreens = () => {
         <Stack.Screen name="Teams1" component={Teams1} />
         <Stack.Screen name="PointsTable" component={PointsTable} />
       </Stack.Navigator>
-      <Footer style={styles.footer} />
+
+      {shouldShowFooter && <Footer style={styles.footer} />}
     </View>
   );
 };
@@ -113,8 +143,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    backgroundColor: '#002233', // Footer background color
-    zIndex: 1, // Ensure footer is above other components
+    backgroundColor: '#002233',
+    zIndex: 1,
   },
 });
 

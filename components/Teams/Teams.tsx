@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Platform,
   SafeAreaView,
+  StatusBar as RNStatusBar,
 } from "react-native";
 
 import { useNavigation } from "@react-navigation/native";
@@ -17,7 +18,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
 import { AppGradients, AppColors } from "../../assets/constants/colors.js";
 import { LinearGradient } from "expo-linear-gradient";
-import { StatusBar } from "expo-status-bar"; // ✅ Expo StatusBar
+import { StatusBar } from "expo-status-bar"; // Expo StatusBar
 import apiService from "../APIservices";
 
 const loaderAnimation = require("../../assets/animations/loader.json");
@@ -50,7 +51,6 @@ const TeamPage = () => {
             team.captain?.id === userId ||
             (team.players || []).some((player) => player?.id === userId)
         );
-        console.log(filteredTeams)
         setTeams(filteredTeams);
       } else {
         setTeams([]);
@@ -115,107 +115,89 @@ const TeamPage = () => {
               </View>
             </View>
           </View>
-          <MaterialIcons
-            name="chevron-right"
-            size={24}
-            color={AppColors.white}
-          />
+          <MaterialIcons name="chevron-right" size={24} color={AppColors.white} />
         </LinearGradient>
       </TouchableOpacity>
     );
   };
 
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.loaderContainer}>
-        <LottieView
-          source={loaderAnimation}
-          autoPlay
-          loop
-          style={styles.loaderAnimation}
-        />
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#87CEEB" }}>
-      {/* ✅ Expo StatusBar with sky blue */}
-      <StatusBar
-        style={Platform.OS === "ios" ? "dark" : "light"}
-        backgroundColor="#87CEEB"
-      />
+    <SafeAreaView style={styles.safeArea}>
+      {/* ✅ Fixes Android SafeArea with padding */}
+      {Platform.OS === "android" && <RNStatusBar backgroundColor="#87CEEB" barStyle="light-content" />}
+      <StatusBar style={Platform.OS === "ios" ? "dark" : "light"} />
 
-      {/* Header */}
-      {/* Header */}
-<View style={styles.header}>
-  <TouchableOpacity
-    style={styles.headerButton}
-    onPress={() => navigation.goBack()}
-    activeOpacity={0.7}
-  >
-    <MaterialIcons name="arrow-back" size={26} color={AppColors.darkText} />
-  </TouchableOpacity>
-  <Text style={styles.heading}>My Teams</Text>
-  <TouchableOpacity
-    style={styles.headerButton}
-    onPress={() => navigation.navigate("CreateTeam")}
-    activeOpacity={0.7}
-  >
-    <MaterialIcons name="add" size={26} color={AppColors.darkText} />
-  </TouchableOpacity>
-</View>
-
-
-      {/* List / Empty State */}
-      <View style={styles.container}>
-        {teams.length > 0 ? (
-          <FlatList
-            data={teams}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderTeamCard}
-            contentContainerStyle={styles.listContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="#00BFFF"
-              />
-            }
-          />
-        ) : (
-          <View style={styles.emptyContainer}>
-            <LottieView
-              source={emptyTeamsAnimation}
-              autoPlay
-              loop={false}
-              style={styles.emptyAnimation}
-            />
-            <Text style={styles.emptyTitle}>No Teams Found</Text>
-            <Text style={styles.emptySubtitle}>
-              Create your first team to get started
-            </Text>
+      {loading && !refreshing ? (
+        <View style={styles.loaderContainer}>
+          <LottieView source={loaderAnimation} autoPlay loop style={styles.loaderAnimation} />
+        </View>
+      ) : (
+        <>
+          {/* Header */}
+          <View style={styles.header}>
             <TouchableOpacity
-              style={styles.createButton}
-              onPress={() => navigation.navigate("CreateTeam")}
-              activeOpacity={0.85}
+              style={styles.headerButton}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
             >
-              <LinearGradient
-                colors={["#00BFFF", "#1E90FF"]}
-                style={styles.createButtonSolid}
-              >
-                <MaterialIcons name="add" size={20} color={AppColors.white} />
-                <Text style={styles.createButtonText}>Create Team</Text>
-              </LinearGradient>
+              <MaterialIcons name="arrow-back" size={26} color={AppColors.darkText} />
+            </TouchableOpacity>
+            <Text style={styles.heading}>My Teams</Text>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.navigate("CreateTeam")}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="add" size={26} color={AppColors.darkText} />
             </TouchableOpacity>
           </View>
-        )}
-      </View>
+
+          {/* List / Empty State */}
+          <View style={styles.container}>
+            {teams.length > 0 ? (
+              <FlatList
+                data={teams}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderTeamCard}
+                contentContainerStyle={styles.listContent}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor="#00BFFF"
+                  />
+                }
+              />
+            ) : (
+              <View style={styles.emptyContainer}>
+                <LottieView source={emptyTeamsAnimation} autoPlay loop={false} style={styles.emptyAnimation} />
+                <Text style={styles.emptyTitle}>No Teams Found</Text>
+                <Text style={styles.emptySubtitle}>Create your first team to get started</Text>
+                <TouchableOpacity
+                  style={styles.createButton}
+                  onPress={() => navigation.navigate("CreateTeam")}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient colors={["#00BFFF", "#1E90FF"]} style={styles.createButtonSolid}>
+                    <MaterialIcons name="add" size={20} color={AppColors.white} />
+                    <Text style={styles.createButtonText}>Create Team</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </>
+      )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#ffff", // Sky blue background
+    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0,
+  },
   container: {
     flex: 1,
     backgroundColor: AppColors.lightBackground,
@@ -228,7 +210,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: AppColors.white,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)", 
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   heading: {
     fontSize: 20,

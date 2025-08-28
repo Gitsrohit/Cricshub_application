@@ -13,6 +13,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
+import { LinearGradient } from 'expo-linear-gradient';
 import apiService from '../../APIservices';
 
 const Info = ({ id, isCreator }) => {
@@ -144,8 +145,12 @@ const Info = ({ id, isCreator }) => {
         </View>
       ) : tournamentDetails ? (
         <Animated.View style={{ opacity: fadeAnim }}>
-          {/* Header without background image */}
-          <View style={styles.headerContainer}>
+          <LinearGradient
+            colors={['#4A90E2', '#1976d2']}
+            start={[0, 0]}
+            end={[1, 1]}
+            style={styles.headerContainer}
+          >
             <View style={styles.header}>
               <Text style={styles.title}>{tournamentDetails.name}</Text>
               {isCreator && (
@@ -153,13 +158,13 @@ const Info = ({ id, isCreator }) => {
                   style={styles.editButton}
                   onPress={() => setEditingTournament(true)}
                 >
-                  <Icon name="edit" size={24} color="#4A90E2" />
+                  <Icon name="edit" size={24} color="#fff" />
                 </TouchableOpacity>
               )}
             </View>
             <View style={styles.headerDetails}>
               <View style={styles.headerDetailItem}>
-                <Icon name="calendar-today" size={16} color="#7F8C8D" />
+                <Icon name="calendar-today" size={16} color="#E0E0E0" />
                 <Text style={styles.headerDetailText}>
                   {tournamentDetails.startDate 
                     ? moment(new Date(tournamentDetails.startDate[0], tournamentDetails.startDate[1] - 1, tournamentDetails.startDate[2])).format('DD MMM YYYY')
@@ -171,16 +176,17 @@ const Info = ({ id, isCreator }) => {
                 </Text>
               </View>
               <View style={styles.headerDetailItem}>
-                <Icon name="location-on" size={16} color="#7F8C8D" />
+                <Icon name="location-on" size={16} color="#E0E0E0" />
                 <Text style={styles.headerDetailText}>
                   {tournamentDetails.venues?.join(", ") || 'Multiple Venues'}
                 </Text>
               </View>
             </View>
-          </View>
+          </LinearGradient>
 
           <View style={styles.contentContainer}>
-            <View style={styles.card}>
+            {/* Organizer Card */}
+            <View style={[styles.card, styles.shadowCard]}>
               <View style={styles.cardHeader}>
                 <Icon name="person" size={20} color="#4A90E2" />
                 <Text style={styles.cardTitle}>Organizer</Text>
@@ -190,7 +196,8 @@ const Info = ({ id, isCreator }) => {
               </Text>
             </View>
 
-            <View style={styles.card}>
+            {/* Teams Card */}
+            <View style={[styles.card, styles.shadowCard]}>
               <View style={styles.cardHeader}>
                 <Icon name="group" size={20} color="#4A90E2" />
                 <Text style={styles.cardTitle}>Teams</Text>
@@ -208,179 +215,27 @@ const Info = ({ id, isCreator }) => {
               </ScrollView>
             </View>
 
+            {/* Details Grid */}
             <View style={styles.detailsSection}>
               <Text style={styles.sectionTitle}>Tournament Details</Text>
-              
               <View style={styles.detailGrid}>
-                <View style={styles.detailItem}>
-                  <View style={styles.detailIconContainer}>
-                    <Icon name="timer" size={20} color="#4A90E2" />
+                {[
+                  { label: 'Overs', value: tournamentDetails.type, icon: 'timer' },
+                  { label: 'Ball Type', value: tournamentDetails.ballType, icon: 'sports-baseball' },
+                  { label: 'Format', value: tournamentDetails.format, icon: 'description' },
+                ].map((item, idx) => (
+                  <View key={idx} style={[styles.detailItem, styles.shadowCard]}>
+                    <View style={styles.detailIconContainer}>
+                      <Icon name={item.icon} size={20} color="#4A90E2" />
+                    </View>
+                    <View>
+                      <Text style={styles.detailLabel}>{item.label}</Text>
+                      <Text style={styles.detailValue}>{item.value || 'N/A'}</Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text style={styles.detailLabel}>Overs</Text>
-                    <Text style={styles.detailValue}>{tournamentDetails.type || 'N/A'}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.detailItem}>
-                  <View style={styles.detailIconContainer}>
-                    <Icon name="sports-baseball" size={20} color="#4A90E2" />
-                  </View>
-                  <View>
-                    <Text style={styles.detailLabel}>Ball Type</Text>
-                    <Text style={styles.detailValue}>{tournamentDetails.ballType || 'N/A'}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.detailItem}>
-                  <View style={styles.detailIconContainer}>
-                    <Icon name="description" size={20} color="#4A90E2" />
-                  </View>
-                  <View>
-                    <Text style={styles.detailLabel}>Format</Text>
-                    <Text style={styles.detailValue}>{tournamentDetails.format || 'N/A'}</Text>
-                  </View>
-                </View>
+                ))}
               </View>
             </View>
-
-            <Modal
-              visible={editingTournament}
-              animationType="slide"
-              transparent={true}
-              onRequestClose={() => setEditingTournament(false)}
-            >
-              <View style={styles.modalOverlay}>
-                <ScrollView contentContainerStyle={styles.modalScrollContent}>
-                  <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Edit Tournament</Text>
-
-                    <View style={styles.formGroup}>
-                      <Text style={styles.label}>Tournament Name</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Enter name"
-                        value={editedDetails.name}
-                        onChangeText={(text) => setEditedDetails({ ...editedDetails, name: text })}
-                      />
-                    </View>
-
-                    <View style={styles.row}>
-                      <View style={styles.column}>
-                        <Text style={styles.label}>Start Date</Text>
-                        <TouchableOpacity 
-                          style={styles.dateInput} 
-                          onPress={() => setShowStartDatePicker(true)}
-                        >
-                          <Text style={styles.dateText}>
-                            {moment(startDate).format('DD MMM YYYY')}
-                          </Text>
-                        </TouchableOpacity>
-                        {showStartDatePicker && (
-                          <DateTimePicker
-                            minimumDate={new Date()}
-                            value={startDate}
-                            mode="date"
-                            display="default"
-                            onChange={(event, selectedDate) => {
-                              setShowStartDatePicker(false);
-                              if (selectedDate) setStartDate(selectedDate);
-                              if (selectedDate && selectedDate > endDate) {
-                                setEndDate(selectedDate);
-                              }
-                            }}
-                          />
-                        )}
-                      </View>
-
-                      <View style={styles.column}>
-                        <Text style={styles.label}>End Date</Text>
-                        <TouchableOpacity 
-                          style={styles.dateInput} 
-                          onPress={() => setShowEndDatePicker(true)}
-                        >
-                          <Text style={styles.dateText}>
-                            {moment(endDate).format('DD MMM YYYY')}
-                          </Text>
-                        </TouchableOpacity>
-                        {showEndDatePicker && (
-                          <DateTimePicker
-                            minimumDate={startDate}
-                            value={endDate}
-                            mode="date"
-                            display="default"
-                            onChange={(event, selectedDate) => {
-                              setShowEndDatePicker(false);
-                              if (selectedDate) setEndDate(selectedDate);
-                            }}
-                          />
-                        )}
-                      </View>
-                    </View>
-
-                    <View style={styles.row}>
-                      <View style={styles.column}>
-                        <Text style={styles.label}>Overs</Text>
-                        <TextInput
-                          style={styles.input}
-                          placeholder="e.g. 20"
-                          keyboardType="numeric"
-                          value={editedDetails.type}
-                          onChangeText={(text) => setEditedDetails({ ...editedDetails, type: text.replace(/[^0-9]/g, '') })}
-                        />
-                      </View>
-                      <View style={styles.column}>
-                        <Text style={styles.label}>Ball Type</Text>
-                        <TextInput
-                          style={styles.input}
-                          placeholder="e.g. Leather"
-                          value={editedDetails.ballType}
-                          onChangeText={(text) => setEditedDetails({ ...editedDetails, ballType: text })}
-                        />
-                      </View>
-                    </View>
-
-                    <View style={styles.formGroup}>
-                      <Text style={styles.label}>Format</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="e.g. T20, ODI"
-                        value={editedDetails.format}
-                        onChangeText={(text) => setEditedDetails({ ...editedDetails, format: text })}
-                      />
-                    </View>
-
-                    <View style={styles.formGroup}>
-                      <Text style={styles.label}>Venues (comma-separated)</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Enter venues separated by commas"
-                        value={editedDetails.venues?.join(', ')}
-                        onChangeText={(text) => {
-                          const updatedVenues = text.split(',').map(v => v.trim()).filter(Boolean);
-                          setEditedDetails({ ...editedDetails, venues: updatedVenues });
-                        }}
-                      />
-                    </View>
-
-                    <View style={styles.buttonRow}>
-                      <TouchableOpacity 
-                        style={[styles.button, styles.cancelButton]} 
-                        onPress={() => setEditingTournament(false)}
-                      >
-                        <Text style={styles.buttonText}>Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={[styles.button, styles.saveButton]} 
-                        onPress={updateTournamentDetails}
-                      >
-                        <Text style={styles.buttonText}>Save Changes</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </ScrollView>
-              </View>
-            </Modal>
           </View>
         </Animated.View>
       ) : (
@@ -394,297 +249,43 @@ const Info = ({ id, isCreator }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    // backgroundColor: '#f8f9fa',
-    paddingBottom: 20,
+  container: { flexGrow: 1, paddingBottom: 20, backgroundColor: '#f1f3f5' },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  loader: { marginBottom: 16 },
+  loadingText: { marginTop: 16, color: '#4A90E2', fontSize: 16, fontWeight: '500' },
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  errorText: { color: '#dc3545', marginVertical: 16, fontSize: 16, textAlign: 'center' },
+  retryButton: { backgroundColor: '#dc3545', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
+  retryText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  headerContainer: { 
+    padding: 20, borderRadius: 12, marginHorizontal: 16, marginTop: 16
   },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  title: { fontSize: 22, fontWeight: '700', color: '#fff', flex: 1 },
+  editButton: { padding: 8, marginLeft: 12 },
+  headerDetails: { marginTop: 4 },
+  headerDetailItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  headerDetailText: { color: '#E0E0E0', marginLeft: 6, fontSize: 14 },
+  contentContainer: { padding: 16 },
+  card: { backgroundColor: '#fff', borderRadius: 12, padding: 18, marginBottom: 16 },
+  shadowCard: { 
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 3 
   },
-  loader: {
-    marginBottom: 16,
-  },
-  loadingText: {
-    marginTop: 16,
-    color: '#fff',
-    fontSize: 16,
-    fontFamily: 'System',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  errorText: {
-    color: '#dc3545',
-    marginVertical: 16,
-    fontSize: 16,
-    textAlign: 'center',
-    fontFamily: 'System',
-  },
-  retryButton: {
-    backgroundColor: '#dc3545',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  headerContainer: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-    width: '100%', // Use full width
-    alignSelf: 'center', // Center it
-    marginTop: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#212529',
-    fontFamily: 'System',
-    flex: 1,
-  },
-  editButton: {
-    padding: 8,
-    marginLeft: 12,
-  },
-  headerDetails: {
-    marginTop: 4,
-  },
-  headerDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  headerDetailText: {
-    color: '#6c757d',
-    marginLeft: 8,
-    fontSize: 14,
-    fontFamily: 'System',
-  },
-  contentContainer: {
-    padding: 16,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 18,
-    marginBottom: 16,
-    width: '100%', // Match header width
-    alignSelf: 'center', // Center it
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#212529',
-    marginLeft: 12,
-    fontFamily: 'System',
-  },
-  cardContent: {
-    fontSize: 15,
-    color: '#495057',
-    lineHeight: 22,
-    fontFamily: 'System',
-  },
-  teamsContainer: {
-    flexDirection: 'row',
-    paddingVertical: 4,
-  },
-  teamPill: {
-    backgroundColor: '#e9ecef',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-  },
-  teamName: {
-    color: '#495057',
-    fontSize: 13,
-    fontWeight: '500',
-    fontFamily: 'System',
-  },
-  detailsSection: {
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 16,
-    fontFamily: 'System',
-  },
-  detailGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  detailItem: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-  },
-  detailIconContainer: {
-    backgroundColor: '#f1f3f5',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginBottom: 4,
-    fontWeight: '500',
-    fontFamily: 'System',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  detailValue: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#212529',
-    fontFamily: 'System',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  emptyText: {
-    color: '#adb5bd',
-    fontSize: 16,
-    marginTop: 16,
-    fontFamily: 'System',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-  },
-  modalScrollContent: {
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#212529',
-    fontFamily: 'System',
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    color: '#6c757d',
-    marginBottom: 8,
-    fontWeight: '500',
-    fontFamily: 'System',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    backgroundColor: '#f8f9fa',
-    fontFamily: 'System',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  column: {
-    width: '48%',
-  },
-  dateInput: {
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: '#f8f9fa',
-  },
-  dateText: {
-    fontSize: 15,
-    color: '#495057',
-    fontFamily: 'System',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  button: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f1f3f5',
-    marginRight: 8,
-  },
-  saveButton: {
-    backgroundColor: '#1976d2',
-    marginLeft: 8,
-  },
-  buttonText: {
-    fontSize: 15,
-    fontWeight: '500',
-    fontFamily: 'System',
-  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  cardTitle: { fontSize: 16, fontWeight: '600', color: '#212529', marginLeft: 12 },
+  cardContent: { fontSize: 15, color: '#495057', lineHeight: 22 },
+  teamsContainer: { flexDirection: 'row', paddingVertical: 4 },
+  teamPill: { backgroundColor: '#e9ecef', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, marginRight: 8 },
+  teamName: { color: '#495057', fontSize: 13, fontWeight: '500' },
+  detailsSection: { marginTop: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#212529', marginBottom: 16 },
+  detailGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  detailItem: { width: '100%', borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  detailIconContainer: { backgroundColor: '#f1f3f5', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  detailLabel: { fontSize: 12, color: '#6c757d', marginBottom: 4, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
+  detailValue: { fontSize: 15, fontWeight: '500', color: '#212529' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  emptyText: { color: '#95A5A6', fontSize: 16, marginTop: 16 },
 });
 
 export default Info;
