@@ -11,11 +11,12 @@ import {
   ActivityIndicator,
   Animated,
   TouchableWithoutFeedback,
-  StatusBar,
   RefreshControl,
   Dimensions,
   Platform,
   KeyboardAvoidingView,
+  SafeAreaView,
+  StatusBar as RNStatusBar,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AntDesign, MaterialIcons } from "@expo/vector-icons";
@@ -24,6 +25,28 @@ import LottieView from 'lottie-react-native';
 import apiService from "../APIservices";
 import CustomDialog from "../Customs/CustomDialog.js";
 import { SvgUri } from 'react-native-svg';
+import { StatusBar } from "expo-status-bar"; 
+// import { AppGradients, AppColors } from "../../assets/constants/colors.js";
+
+const AppColors = {
+  white: "#FFFFFF",
+  black: "#000000",
+  blue: "#3498DB",
+  background: "#F8F9FA",
+  cardBorder: "rgba(255, 255, 255, 0.2)",
+  error: "#E74C3C",
+  textOnGradient: "#FFFFFF", 
+  textSecondaryOnGradient: "rgba(255, 255, 255, 0.9)",
+  darkText: "#000000",
+  lightText: "#888888",
+  lightBackground: "#F8F9FA",
+};
+
+const AppGradients = {
+  primaryCard: ["#34B8FF", "#0575E6"],
+  secondaryCard: ["#6C5CE7", "#3498DB"],
+  header: ["#34B8FF", "#0866AA"],
+};
 
 const loaderAnimation = require('../../assets/animations/Search for Players.json');
 const { width } = Dimensions.get('window');
@@ -45,8 +68,8 @@ interface PlayerCardProps {
 }
 
 const PlayerCard = memo<PlayerCardProps>(({ player, index, canEdit, teamCaptain, onRemove }) => {
-  const isFirstDesign = index % 2 === 0;
   const cardAnim = useRef(new Animated.Value(0)).current;
+  
   const handleRemove = () => {
     Animated.timing(cardAnim, {
       toValue: -width,
@@ -69,7 +92,7 @@ const PlayerCard = memo<PlayerCardProps>(({ player, index, canEdit, teamCaptain,
       ]}
     >
       <LinearGradient
-        colors={isFirstDesign ? ['#8FDFFF', '#104B62'] : ['#209FFF', '#00354A']}
+        colors={AppGradients.primaryCard}
         style={styles.playerCard}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -101,7 +124,7 @@ const PlayerCard = memo<PlayerCardProps>(({ player, index, canEdit, teamCaptain,
             style={styles.removeButton}
             onPress={handleRemove}
           >
-            <MaterialIcons name="remove-circle" size={24} color="#fff" />
+            <MaterialIcons name="remove-circle" size={24} color={AppColors.white} />
           </TouchableOpacity>
         )}
       </LinearGradient>
@@ -267,8 +290,9 @@ const TeamDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-
   const removePlayerFromBackend = async (playerId: string, player: Player) => {
+    const originalPlayers = [...players];
+    
     setPlayers(prevPlayers => prevPlayers.filter(p => p.id !== playerId));
 
     try {
@@ -279,13 +303,12 @@ const TeamDetailsScreen = ({ route, navigation }) => {
       });
 
       if (response.success) {
-        // showDialog('Success', 'Player removed successfully!');
       } else {
-        setPlayers(prevPlayers => [...prevPlayers, player].sort((a, b) => a.id.localeCompare(b.id)));
+        setPlayers(originalPlayers);
         showDialog('Error', response.error?.message || 'Failed to remove player.', 'error');
       }
     } catch (err) {
-      setPlayers(prevPlayers => [...prevPlayers, player].sort((a, b) => a.id.localeCompare(b.id)));
+      setPlayers(originalPlayers);
       showDialog('Error', 'Failed to remove player.', 'error');
     }
   };
@@ -326,140 +349,136 @@ const TeamDetailsScreen = ({ route, navigation }) => {
     );
   };
 
-  if (!dataLoaded) {
+  const renderContent = () => {
+    if (!dataLoaded) {
+      return (
+        <View style={styles.loaderContainer}>
+          <LottieView
+            source={loaderAnimation}
+            autoPlay
+            loop
+            style={styles.loader}
+          />
+        </View>
+      );
+    }
+
     return (
-      <View style={styles.loaderContainer}>
-        <LottieView
-          source={loaderAnimation}
-          autoPlay
-          loop
-          style={styles.loader}
+      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+        <FlatList
+          data={players}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item, index }) => (
+            <PlayerCard
+              player={item}
+              index={index}
+              canEdit={canEdit}
+              teamCaptain={team?.captain}
+              onRemove={removePlayerFromBackend}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={fetchTeamDetails}
+              colors={['#34B8FF']}
+              tintColor="#34B8FF"
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyList}>
+              <Text style={styles.emptyText}>No players in this team yet</Text>
+            </View>
+          }
         />
-      </View>
+
+        {canEdit && (
+          <TouchableOpacity
+            style={styles.floatingAddButton}
+            onPress={() => setModalVisible(true)}
+          >
+            <MaterialIcons name="add" size={28} color="#000000" />
+          </TouchableOpacity>
+        )}
+
+        <Modal visible={modalVisible} transparent animationType="none">
+          <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+            <View style={styles.modalOverlay}>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1, justifyContent: 'flex-end' }}
+              >
+                <Animated.View style={[styles.modalContent, { transform: [{ translateY: slideAnim }] }]}>
+                  <View style={styles.searchContainer}>
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Search player by name or phone..."
+                      placeholderTextColor="#888"
+                      value={searchQuery}
+                      onChangeText={handleInputChange}
+                    />
+                    <AntDesign name="search1" size={20} color="#005a7f" style={styles.searchIcon} />
+                  </View>
+
+                  {loading ? (
+                    <View style={styles.modalLoader}>
+                      <ActivityIndicator size="large" color="#34B8FF" />
+                    </View>
+                  ) : searchResults.length > 0 ? (
+                    <FlatList
+                      data={searchResults}
+                      keyExtractor={(item) => item.id.toString()}
+                      renderItem={renderSearchResultItem}
+                      contentContainerStyle={styles.searchResultsContainer}
+                    />
+                  ) : (
+                    <View style={styles.noResults}>
+                      <Text style={styles.noResultsText}>
+                        {searchQuery ? 'No players found' : 'Search for players to add'}
+                      </Text>
+                    </View>
+                  )}
+
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={styles.closeButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              </KeyboardAvoidingView>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      </Animated.View>
     );
-  }
+  };
 
   return (
-    <View style={styles.container}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="#34B8FF"
-        translucent={true}
-      />
-      <View style={styles.headerContainer}>
-        <LinearGradient
-          colors={['#34B8FF', '#0866AA']}
-          style={styles.headerGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+    <SafeAreaView style={styles.safeArea}>
+      {Platform.OS === "android" && <RNStatusBar backgroundColor="#87CEEB" barStyle="light-content" />}
+      <StatusBar style={Platform.OS === "ios" ? "dark" : "light"} />
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="arrow-back" size={28} color="#FFF" />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {team?.name}
-            </Text>
-            <Text style={styles.headerSubtitle}>
-              {players.length} {players.length === 1 ? 'Member' : 'Members'} • Captain: {team?.captain?.name}
-            </Text>
-          </View>
-
-          <View style={{ width: 40 }} />
-        </LinearGradient>
+          <MaterialIcons name="arrow-back" size={26} color={AppColors.darkText} />
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.heading} numberOfLines={1}>
+            {team?.name || "Team Details"}
+          </Text>
+          <Text style={styles.headerSubtitle}>
+            {players.length} {players.length === 1 ? 'Member' : 'Members'} • {team?.captain?.name ? `Captain: ${team.captain.name}` : ''}
+          </Text>
+        </View>
+        <View style={styles.headerButton} />
       </View>
 
-      <FlatList
-        data={players}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item, index }) => (
-          <PlayerCard
-            player={item}
-            index={index}
-            canEdit={canEdit}
-            teamCaptain={team?.captain}
-            onRemove={removePlayerFromBackend}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={fetchTeamDetails}
-            colors={['#34B8FF']}
-            tintColor="#34B8FF"
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyList}>
-            <Text style={styles.emptyText}>No players in this team yet</Text>
-          </View>
-        }
-      />
-
-      {canEdit && (
-        <TouchableOpacity
-          style={styles.floatingAddButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <MaterialIcons name="add" size={28} color="#FFF" />
-        </TouchableOpacity>
-      )}
-
-      <Modal visible={modalVisible} transparent animationType="none">
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1, justifyContent: 'flex-end' }}
-            >
-              <Animated.View style={[styles.modalContent, { transform: [{ translateY: slideAnim }] }]}>
-                <View style={styles.searchContainer}>
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search player by name or phone..."
-                    placeholderTextColor="#888"
-                    value={searchQuery}
-                    onChangeText={handleInputChange}
-                  />
-                  <AntDesign name="search1" size={20} color="#005a7f" style={styles.searchIcon} />
-                </View>
-
-                {loading ? (
-                  <View style={styles.modalLoader}>
-                    <ActivityIndicator size="large" color="#34B8FF" />
-                  </View>
-                ) : searchResults.length > 0 ? (
-                  <FlatList
-                    data={searchResults}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={renderSearchResultItem}
-                    contentContainerStyle={styles.searchResultsContainer}
-                  />
-                ) : (
-                  <View style={styles.noResults}>
-                    <Text style={styles.noResultsText}>
-                      {searchQuery ? 'No players found' : 'Search for players to add'}
-                    </Text>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.closeButtonText}>Close</Text>
-                </TouchableOpacity>
-              </Animated.View>
-            </KeyboardAvoidingView>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+      {renderContent()}
 
       <CustomDialog
         visible={dialogVisible}
@@ -468,62 +487,63 @@ const TeamDetailsScreen = ({ route, navigation }) => {
         type={dialogType}
         onClose={() => setDialogVisible(false)}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#ffff", 
+    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: AppColors.lightBackground,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: AppColors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  headerButton: {
+    padding: 6,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  heading: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: AppColors.darkText,
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: AppColors.lightText,
+    marginTop: 4,
+    textAlign: "center",
+  },
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: AppColors.background,
   },
   loader: {
     width: 200,
     height: 200,
   },
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  headerContainer: {
-    marginBottom: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  headerGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#34B8FF',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFF',
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  backButton: {
-    padding: 4,
-  },
   cardContainer: {
     marginBottom: 12,
+    marginHorizontal: 16,
     borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -535,31 +555,35 @@ const styles = StyleSheet.create({
   playerCard: {
     padding: 16,
     borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   playerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   playerDetails: {
     flex: 1,
+    marginLeft: 12,
   },
   playerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: AppColors.textOnGradient,
     marginBottom: 4,
   },
   playerStats: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
+    color: AppColors.textSecondaryOnGradient,
   },
   removeButton: {
-    position: 'absolute',
-    right: 16,
-    top: 16,
+    padding: 8,
   },
   listContent: {
     paddingBottom: 20,
+    paddingTop: 16,
   },
   emptyList: {
     flex: 1,
@@ -579,7 +603,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#34B8FF',
+    backgroundColor: AppColors.white,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -664,7 +688,7 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   closeButton: {
-    backgroundColor: '#34B8FF',
+    backgroundColor: AppColors.blue,
     padding: 14,
     borderRadius: 25,
     alignItems: 'center',

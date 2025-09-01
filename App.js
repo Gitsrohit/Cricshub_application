@@ -8,6 +8,9 @@ import Tournaments from './components/Tournaments/Tournaments';
 import Home from './components/Home/Home';
 import Teams from './components/Teams/Teams';
 import Profile from './components/Settings/Profile';
+import Support from './components/Settings/Support';
+import TossFlip from './components/Settings/TossFlip';
+import PrivacyPolicy from './components/Settings/PrivacyPolicy';
 import Performance from './components/Settings/Performance';
 import Footer from './components/Footer';
 import CreateTeam from './components/Teams/CreateTeam';
@@ -38,6 +41,7 @@ import ScoreCard from './components/My matches/ScoreCard';
 import InternetConnectivityCheck from './components/InternetConnectivity';
 import ConnectLiveStream from './components/LiveStream/ConnectLiveStream';
 import AnimatedSplash from './assets/animations/SplashScreen.js'
+
 
 const Stack = createStackNavigator();
 
@@ -92,6 +96,9 @@ const MainScreens = () => {
     "ConnectLiveStream",
     "ContestDetails",
     "CreateContestTeam",
+    "PrivacyPolicy",
+    "TossFlip",
+    "Support"
   ];
 
   const shouldShowFooter = !hideFooterScreens.includes(currentRoute);
@@ -131,6 +138,9 @@ const MainScreens = () => {
         <Stack.Screen name="Matches" component={Matches} />
         <Stack.Screen name="Teams1" component={Teams1} />
         <Stack.Screen name="PointsTable" component={PointsTable} />
+        <Stack.Screen name="Support" component={Support} />
+        <Stack.Screen name="TossFlip" component={TossFlip} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
       </Stack.Navigator>
 
       {shouldShowFooter && <Footer style={styles.footer} />}

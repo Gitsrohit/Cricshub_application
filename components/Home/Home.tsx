@@ -13,6 +13,7 @@ import {
   TouchableWithoutFeedback,
   Alert,
   Platform,
+  Modal,
 } from "react-native";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -29,6 +30,7 @@ const Home = () => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [userName, setUserName] = useState("");
   const [viewableItems, setViewableItems] = useState([]);
+  const [showFantasyPopup, setShowFantasyPopup] = useState(false);
   const animatedValues = useRef(new Map()).current;
 
   useEffect(() => {
@@ -183,6 +185,86 @@ const Home = () => {
 
   const viewabilityConfig = { itemVisiblePercentThreshold: 50 };
 
+  const FantasyPopup = () => (
+    <Modal
+      visible={showFantasyPopup}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowFantasyPopup(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <LinearGradient
+            colors={AppGradients.primaryCard}
+            style={styles.modalGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowFantasyPopup(false)}
+            >
+              <Ionicons name="close" size={24} color={AppColors.white} />
+            </TouchableOpacity>
+            
+            <View style={styles.modalHeader}>
+              <Ionicons name="rocket-outline" size={40} color={AppColors.white} />
+              <Text style={styles.modalTitle}>Get Ready for Fantasy Cricket!</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.modalText}>
+                We're building something extraordinary for cricket fans! 
+                Our Fantasy Cricket platform will let you:
+              </Text>
+              
+              <View style={styles.featureList}>
+                <View style={styles.featureItem}>
+                  <Ionicons name="trophy-outline" size={20} color={AppColors.white} />
+                  <Text style={styles.featureText}>Create your dream team with real players</Text>
+                </View>
+                
+                <View style={styles.featureItem}>
+                  <Ionicons name="trending-up-outline" size={20} color={AppColors.white} />
+                  <Text style={styles.featureText}>Earn points based on real-match performances</Text>
+                </View>
+                
+                <View style={styles.featureItem}>
+                  <Ionicons name="cash-outline" size={20} color={AppColors.white} />
+                  <Text style={styles.featureText}>Compete for amazing prizes and bragging rights</Text>
+                </View>
+                
+                <View style={styles.featureItem}>
+                  <Ionicons name="people-outline" size={20} color={AppColors.white} />
+                  <Text style={styles.featureText}>Challenge friends and join leagues</Text>
+                </View>
+              </View>
+              
+              <View style={styles.countdownContainer}>
+                <Text style={styles.countdownTitle}>Mark Your Calendar!</Text>
+                <Text style={styles.countdownDate}>Launching on November 20, 2025</Text>
+                <View style={styles.progressBar}>
+                  <View style={styles.progressFill} />
+                </View>
+                <Text style={styles.countdownText}>We're 75% complete with development</Text>
+              </View>
+            </View>
+            
+            {/* <TouchableOpacity 
+              style={styles.notifyButton}
+              onPress={() => {
+                setShowFantasyPopup(false);
+                Alert.alert("Awesome!", "We'll notify you when Fantasy Cricket launches!");
+              }}
+            >
+              <Text style={styles.notifyButtonText}>Notify Me When It's Live!</Text>
+            </TouchableOpacity> */}
+          </LinearGradient>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.appContainer}>
       <StatusBar
@@ -190,6 +272,7 @@ const Home = () => {
         backgroundColor={AppColors.background}
         translucent={false}
       />
+      <FantasyPopup />
       <View style={styles.safeArea}>
         {/* Top bar */}
         <View style={styles.topBarWrapper}>
@@ -217,65 +300,64 @@ const Home = () => {
         </View>
 
         {/* Sidebar */}
-<Animated.View
-  style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}
->
-  <View style={styles.sidebarBackground}>
-    <TouchableOpacity
-      onPress={closeSidebar}
-      style={styles.closeSidebarButton}
-    >
-      <Ionicons name="close" color={AppColors.black} size={28} />
-    </TouchableOpacity>
-
-    {/* Sidebar Header */}
-    <View style={styles.sidebarHeader}>
-      <View style={styles.userImageWrapper}>
-        <Image
-          source={require("../../assets/defaultLogo.png")}
-          style={styles.userImage}
-        />
-      </View>
-      <Text style={styles.sidebarTitle}>{userName || "Guest User"}</Text>
-    </View>
-
-    {/* Sidebar Options */}
-    <View style={styles.sidebarOptionsWrapper}>
-      {[
-        { icon: "person-outline", text: "Profile", screen: "Profile" },
-        { icon: "stats-chart-outline", text: "Performance", screen: "Performance" },
-        { icon: "help-circle-outline", text: "Support", screen: "Support" },
-        { icon: "star-outline", text: "Rate Us", screen: "RateUs" },
-        { icon: "settings-outline", text: "Settings", screen: "Settings" },
-        { icon: "globe-outline", text: "Web", screen: "WebSocketTest" },
-      ].map(({ icon, text, screen }) => (
-        <TouchableOpacity
-          key={screen}
-          style={styles.sidebarItemPatch}
-          onPress={() => {
-            navigation.navigate(screen);
-            closeSidebar();
-          }}
+        <Animated.View
+          style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}
         >
-          <Ionicons name={icon} size={22} color={AppColors.blue} />
-          <Text style={styles.sidebarItemTextDark}>{text}</Text>
-        </TouchableOpacity>
-      ))}
+          <View style={styles.sidebarBackground}>
+            <TouchableOpacity
+              onPress={closeSidebar}
+              style={styles.closeSidebarButton}
+            >
+              <Ionicons name="close" color={AppColors.black} size={28} />
+            </TouchableOpacity>
 
-      {/* Logout Button */}
-      <TouchableOpacity style={[styles.sidebarItemPatch, styles.logoutPatch]} onPress={LogOutHandler}>
-        <Ionicons name="log-out-outline" size={22} color={AppColors.error} />
-        <Text style={[styles.sidebarItemTextDark, { color: AppColors.error }]}>Logout</Text>
-      </TouchableOpacity>
-    </View>
+            {/* Sidebar Header */}
+            <View style={styles.sidebarHeader}>
+              <View style={styles.userImageWrapper}>
+                <Image
+                  source={require("../../assets/defaultLogo.png")}
+                  style={styles.userImage}
+                />
+              </View>
+              <Text style={styles.sidebarTitle}>{userName || "Guest User"}</Text>
+            </View>
 
-    {/* Footer */}
-    <View style={styles.sidebarFooter}>
-      <Text style={styles.footerTextDark}>cricshub ©2025</Text>
-    </View>
-  </View>
-</Animated.View>
+            {/* Sidebar Options */}
+            <View style={styles.sidebarOptionsWrapper}>
+              {[
+                { icon: "person-outline", text: "Profile", screen: "Profile" },
+                { icon: "stats-chart-outline", text: "Performance", screen: "Performance" },
+                { icon: "help-circle-outline", text: "Support", screen: "Support" },
+                { icon: "radio-button-on", text: "Toss", screen: "TossFlip" },
+                { icon: "copy", text: "Privacy Policy", screen: "PrivacyPolicy" },
+                { icon: "globe-outline", text: "Web", screen: "WebSocketTest" },
+              ].map(({ icon, text, screen }) => (
+                <TouchableOpacity
+                  key={screen}
+                  style={styles.sidebarItemPatch}
+                  onPress={() => {
+                    navigation.navigate(screen);
+                    closeSidebar();
+                  }}
+                >
+                  <Ionicons name={icon} size={22} color={AppColors.blue} />
+                  <Text style={styles.sidebarItemTextDark}>{text}</Text>
+                </TouchableOpacity>
+              ))}
 
+              {/* Logout Button */}
+              <TouchableOpacity style={[styles.sidebarItemPatch, styles.logoutPatch]} onPress={LogOutHandler}>
+                <Ionicons name="log-out-outline" size={22} color={AppColors.error} />
+                <Text style={[styles.sidebarItemTextDark, { color: AppColors.error }]}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.sidebarFooter}>
+              <Text style={styles.footerTextDark}>cricshub ©2025</Text>
+            </View>
+          </View>
+        </Animated.View>
 
         {/* Main content */}
         <View style={styles.mainContent}>
@@ -334,11 +416,7 @@ const Home = () => {
                         onPressOut={() => handleButtonPressOut(index)}
                         onPress={() => {
                           if (item.title === "Fantasy Cricket") {
-                            Alert.alert(
-                              "Coming Soon",
-                              "Fantasy Cricket will be launched soon.",
-                              [{ text: "Ok" }]
-                            );
+                            setShowFantasyPopup(true);
                           } else {
                             navigation.navigate(item.navigateTo);
                           }
@@ -443,7 +521,7 @@ export const styles = StyleSheet.create({
     color: AppColors.black,
   },
   logoutPatch: {
-    backgroundColor: "#fff0f0", // light red bg for logout
+    backgroundColor: "#fff0f0",
   },
   footerTextDark: { fontSize: 14, color: AppColors.black, opacity: 0.6 },
   overlay: {
@@ -468,11 +546,9 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
-    zIndex: 101, // above sidebar content
+    zIndex: 101,
   },
   
-  
- 
   userImageWrapper: {
     width: 90,
     height: 90,
@@ -558,6 +634,120 @@ export const styles = StyleSheet.create({
     color: AppColors.white,
     fontWeight: "600",
     fontSize: 14,
+  },
+
+  // Fantasy Popup Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  modalGradient: {
+    padding: 25,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderRadius: 15,
+    padding: 5,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: AppColors.white,
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  modalBody: {
+    marginBottom: 25,
+  },
+  modalText: {
+    color: AppColors.white,
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  featureList: {
+    marginBottom: 25,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 12,
+    borderRadius: 10,
+  },
+  featureText: {
+    color: AppColors.white,
+    marginLeft: 10,
+    flex: 1,
+    fontSize: 14,
+  },
+  countdownContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  countdownTitle: {
+    color: AppColors.white,
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 5,
+  },
+  countdownDate: {
+    color: AppColors.white,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 15,
+  },
+  progressBar: {
+    height: 8,
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    width: '75%',
+    backgroundColor: AppColors.white,
+    borderRadius: 4,
+  },
+  countdownText: {
+    color: AppColors.white,
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  notifyButton: {
+    backgroundColor: AppColors.white,
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  notifyButtonText: {
+    color: AppColors.primary,
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,30 +6,101 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ImageBackground,
   Image,
   ScrollView,
   ActivityIndicator,
   Dimensions,
   Platform,
+  SafeAreaView,
+  StatusBar as RNStatusBar,
+  Keyboard,
+  KeyboardAvoidingView,
+  Animated,
+  Easing,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import moment from "moment";
 import * as MediaLibrary from 'expo-media-library';
+import { useNavigation } from '@react-navigation/native';
 import apiService from '../APIservices';
 
-const background = require('../../assets/images/cricsLogo.png');
-const { height } = Dimensions.get('window');
+// Color constants for consistency
+const AppColors = {
+  white: "#FFFFFF",
+  black: "#000000",
+  blue: "#3498DB",
+  background: "#F8F9FA",
+  cardBorder: "rgba(255, 255, 255, 0.2)",
+  error: "#E74C3C",
+  darkText: "#000000",
+  lightText: "#666666",
+  lightBackground: "#F8F9FA",
+  primary: "#4A90E2",
+  primaryDark: "#357ABD",
+  success: "#2ECC71",
+  warning: "#F39C12",
+};
 
+const { height, width } = Dimensions.get('window');
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const CreateTournament = ({ navigation }) => {
+// Notification Component
+const Notification = ({ message, type, visible, onHide }) => {
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    if (visible) {
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+        Animated.delay(3000),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        onHide && onHide();
+      });
+    }
+  }, [visible, fadeAnim]);
+
+  if (!visible) return null;
+
+  const bgColor = type === "success" ? "#4CAF50" : "#F44336";
+  const iconName = type === "success" ? "check-circle" : "alert-circle";
+
+  return (
+    <Animated.View
+      style={[
+        styles.notificationContainer,
+        { opacity: fadeAnim, backgroundColor: bgColor },
+      ]}
+    >
+      <View style={styles.notificationContent}>
+        <Ionicons name={iconName} size={22} color="#fff" />
+        <Text style={styles.notificationText}>{message}</Text>
+      </View>
+      <TouchableOpacity onPress={onHide} style={styles.notificationClose}>
+        <Ionicons name="close" size={18} color="#fff" />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+const CreateTournament = () => {
+  const navigation = useNavigation();
+  
   // Tournament state
   const [tournamentName, setTournamentName] = useState('');
   const [startDate, setStartDate] = useState(new Date());
@@ -42,8 +113,45 @@ const CreateTournament = ({ navigation }) => {
   const [banner, setBanner] = useState(null);
   const [loading, setLoading] = useState(false);
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+  const [showFormatDropdown, setShowFormatDropdown] = useState(false);
+  const [showBallTypeDropdown, setShowBallTypeDropdown] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [notification, setNotification] = useState({
+    visible: false,
+    message: "",
+    type: "success",
+  });
+  
+  const [isFormValid, setIsFormValid] = useState(false);
+  useEffect(() => {
+    const isValid = tournamentName.trim() !== '' && 
+                   format !== '' && 
+                   ballType !== '';
+    setIsFormValid(isValid);
+  }, [tournamentName, format, ballType]);
 
-  // Initialize media permissions
+  const showNotification = (message, type = "success") => {
+    setNotification({
+      visible: true,
+      message,
+      type,
+    });
+  };
+
+  const hideNotification = () => {
+    setNotification((prev) => ({ ...prev, visible: false }));
+  };
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   useEffect(() => {
     (async () => {
       await requestPermission();
@@ -73,13 +181,13 @@ const CreateTournament = ({ navigation }) => {
     const userId = await getUserUUID();
 
     if (!tournamentName || !format || !ballType) {
-      Alert.alert('Error', 'Please fill all required fields.');
+      showNotification('Please fill all required fields.', 'error');
       setLoading(false);
       return;
     }
 
     if (startDate > endDate) {
-      Alert.alert('Error', 'End date must be after start date.');
+      showNotification('End date must be after start date.', 'error');
       setLoading(false);
       return;
     }
@@ -116,14 +224,16 @@ const CreateTournament = ({ navigation }) => {
       });
 
       if (response.success) {
-        Alert.alert('Success', 'Tournament created successfully!');
-        navigation.navigate('Tournaments');
+        showNotification('Tournament created successfully!');
+        setTimeout(() => {
+          navigation.navigate('Tournaments');
+        }, 2000);
       } else {
-        Alert.alert('Error', response.error?.message || 'Failed to create tournament');
+        showNotification(response.error?.message || 'Failed to create tournament', 'error');
       }
     } catch (error) {
       console.error("Unexpected error:", error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      showNotification('Something went wrong. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -132,7 +242,7 @@ const CreateTournament = ({ navigation }) => {
   const pickImage = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission required', 'We need access to your photos to select a banner image.');
+      showNotification('We need access to your photos to select a banner image.', 'error');
       return;
     }
 
@@ -146,50 +256,88 @@ const CreateTournament = ({ navigation }) => {
 
     if (!result.canceled) {
       if (result.assets[0].fileSize > MAX_IMAGE_SIZE) {
-        Alert.alert('Error', 'Image size should be less than 5MB');
+        showNotification('Image size should be less than 5MB', 'error');
         return;
       }
       setBanner(result.assets[0].uri);
     }
   }, []);
 
+  const getFormatLabel = (value) => {
+    switch(value) {
+      case 'DOUBLE_ROUND_ROBIN': return 'Double Round Robin';
+      case 'SINGLE_ROUND_ROBIN': return 'Single Round Robin';
+      case 'KNOCKOUT': return 'Knockout';
+      default: return 'Select Tournament Format *';
+    }
+  };
+
+  const getBallTypeLabel = (value) => {
+    switch(value) {
+      case 'TENNIS': return 'Tennis Ball';
+      case 'LEATHER': return 'Leather Ball';
+      default: return 'Select Ball Type *';
+    }
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.scrollViewContent}>
-      <LinearGradient
-        colors={['rgba(0, 0, 0, 0.2)', 'rgba(54, 176, 303, 0.1)']}
-        style={styles.gradient}
+    <SafeAreaView style={styles.safeArea}>
+      {Platform.OS === "android" && <RNStatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />}
+
+      <Notification
+        visible={notification.visible}
+        message={notification.message}
+        type={notification.type}
+        onHide={hideNotification}
+      />
+      
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="arrow-back" size={26} color={AppColors.darkText} />
+        </TouchableOpacity>
+        <Text style={styles.heading}>Create Tournament</Text>
+        <View style={styles.headerButton} />
+      </View>
+
+      <KeyboardAvoidingView 
+        style={styles.container} 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <ImageBackground source={background} style={styles.backgroundImage} resizeMode="cover">
-          <View style={styles.container}>
-            <LinearGradient
-              colors={['#4A90E2', '#6BB9F0']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientCard}
-            >
-              {/* Banner Upload */}
-              <TouchableOpacity onPress={pickImage} style={styles.bannerUploadContainer}>
-                {banner ? (
-                  <Image source={{ uri: banner }} style={styles.bannerImage} />
-                ) : (
-                  <View style={styles.bannerPlaceholder}>
-                    <MaterialCommunityIcons name="image-plus" size={40} color="#fff" />
-                    <Text style={styles.bannerUploadText}>Upload Tournament Banner</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-
-              {/* Tournament Name */}
-              <TextInput
-                style={styles.input}
-                placeholder="Tournament Name *"
-                placeholderTextColor="#ccc"
-                value={tournamentName}
-                onChangeText={setTournamentName}
-              />
-
-              {/* Date Pickers */}
-              <View style={styles.dateRow}>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.card}>
+            <Text style={styles.label}>Tournament Banner</Text>
+            <TouchableOpacity onPress={pickImage} style={styles.bannerUploadContainer}>
+              {banner ? (
+                <Image source={{ uri: banner }} style={styles.bannerImage} />
+              ) : (
+                <View style={styles.bannerPlaceholder}>
+                  <MaterialCommunityIcons name="image-plus" size={40} color={AppColors.primary} />
+                  <Text style={styles.bannerUploadText}>Upload Tournament Banner</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <Text style={styles.label}>Tournament Name *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter tournament name"
+              placeholderTextColor={AppColors.lightText}
+              value={tournamentName}
+              onChangeText={setTournamentName}
+            />
+            <Text style={styles.label}>Tournament Dates *</Text>
+            <View style={styles.dateRow}>
+              <View style={styles.dateInputContainer}>
+                <Text style={styles.dateLabel}>Start Date</Text>
                 <TouchableOpacity
                   style={[styles.input, styles.dateInput]}
                   onPress={() => setShowStartDatePicker(true)}
@@ -197,11 +345,14 @@ const CreateTournament = ({ navigation }) => {
                   <Text style={styles.placeholderText}>
                     {moment(startDate).format('MMM D, YYYY')}
                   </Text>
-                  <MaterialCommunityIcons name="calendar" size={20} color="#fff" />
+                  <MaterialCommunityIcons name="calendar" size={20} color={AppColors.primary} />
                 </TouchableOpacity>
+              </View>
 
-                <Text style={styles.dateSeparator}>to</Text>
+              <Text style={styles.dateSeparator}>to</Text>
 
+              <View style={styles.dateInputContainer}>
+                <Text style={styles.dateLabel}>End Date</Text>
                 <TouchableOpacity
                   style={[styles.input, styles.dateInput]}
                   onPress={() => setShowEndDatePicker(true)}
@@ -209,221 +360,355 @@ const CreateTournament = ({ navigation }) => {
                   <Text style={styles.placeholderText}>
                     {moment(endDate).format('MMM D, YYYY')}
                   </Text>
-                  <MaterialCommunityIcons name="calendar" size={20} color="#fff" />
+                  <MaterialCommunityIcons name="calendar" size={20} color={AppColors.primary} />
                 </TouchableOpacity>
               </View>
+            </View>
 
-              {showStartDatePicker && (
-                <DateTimePicker
-                  value={startDate}
-                  mode="date"
-                  display="default"
-                  minimumDate={new Date()}
-                  onChange={(event, selectedDate) => {
-                    setShowStartDatePicker(false);
-                    if (selectedDate) {
-                      setStartDate(selectedDate);
-                      if (selectedDate > endDate) {
-                        setEndDate(selectedDate);
-                      }
+            {showStartDatePicker && (
+              <DateTimePicker
+                value={startDate}
+                mode="date"
+                display="default"
+                minimumDate={new Date()}
+                onChange={(event, selectedDate) => {
+                  setShowStartDatePicker(false);
+                  if (selectedDate) {
+                    setStartDate(selectedDate);
+                    if (selectedDate > endDate) {
+                      setEndDate(selectedDate);
                     }
-                  }}
-                />
-              )}
+                  }
+                }}
+              />
+            )}
 
-              {showEndDatePicker && (
-                <DateTimePicker
-                  value={endDate}
-                  mode="date"
-                  display="default"
-                  minimumDate={startDate}
-                  onChange={(event, selectedDate) => {
-                    setShowEndDatePicker(false);
-                    if (selectedDate) setEndDate(selectedDate);
-                  }}
-                />
-              )}
+            {showEndDatePicker && (
+              <DateTimePicker
+                value={endDate}
+                mode="date"
+                display="default"
+                minimumDate={startDate}
+                onChange={(event, selectedDate) => {
+                  setShowEndDatePicker(false);
+                  if (selectedDate) setEndDate(selectedDate);
+                }}
+              />
+            )}
+            <Text style={styles.label}>Tournament Format *</Text>
+            <TouchableOpacity 
+              style={styles.dropdownButton}
+              onPress={() => setShowFormatDropdown(!showFormatDropdown)}
+            >
+              <Text style={[styles.dropdownButtonText, !format && styles.placeholderText]}>
+                {getFormatLabel(format)}
+              </Text>
+              <Ionicons 
+                name={showFormatDropdown ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color={AppColors.primary} 
+              />
+            </TouchableOpacity>
 
-              {/* Tournament Format */}
-              <View style={styles.pickerContainer}>
+            {showFormatDropdown && (
+              <View style={styles.dropdownContainer}>
                 <Picker
                   selectedValue={format}
-                  onValueChange={setFormat}
+                  onValueChange={(itemValue) => {
+                    setFormat(itemValue);
+                    setShowFormatDropdown(false);
+                  }}
                   style={styles.picker}
-                  dropdownIconColor="#fff"
                 >
-                  <Picker.Item label="Select Tournament Format *" value="" />
                   <Picker.Item label="Double Round Robin" value="DOUBLE_ROUND_ROBIN" />
                   <Picker.Item label="Single Round Robin" value="SINGLE_ROUND_ROBIN" />
                   <Picker.Item label="Knockout" value="KNOCKOUT" />
                 </Picker>
               </View>
+            )}
+            <Text style={styles.label}>Ball Type *</Text>
+            <TouchableOpacity 
+              style={styles.dropdownButton}
+              onPress={() => setShowBallTypeDropdown(!showBallTypeDropdown)}
+            >
+              <Text style={[styles.dropdownButtonText, !ballType && styles.placeholderText]}>
+                {getBallTypeLabel(ballType)}
+              </Text>
+              <Ionicons 
+                name={showBallTypeDropdown ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color={AppColors.primary} 
+              />
+            </TouchableOpacity>
 
-              {/* Ball Type */}
-              <View style={styles.pickerContainer}>
+            {showBallTypeDropdown && (
+              <View style={styles.dropdownContainer}>
                 <Picker
                   selectedValue={ballType}
-                  onValueChange={setBallType}
+                  onValueChange={(itemValue) => {
+                    setBallType(itemValue);
+                    setShowBallTypeDropdown(false);
+                  }}
                   style={styles.picker}
-                  dropdownIconColor="#fff"
                 >
-                  <Picker.Item label="Select Ball Type *" value="" />
                   <Picker.Item label="Tennis Ball" value="TENNIS" />
                   <Picker.Item label="Leather Ball" value="LEATHER" />
                 </Picker>
               </View>
-
-              {/* Number of Overs */}
-              <TextInput
-                style={styles.input}
-                placeholder="Number of Overs"
-                placeholderTextColor="#ccc"
-                value={overs}
-                onChangeText={setOvers}
-                keyboardType="numeric"
-              />
-
-              {/* Create Tournament Button */}
-              <TouchableOpacity
-                style={[styles.button, styles.createButton]}
-                onPress={handleCreateTournament}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="trophy" size={20} color="#fff" />
-                    <Text style={styles.buttonText}> Create Tournament</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </LinearGradient>
+            )}
+            <Text style={styles.label}>Number of Overs</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter number of overs per inning"
+              placeholderTextColor={AppColors.lightText}
+              value={overs}
+              onChangeText={setOvers}
+              keyboardType="numeric"
+            />
           </View>
-        </ImageBackground>
-      </LinearGradient>
-    </ScrollView>
+
+          <View style={{ height: 80 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+      {!keyboardOpen && (
+        <View style={styles.floatingButtonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.floatingButton, 
+              (loading || !isFormValid) && styles.disabledButton
+            ]}
+            onPress={handleCreateTournament}
+            disabled={loading || !isFormValid}
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator color={AppColors.white} />
+            ) : (
+              <View style={styles.buttonContent}>
+                <MaterialCommunityIcons name="trophy" size={20} color={AppColors.white} />
+                <Text style={styles.buttonText}>Create Tournament</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollViewContent: {
-    flexGrow: 1,
-    minHeight: height,
-  },
-  gradient: {
+  safeArea: {
     flex: 1,
-  },
-  backgroundImage: {
-    flex: 1,
-    justifyContent: 'center',
+    backgroundColor: AppColors.white,
+    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0,
   },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: AppColors.lightBackground,
   },
-  gradientCard: {
-    width: '100%',
-    borderRadius: 20,
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: AppColors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  heading: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: AppColors.darkText,
+  },
+  headerButton: {
+    padding: 6,
+    width: 40,
+  },
+  scrollViewContent: {
+    padding: 16,
+    paddingBottom: 20,
+  },
+  card: {
+    backgroundColor: AppColors.white,
+    borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: AppColors.darkText,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   bannerUploadContainer: {
     height: 150,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: AppColors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: AppColors.primary,
+    borderStyle: 'dashed',
     overflow: 'hidden',
   },
   bannerImage: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
   bannerPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 16,
   },
   bannerUploadText: {
-    color: '#fff',
+    color: AppColors.primary,
     fontSize: 16,
     marginTop: 10,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   input: {
-    borderColor: '#fff',
+    borderColor: '#E0E0E0',
     borderWidth: 1,
-    padding: 15,
-    color: '#fff',
-    borderRadius: 8,
-    marginBottom: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 16,
+    color: AppColors.darkText,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: AppColors.background,
     fontSize: 16,
   },
   dateRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 16,
+  },
+  dateInputContainer: {
+    flex: 1,
+  },
+  dateLabel: {
+    fontSize: 14,
+    color: AppColors.darkText,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   dateInput: {
-    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
   },
   dateSeparator: {
-    color: '#fff',
+    color: AppColors.darkText,
     marginHorizontal: 10,
     fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 32,
   },
-  pickerContainer: {
-    borderColor: '#fff',
+  dropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderColor: '#E0E0E0',
     borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: AppColors.background,
+  },
+  dropdownButtonText: {
+    fontSize: 16,
+    color: AppColors.darkText,
+  },
+  dropdownContainer: {
+    borderColor: '#E0E0E0',
+    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: AppColors.background,
     overflow: 'hidden',
   },
   picker: {
-    color: '#fff',
-    height: 50,
+    color: AppColors.darkText,
+    height: 180,
   },
-  button: {
-    padding: 15,
-    borderRadius: 8,
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 16,
+    right: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  floatingButton: {
+    backgroundColor: AppColors.primary,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 10,
-    flexDirection: 'row',
     justifyContent: 'center',
   },
-  createButton: {
-    backgroundColor: '#FF9800',
+  disabledButton: {
+    opacity: 0.7,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
-    color: '#fff',
+    color: AppColors.white,
     fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 5,
-  },
-  connectionStatusContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
+    marginLeft: 8,
   },
   placeholderText: {
-    color: '#fff',
-    fontSize: 16,
+    color: AppColors.lightText,
+  },
+  // Notification styles
+  notificationContainer: {
+    position: "absolute",
+    top: 70,
+    left: 20,
+    right: 20,
+    padding: 16,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  notificationContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  notificationText: {
+    color: "#fff",
+    fontSize: 15,
+    flex: 1,
+    fontWeight: "500",
+    marginLeft: 10,
+  },
+  notificationClose: {
+    padding: 4,
   },
 });
 

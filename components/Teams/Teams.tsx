@@ -78,7 +78,7 @@ const TeamPage = () => {
     const captainCount = item.captain ? 1 : 0;
     const creatorCount =
       item.creator && item.creator.id !== item.captain?.id ? 1 : 0;
-    const totalMembers = playersCount + captainCount + creatorCount;
+    const totalMembers = playersCount;
 
     return (
       <TouchableOpacity
@@ -127,33 +127,34 @@ const TeamPage = () => {
       {Platform.OS === "android" && <RNStatusBar backgroundColor="#87CEEB" barStyle="light-content" />}
       <StatusBar style={Platform.OS === "ios" ? "dark" : "light"} />
 
-      {loading && !refreshing ? (
-        <View style={styles.loaderContainer}>
-          <LottieView source={loaderAnimation} autoPlay loop style={styles.loaderAnimation} />
-        </View>
-      ) : (
-        <>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="arrow-back" size={26} color={AppColors.darkText} />
-            </TouchableOpacity>
-            <Text style={styles.heading}>My Teams</Text>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() => navigation.navigate("CreateTeam")}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="add" size={26} color={AppColors.darkText} />
-            </TouchableOpacity>
-          </View>
+      {/* Header - Always visible */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="arrow-back" size={26} color={AppColors.darkText} />
+        </TouchableOpacity>
+        <Text style={styles.heading}>My Teams</Text>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.navigate("CreateTeam")}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="add" size={26} color={AppColors.darkText} />
+        </TouchableOpacity>
+      </View>
 
-          {/* List / Empty State */}
-          <View style={styles.container}>
+      {/* Content area */}
+      <View style={styles.container}>
+        {loading && !refreshing ? (
+          <View style={styles.loaderContainer}>
+            <LottieView source={loaderAnimation} autoPlay loop style={styles.loaderAnimation} />
+          </View>
+        ) : (
+          <>
+            {/* List / Empty State */}
             {teams.length > 0 ? (
               <FlatList
                 data={teams}
@@ -185,9 +186,9 @@ const TeamPage = () => {
                 </TouchableOpacity>
               </View>
             )}
-          </View>
-        </>
-      )}
+          </>
+        )}
+      </View>
     </SafeAreaView>
   );
 };
