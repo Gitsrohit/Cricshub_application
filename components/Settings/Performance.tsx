@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -9,14 +9,31 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
-  ImageBackground,
+  Dimensions,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome";
+import Icon from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import apiService from "../APIservices";
 
-const Performance = () => {
+const { width } = Dimensions.get("window");
+const AppColors = {
+  white: "#FFFFFF",
+  black: "#000000",
+  blue: "#3498DB",
+  background: "#F8F9FA",
+  cardBorder: "rgba(255, 255, 255, 0.2)",
+  error: "#E74C3C",
+};
+
+const AppGradients = {
+  primaryCard: ["#34B8FF", "#0575E6"],
+  secondaryCard: ["#6C5CE7", "#3498DB"],
+};
+
+const Performance = ({ navigation }) => {
   const [playerData, setPlayerData] = useState({
     careerStats: {
       matchesPlayed: 0,
@@ -46,7 +63,9 @@ const Performance = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
-  const fadeAnim = useState(new Animated.Value(0))[0];
+  
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
     fetchPlayerData();
@@ -54,9 +73,6 @@ const Performance = () => {
 
   const fetchPlayerData = async () => {
     try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Authentication required");
-
       const response = await apiService({
         endpoint: 'profile/current',
         method: 'GET',
@@ -105,21 +121,63 @@ const Performance = () => {
   };
 
   const animateContent = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 800,
-      easing: Easing.ease,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.ease,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      })
+    ]).start();
   };
 
-  const renderStatCard = (value, label, iconName) => (
-    <View style={styles.statCard}>
-      <Icon name={iconName} size={20} color="#3498db" style={styles.statIcon} />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
+  const StatCard = ({ title, value, color = AppColors.blue, delay = 0 }) => {
+    const cardAnim = useRef(new Animated.Value(0)).current;
+    
+    useEffect(() => {
+      setTimeout(() => {
+        Animated.spring(cardAnim, {
+          toValue: 1,
+          friction: 5,
+          tension: 40,
+          useNativeDriver: true,
+        }).start();
+      }, delay);
+    }, []);
+
+    return (
+      <Animated.View 
+        style={[
+          styles.statCard,
+          { 
+            opacity: cardAnim,
+            transform: [{
+              scale: cardAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.8, 1]
+              })
+            }]
+          }
+        ]}
+      >
+        <LinearGradient
+          colors={AppGradients.primaryCard}
+          style={styles.statCardBackground}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={styles.statValue}>{value}</Text>
+          <Text style={styles.statLabel}>{title}</Text>
+        </LinearGradient>
+      </Animated.View>
+    );
+  };
 
   const renderTabContent = () => {
     const { careerStats } = playerData;
@@ -128,468 +186,430 @@ const Performance = () => {
       case "overview":
         return (
           <View style={styles.tabContent}>
-            <View style={styles.statsRow}>
-              {renderStatCard(
-                careerStats.matchesPlayed.toString(),
-                "Matches",
-                "calendar"
-              )}
-              {renderStatCard(
-                careerStats.hundreds.toString(),
-                "Centuries",
-                "trophy"
-              )}
-              {renderStatCard(
-                careerStats.fifties.toString(),
-                "Half-Centuries",
-                "star-half-o"
-              )}
-            </View>
-            <View style={styles.statsRow}>
-              {renderStatCard(
-                careerStats.runsScored.toString(),
-                "Runs",
-                "bolt"
-              )}
-              {renderStatCard(
-                playerData.totalSixes.toString(),
-                "Sixes",
-                "arrow-up"
-              )}
-              {renderStatCard(
-                playerData.totalFours.toString(),
-                "Fours",
-                "arrow-right"
-              )}
+            <View style={styles.statsGrid}>
+              <StatCard 
+                title="Matches" 
+                value={careerStats.matchesPlayed} 
+                delay={100}
+              />
+              <StatCard 
+                title="Runs" 
+                value={careerStats.runsScored} 
+                delay={200}
+              />
+              <StatCard 
+                title="Wickets" 
+                value={playerData.totalWickets} 
+                delay={300}
+              />
+              <StatCard 
+                title="Centuries" 
+                value={careerStats.hundreds} 
+                delay={400}
+              />
+              <StatCard 
+                title="Fifties" 
+                value={careerStats.fifties} 
+                delay={500}
+              />
+              <StatCard 
+                title="Catches" 
+                value={careerStats.catchesTaken} 
+                delay={600}
+              />
             </View>
           </View>
         );
       case "detailed":
         return (
-          <View style={styles.tabContent}>
-            <View style={styles.detailCard}>
-              <View style={styles.sectionHeader}>
-                <Icon name="trophy" size={20} color="#FFD700" />
-                <Text style={styles.detailTitle}>Batting Statistics</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Highest Score:</Text>
-                <Text style={styles.detailValue}>{careerStats.highestScore}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Batting Average:</Text>
-                <Text style={styles.detailValue}>{careerStats.battingAverage}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Strike Rate:</Text>
-                <Text style={styles.detailValue}>{careerStats.strikeRate}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Balls Faced:</Text>
-                <Text style={styles.detailValue}>{careerStats.ballsFaced}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Fifties:</Text>
-                <Text style={styles.detailValue}>{careerStats.fifties}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Hundreds:</Text>
-                <Text style={styles.detailValue}>{careerStats.hundreds}</Text>
+          <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.detailSection}>
+              <Text style={styles.sectionTitle}>Batting Statistics</Text>
+              <View style={styles.detailGrid}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Highest Score</Text>
+                  <Text style={styles.detailValue}>{careerStats.highestScore}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Batting Average</Text>
+                  <Text style={styles.detailValue}>{careerStats.battingAverage}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Strike Rate</Text>
+                  <Text style={styles.detailValue}>{careerStats.strikeRate}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Balls Faced</Text>
+                  <Text style={styles.detailValue}>{careerStats.ballsFaced}</Text>
+                </View>
               </View>
             </View>
 
-            <View style={styles.detailCard}>
-              <View style={styles.sectionHeader}>
-                <Icon name="bullseye" size={20} color="#FF6347" />
-                <Text style={styles.detailTitle}>Bowling Statistics</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Total Wickets:</Text>
-                <Text style={styles.detailValue}>{playerData.totalWickets}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Bowling Average:</Text>
-                <Text style={styles.detailValue}>{careerStats.bowlingAverage}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Economy Rate:</Text>
-                <Text style={styles.detailValue}>{careerStats.economyRate}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Overs Bowled:</Text>
-                <Text style={styles.detailValue}>{careerStats.overs}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Balls Bowled:</Text>
-                <Text style={styles.detailValue}>{careerStats.ballsBowled}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Best Bowling:</Text>
-                <Text style={styles.detailValue}>{careerStats.bestBowlingFigures}</Text>
+            <View style={styles.detailSection}>
+              <Text style={styles.sectionTitle}>Bowling Statistics</Text>
+              <View style={styles.detailGrid}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Bowling Average</Text>
+                  <Text style={styles.detailValue}>{careerStats.bowlingAverage}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Economy Rate</Text>
+                  <Text style={styles.detailValue}>{careerStats.economyRate}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Best Bowling</Text>
+                  <Text style={styles.detailValue}>{careerStats.bestBowlingFigures}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Overs Bowled</Text>
+                  <Text style={styles.detailValue}>{careerStats.overs}</Text>
+                </View>
               </View>
             </View>
 
-            <View style={styles.detailCard}>
-              <View style={styles.sectionHeader}>
-                <Icon name="shield" size={20} color="#32CD32" />
-                <Text style={styles.detailTitle}>Fielding Statistics</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Catches Taken:</Text>
-                <Text style={styles.detailValue}>{careerStats.catchesTaken}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Total Outs:</Text>
-                <Text style={styles.detailValue}>{careerStats.totalOuts}</Text>
+            <View style={styles.detailSection}>
+              <Text style={styles.sectionTitle}>Additional Stats</Text>
+              <View style={styles.detailGrid}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Sixes</Text>
+                  <Text style={styles.detailValue}>{playerData.totalSixes}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Fours</Text>
+                  <Text style={styles.detailValue}>{playerData.totalFours}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Total Outs</Text>
+                  <Text style={styles.detailValue}>{careerStats.totalOuts}</Text>
+                </View>
               </View>
             </View>
-          </View>
+          </ScrollView>
         );
       default:
         return null;
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3498db" />
-        <Text style={styles.loadingText}>Loading Player Data...</Text>
-      </View>
-    );
-  }
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={AppColors.blue} />
+          {/* <Text style={styles.loadingText}>Loading Player Data...</Text> */}
+        </View>
+      );
+    }
 
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Icon name="exclamation-circle" size={40} color="#e74c3c" />
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchPlayerData}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+    if (error) {
+      return (
+        <View style={styles.errorContainer}>
+          <Icon name="alert-circle-outline" size={50} color={AppColors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchPlayerData}>
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
-  return (
-    <ImageBackground
-      source={require("../../assets/images/cricsLogo.png")}
-      style={styles.container}
-      resizeMode="cover"
-      imageStyle={styles.backgroundImage}
-    >
-      <LinearGradient
-        colors={["rgba(8, 102, 170, 0.2)", "rgba(107, 185, 240, 0.2)"]}
-        style={styles.overlay}
+    return (
+      <Animated.View 
+        style={[
+          styles.content,
+          { 
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }
+        ]}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-            <View style={styles.playerHeader}>
-              <View style={styles.avatarContainer}>
-                <View style={styles.avatarWrapper}>
-                  {playerData.logoPath ? (
-                    <Image
-                      source={{ uri: playerData.logoPath }}
-                      style={styles.avatar}
-                    />
-                  ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <Icon name="user" size={50} color="#3498db" />
-                    </View>
-                  )}
+        <LinearGradient
+          colors={AppGradients.primaryCard}
+          style={styles.profileCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.profileContent}>
+            <View style={styles.avatarContainer}>
+              {playerData.logoPath ? (
+                <Image
+                  source={{ uri: playerData.logoPath }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Icon name="person" size={30} color={AppColors.white} />
                 </View>
-                <View style={styles.roleBadge}>
-                  <Text style={styles.roleText}>{playerData.role}</Text>
-                </View>
-              </View>
+              )}
+            </View>
+            <View style={styles.profileInfo}>
               <Text style={styles.playerName}>{playerData.name}</Text>
+              <Text style={styles.playerRole}>{playerData.role}</Text>
               <Text style={styles.playerEmail}>{playerData.email}</Text>
             </View>
+          </View>
+        </LinearGradient>
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === "overview" && styles.activeTab,
+            ]}
+            onPress={() => setActiveTab("overview")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "overview" && styles.activeTabText,
+              ]}
+            >
+              Overview
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === "detailed" && styles.activeTab,
+            ]}
+            onPress={() => setActiveTab("detailed")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "detailed" && styles.activeTabText,
+              ]}
+            >
+              Detailed
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {renderTabContent()}
+      </Animated.View>
+    );
+  };
 
-            <View style={styles.tabsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.tabButton,
-                  activeTab === "overview" && styles.activeTab,
-                ]}
-                onPress={() => setActiveTab("overview")}
-              >
-                <Icon
-                  name="dashboard"
-                  size={16}
-                  color={activeTab === "overview" ? "#fff" : "#3498db"}
-                />
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === "overview" && styles.activeTabText,
-                  ]}
-                >
-                  Overview
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tabButton,
-                  activeTab === "detailed" && styles.activeTab,
-                ]}
-                onPress={() => setActiveTab("detailed")}
-              >
-                <Icon
-                  name="bar-chart"
-                  size={16}
-                  color={activeTab === "detailed" ? "#fff" : "#3498db"}
-                />
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === "detailed" && styles.activeTabText,
-                  ]}
-                >
-                  Detailed
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {renderTabContent()}
-          </Animated.View>
-        </ScrollView>
-      </LinearGradient>
-    </ImageBackground>
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={AppColors.white} />
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow-back" size={24} color={AppColors.black} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Performance Stats</Text>
+        <View style={styles.headerRight} />
+      </View>
+      {renderContent()}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: AppColors.background,
   },
-  backgroundImage: {
-    opacity: 0.8,
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: AppColors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
   },
-  overlay: {
-    flex: 1,
+  backButton: {
+    padding: 8,
   },
-  scrollContainer: {
-    padding: 15,
-    paddingBottom: 30,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: AppColors.black,
+  },
+  headerRight: {
+    width: 40,
   },
   content: {
     flex: 1,
-  },
-  playerHeader: {
-    alignItems: "center",
-    marginBottom: 25,
     padding: 20,
-    backgroundColor: "#fff",
+  },
+  profileCard: {
     borderRadius: 15,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  profileContent: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   avatarContainer: {
-    position: "relative",
-    marginBottom: 15,
-  },
-  avatarWrapper: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#f0f8ff",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "#3498db",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginRight: 15,
   },
   avatar: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 60,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: AppColors.white,
   },
   avatarPlaceholder: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 60,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: AppColors.white,
   },
-  roleBadge: {
-    position: "absolute",
-    bottom: 0,
-    right: 10,
-    backgroundColor: "#3498db",
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  roleText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "bold",
+  profileInfo: {
+    flex: 1,
   },
   playerName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
-    marginTop: 5,
-    textAlign: "center",
+    color: AppColors.white,
+    marginBottom: 2,
+  },
+  playerRole: {
+    fontSize: 14,
+    color: AppColors.white,
+    opacity: 0.9,
+    marginBottom: 2,
   },
   playerEmail: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 2,
+    fontSize: 12,
+    color: AppColors.white,
+    opacity: 0.8,
   },
-  tabsContainer: {
+  tabContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
+    backgroundColor: AppColors.white,
+    borderRadius: 12,
     padding: 5,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    marginBottom: 20,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
   },
   tabButton: {
-    flexDirection: "row",
+    flex: 1,
+    paddingVertical: 12,
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 25,
     borderRadius: 8,
   },
   activeTab: {
-    backgroundColor: "#3498db",
+    backgroundColor: AppColors.blue,
   },
   tabText: {
-    color: "#666",
-    fontWeight: "600",
     fontSize: 14,
-    marginLeft: 8,
+    fontWeight: "600",
+    color: AppColors.black,
   },
   activeTabText: {
-    color: "#fff",
+    color: AppColors.white,
   },
   tabContent: {
-    marginBottom: 20,
+    flex: 1,
   },
-  statsRow: {
+  statsGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 15,
   },
   statCard: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    width: "30%",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    width: "48%",
+    height: 120,
+    marginBottom: 15,
+    borderRadius: 15,
+    overflow: "hidden",
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  statIcon: {
-    marginBottom: 5,
+  statCardBackground: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 15,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
-    marginBottom: 3,
+    color: AppColors.white,
+    marginBottom: 5,
   },
   statLabel: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 14,
+    color: AppColors.white,
+    opacity: 0.9,
     textAlign: "center",
   },
-  detailCard: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
+  detailSection: {
+    backgroundColor: AppColors.white,
+    borderRadius: 15,
+    padding: 20,
     marginBottom: 15,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
   },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-    paddingBottom: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  detailTitle: {
+  sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
-    marginLeft: 8,
+    color: AppColors.black,
+    marginBottom: 15,
   },
-  detailRow: {
+  detailGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
+  },
+  detailItem: {
+    width: "48%",
+    padding: 12,
+    backgroundColor: "#F8F9FA",
+    borderRadius: 10,
     marginBottom: 10,
+    alignItems: "center",
   },
   detailLabel: {
-    fontSize: 14,
-    color: "#666",
-    fontWeight: "500",
+    fontSize: 12,
+    color: AppColors.black,
+    opacity: 0.7,
+    marginBottom: 5,
+    textAlign: "center",
   },
   detailValue: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "bold",
-    color: "#333",
+    color: AppColors.black,
+    textAlign: "center",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AppColors.background,
+    padding: 20,
   },
   loadingText: {
     marginTop: 15,
-    color: "#333",
+    color: AppColors.black,
     fontSize: 16,
   },
   errorContainer: {
@@ -597,31 +617,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AppColors.background,
   },
   errorText: {
     marginTop: 15,
     fontSize: 16,
-    color: "#e74c3c",
+    color: AppColors.error,
     textAlign: "center",
+    marginBottom: 20,
   },
   retryButton: {
-    marginTop: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 25,
-    backgroundColor: "#3498db",
+    backgroundColor: AppColors.blue,
     borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
   },
   retryButtonText: {
-    color: "white",
+    color: AppColors.white,
     fontWeight: "bold",
     fontSize: 14,
   },

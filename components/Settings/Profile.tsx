@@ -23,23 +23,28 @@ import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/Feather";
 import * as ImagePicker from "expo-image-picker";
 import apiService from "../APIservices";
-import axios from "axios";
 
-const { width } = Dimensions.get("window");
-
-// Role options for dropdown
+const { width, height } = Dimensions.get("window");
 const ROLE_OPTIONS = ["Batsman", "Bowler", "All-rounder", "Wicket-keeper"];
+const AppColors = {
+  white: "#FFFFFF",
+  black: "#000000",
+  blue: "#3498DB",
+  background: "#F8F9FA",
+  cardBorder: "rgba(255, 255, 255, 0.2)",
+  error: "#E74C3C",
+};
 
-const PlaceholderAnimation = ({ style, shouldAnimate }) => {
+const ShimmerPlaceholder = ({ style, visible, children }) => {
   const [animation] = useState(new Animated.Value(0));
 
   useEffect(() => {
-    if (!shouldAnimate) {
+    if (!visible) {
       animation.setValue(0);
       return;
     }
 
-    const loopAnimation = () => {
+    Animated.loop(
       Animated.sequence([
         Animated.timing(animation, {
           toValue: 1,
@@ -53,33 +58,34 @@ const PlaceholderAnimation = ({ style, shouldAnimate }) => {
           easing: Easing.linear,
           useNativeDriver: true,
         }),
-      ]).start(() => {
-        if (shouldAnimate) loopAnimation();
-      });
-    };
-
-    loopAnimation();
-    return () => animation.stopAnimation();
-  }, [shouldAnimate]);
+      ])
+    ).start();
+  }, [visible]);
 
   const translateX = animation.interpolate({
     inputRange: [0, 1],
     outputRange: [-width, width],
   });
 
+  if (!visible) return children;
+
   return (
-    <View style={[styles.placeholderContainer, style]}>
+    <View style={[style, { overflow: "hidden" }]}>
+      {children}
       <Animated.View
         style={[
-          styles.placeholderAnimation,
-          { transform: [{ translateX }] },
+          styles.shimmerOverlay,
+          {
+            transform: [{ translateX }],
+            opacity: animation,
+          },
         ]}
       />
     </View>
   );
 };
 
-const Notification = ({ message, type, visible }) => {
+const Notification = ({ message, type, visible, onHide }) => {
   const [fadeAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
@@ -91,20 +97,23 @@ const Notification = ({ message, type, visible }) => {
           easing: Easing.ease,
           useNativeDriver: true,
         }),
-        Animated.delay(2000),
+        Animated.delay(3000),
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 300,
           easing: Easing.ease,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        onHide && onHide();
+      });
     }
   }, [visible, fadeAnim]);
 
   if (!visible) return null;
 
   const bgColor = type === "success" ? "#4CAF50" : "#F44336";
+  const iconName = type === "success" ? "check-circle" : "alert-circle";
 
   return (
     <Animated.View
@@ -113,24 +122,57 @@ const Notification = ({ message, type, visible }) => {
         { opacity: fadeAnim, backgroundColor: bgColor },
       ]}
     >
-      <Icon
-        name={type === "success" ? "check-circle" : "alert-circle"}
-        size={20}
-        color="#fff"
-        style={styles.notificationIcon}
-      />
-      <Text style={styles.notificationText}>{message}</Text>
+      <View style={styles.notificationContent}>
+        <Icon name={iconName} size={22} color="#fff" />
+        <Text style={styles.notificationText}>{message}</Text>
+      </View>
+      <TouchableOpacity onPress={onHide} style={styles.notificationClose}>
+        <Icon name="x" size={18} color="#fff" />
+      </TouchableOpacity>
     </Animated.View>
   );
 };
 
 const DropdownModal = ({ visible, options, onSelect, onClose }) => {
+  const [slideAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    if (visible) {
+      Animated.timing(slideAnim, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    } else {
+      slideAnim.setValue(0);
+    }
+  }, [visible]);
+
+  const translateY = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [300, 0],
+  });
+
+  if (!visible) return null;
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ScrollView>
+          <Animated.View
+            style={[
+              styles.modalContent,
+              { transform: [{ translateY }] },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Role</Text>
+              <TouchableOpacity onPress={onClose} style={styles.modalClose}>
+                <Icon name="x" size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.optionsContainer}>
               {options.map((option, index) => (
                 <TouchableOpacity
                   key={index}
@@ -138,10 +180,11 @@ const DropdownModal = ({ visible, options, onSelect, onClose }) => {
                   onPress={() => onSelect(option)}
                 >
                   <Text style={styles.optionText}>{option}</Text>
+                  <Icon name="chevron-right" size={18} color="#ccc" />
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </Animated.View>
         </View>
       </TouchableWithoutFeedback>
     </Modal>
@@ -174,27 +217,23 @@ const Settings = ({ navigation }) => {
       message,
       type,
     });
-    setTimeout(() => {
-      setNotification((prev) => ({ ...prev, visible: false }));
-    }, 3000);
+  };
+
+  const hideNotification = () => {
+    setNotification((prev) => ({ ...prev, visible: false }));
   };
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) {
-        showNotification("Please login again", "error");
-        return;
-      }
-
+      
       const response = await apiService({
         endpoint: "profile/current",
         method: "GET",
       });
 
       if (!response.success) {
-        throw new Error(response.error || "Failed to load profile data");
+        throw new Error(response.error?.message || "Failed to load profile data");
       }
 
       const profileData = response.data.data || response.data;
@@ -218,30 +257,32 @@ const Settings = ({ navigation }) => {
   const updateProfileData = async (updatedData) => {
     try {
       setIsUpdating(true);
-      console.log("Updating profile with:", updatedData);
       
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) {
-        showNotification("Please login again", "error");
-        return false;
+      const formData = new FormData();
+      for (let key in updatedData) {
+        if (key === "profilePicture" && typeof updatedData[key] === "string") {
+          formData.append(key, {
+            uri: updatedData[key],
+            type: "image/jpeg",
+            name: "profile.jpg",
+          });
+        } else {
+          formData.append(key, updatedData[key]);
+        }
       }
 
       const response = await apiService({
         endpoint: "profile/update",
         method: "PUT",
-        body: updatedData,
+        body: formData,
+        isMultipart: true,
       });
 
-      console.log("Update response:", response);
-      
       if (!response.success) {
-        throw new Error(response.error || "Failed to update profile");
+        throw new Error(response.error?.message || "Failed to update profile");
       }
 
-      setProfile((prev) => ({
-        ...prev,
-        ...updatedData,
-      }));
+      setProfile((prev) => ({ ...prev, ...updatedData }));
       showNotification("Profile updated successfully");
       return true;
     } catch (err) {
@@ -255,8 +296,7 @@ const Settings = ({ navigation }) => {
 
   const pickImage = async () => {
     try {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         showNotification("Photo access permission required", "error");
         return;
@@ -266,40 +306,20 @@ const Settings = ({ navigation }) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.7,
+        quality: 0.8,
       });
 
       if (!result.canceled) {
         setIsUploading(true);
         const newImageUri = result.assets[0].uri;
+
+        const success = await updateProfileData({ profilePicture: newImageUri });
         
-        const formData = new FormData();
-        formData.append("profilePicture", {
-          uri: newImageUri,
-          type: "image/jpeg",
-          name: "profile.jpg",
-        });
-
-        const token = await AsyncStorage.getItem("jwtToken");
-        const response = await axios.put(
-          "https://score360-7.onrender.com/api/v1/profile/update",
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-
-        if (response.data && response.data.success) {
+        if (success) {
           setProfile((prev) => ({
             ...prev,
             profilePicture: `${newImageUri}?${new Date().getTime()}`,
           }));
-          showNotification("Profile picture updated successfully");
-        } else {
-          throw new Error("Failed to update profile picture");
         }
       }
     } catch (err) {
@@ -318,17 +338,19 @@ const Settings = ({ navigation }) => {
   const handleSave = async () => {
     if (!tempValue.trim()) {
       showNotification("Field cannot be empty", "error");
+      setIsUpdating(false);
       return;
     }
 
     let updatedData = {};
     if (editField === "phone") {
       updatedData = { phoneNumber: tempValue };
-    } else {
-      updatedData = { [editField]: tempValue };
+    } else if (editField === "name") {
+      updatedData = { name: tempValue };
+    } else if (editField === "role") {
+      updatedData = { role: tempValue };
     }
 
-    console.log("Saving data:", updatedData);
     const success = await updateProfileData(updatedData);
     if (success) setEditField(null);
   };
@@ -343,33 +365,17 @@ const Settings = ({ navigation }) => {
     fetchProfile();
   }, []);
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <LinearGradient
-          colors={["#34B8FF", "#0575E6"]}
-          style={styles.gradientOverlay}
-        >
-          <ActivityIndicator
-            size="large"
-            color="#fff"
-            style={{ marginTop: 200 }}
-          />
-        </LinearGradient>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <Notification
         visible={notification.visible}
         message={notification.message}
         type={notification.type}
+        onHide={hideNotification}
       />
       <StatusBar
-        barStyle="light-content"
-        backgroundColor="#34B8FF"
+        barStyle="dark-content"
+        backgroundColor={AppColors.white}
         translucent={true}
       />
       
@@ -379,54 +385,68 @@ const Settings = ({ navigation }) => {
         onSelect={handleRoleSelect}
         onClose={() => setDropdownVisible(false)}
       />
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow-left" size={24} color={AppColors.black} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profile Settings</Text>
+        <View style={styles.headerRight} />
+      </View>
 
-      <LinearGradient
-        colors={["#34B8FF", "#0575E6"]}
-        style={styles.gradientOverlay}
-      >
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={AppColors.blue} />
+          {/* <Text style={styles.loadingText}>Loading your profile...</Text> */}
+        </View>
+      ) : (
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardAvoid}
         >
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <TouchableOpacity
-              style={{ padding: 5 }}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
-            >
-              <Icon name="arrow-left" size={26} color="white" />
-            </TouchableOpacity>
-
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.profileContainer}>
-              <TouchableOpacity
+              <ShimmerPlaceholder
                 style={styles.profileImageContainer}
-                onPress={pickImage}
-                disabled={isUploading}
+                visible={!isUploading}
               >
-                {profile.profilePicture ? (
-                  <>
-                    <Image
-                      source={{ uri: profile.profilePicture }}
-                      style={styles.profileImage}
-                    />
-                    {isUploading && (
-                      <View style={styles.uploadOverlay}>
-                        <ActivityIndicator size="large" color="#fff" />
-                      </View>
-                    )}
-                  </>
-                ) : (
-                  <View style={styles.profileImagePlaceholder}>
-                    <Icon name="user" size={60} color="#fff" />
+                <TouchableOpacity
+                  style={styles.profileImageContainer}
+                  onPress={pickImage}
+                  disabled={isUploading}
+                >
+                  {profile.profilePicture ? (
+                    <>
+                      <Image
+                        source={{ uri: profile.profilePicture }}
+                        style={styles.profileImage}
+                      />
+                      {isUploading && (
+                        <View style={styles.uploadOverlay}>
+                          <ActivityIndicator size="large" color="#fff" />
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    <View style={styles.profileImagePlaceholder}>
+                      <Icon name="user" size={60} color="#fff" />
+                    </View>
+                  )}
+                  <View style={styles.editPhotoButton}>
+                    <Icon name="camera" size={18} color="#fff" />
                   </View>
-                )}
-                <View style={styles.editPhotoButton}>
-                  <Icon name="camera" size={18} color="#fff" />
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </ShimmerPlaceholder>
 
               <View style={styles.infoContainer}>
-                {["name", "phone", "email"].map((field) => (
+                <Text style={styles.sectionTitle}>Personal Information</Text>
+                
+                {["name", "phone"].map((field) => (
                   <View style={styles.infoItem} key={field}>
                     {editField === field ? (
                       <View style={styles.editContainer}>
@@ -435,42 +455,48 @@ const Settings = ({ navigation }) => {
                           value={tempValue}
                           onChangeText={setTempValue}
                           placeholder={`Enter your ${field}`}
+                          placeholderTextColor="#999"
                           autoFocus
                           keyboardType={
                             field === "phone"
                               ? "phone-pad"
-                              : field === "email"
-                              ? "email-address"
                               : "default"
                           }
                         />
-                        <TouchableOpacity
-                          style={styles.saveButton}
-                          onPress={handleSave}
-                        >
-                          {isUpdating ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                          ) : (
-                            <Icon name="check" size={18} color="#fff" />
-                          )}
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.cancelButton}
-                          onPress={() => setEditField(null)}
-                        >
-                          <Icon name="x" size={18} color="#fff" />
-                        </TouchableOpacity>
+                        <View style={styles.editActions}>
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.saveButton]}
+                            onPress={handleSave}
+                            disabled={isUpdating}
+                          >
+                            {isUpdating ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <Icon name="check" size={18} color="#fff" />
+                            )}
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.cancelButton]}
+                            onPress={() => setEditField(null)}
+                          >
+                            <Icon name="x" size={18} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     ) : (
                       <View style={styles.infoTextContainer}>
-                        <Text style={styles.infoLabel}>
-                          {field === "name"
-                            ? "Name:"
-                            : field === "phone"
-                            ? "Phone:"
-                            : "Email:"}
-                        </Text>
-                        <Text style={styles.infoValue}>
+                        <View style={styles.infoLabelContainer}>
+                          <Icon 
+                            name={field === "name" ? "user" : "phone"} 
+                            size={16} 
+                            color="#34B8FF" 
+                            style={styles.fieldIcon}
+                          />
+                          <Text style={styles.infoLabel}>
+                            {field === "name" ? "Full Name" : "Phone Number"}
+                          </Text>
+                        </View>
+                        <Text style={styles.infoValue} numberOfLines={1}>
                           {profile[field] || "Not set"}
                         </Text>
                         <TouchableOpacity
@@ -486,7 +512,15 @@ const Settings = ({ navigation }) => {
 
                 <View style={styles.infoItem}>
                   <View style={styles.infoTextContainer}>
-                    <Text style={styles.infoLabel}>Role:</Text>
+                    <View style={styles.infoLabelContainer}>
+                      <Icon 
+                        name="award" 
+                        size={16} 
+                        color="#34B8FF" 
+                        style={styles.fieldIcon}
+                      />
+                      <Text style={styles.infoLabel}>Playing Role</Text>
+                    </View>
                     <Text style={styles.infoValue}>
                       {profile.role || "Not set"}
                     </Text>
@@ -498,23 +532,46 @@ const Settings = ({ navigation }) => {
                     </TouchableOpacity>
                   </View>
                 </View>
+
+                <View style={styles.infoItem}>
+                  <View style={styles.infoTextContainer}>
+                    <View style={styles.infoLabelContainer}>
+                      <Icon 
+                        name="mail" 
+                        size={16} 
+                        color="#34B8FF" 
+                        style={styles.fieldIcon}
+                      />
+                      <Text style={styles.infoLabel}>Email Address</Text>
+                    </View>
+                    <Text style={styles.infoValue} numberOfLines={1}>
+                      {profile.email || "Not set"}
+                    </Text>
+                  </View>
+                </View>
               </View>
+              <TouchableOpacity 
+                style={styles.careerStatsButton}
+                onPress={() => navigation.navigate('Performance')}
+              >
+                <View style={styles.careerStatsContent}>
+                  <Icon name="bar-chart-2" size={22} color="#fff" />
+                  <Text style={styles.careerStatsText}>View Career Stats</Text>
+                </View>
+                <Icon name="chevron-right" size={22} color="#fff" />
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-      </LinearGradient>
+      )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: StatusBar.currentHeight || 0,
     flex: 1,
-    backgroundColor: "#F7F9FC",
-  },
-  gradientOverlay: {
-    flex: 1,
+    backgroundColor: AppColors.background,
   },
   keyboardAvoid: {
     flex: 1,
@@ -522,12 +579,43 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 20,
-    paddingTop: 0,
+    paddingTop: 10,
   },
-  // Profile
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: AppColors.background,
+  },
+  loadingText: {
+    color: AppColors.black,
+    marginTop: 15,
+    fontSize: 16,
+  },
+  // Header styles matching Performance component
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: AppColors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: AppColors.black,
+  },
+  headerRight: {
+    width: 40,
+  },
   profileContainer: {
     alignItems: "center",
-    marginTop: 30,
   },
   profileImageContainer: {
     position: "relative",
@@ -549,11 +637,11 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(52,184,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,
-    borderColor: "#fff",
+    borderColor: "#34B8FF",
   },
   uploadOverlay: {
     position: "absolute",
@@ -581,43 +669,59 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  // Info card
   infoContainer: {
     width: "100%",
     backgroundColor: "#fff",
     borderRadius: 20,
     padding: 20,
+    marginBottom: 20,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
-  infoItem: {
-    marginBottom: 18,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 20,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f4f8",
-    paddingBottom: 12,
+  },
+  infoItem: {
+    marginBottom: 20,
   },
   infoTextContainer: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+  },
+  infoLabelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  fieldIcon: {
+    marginRight: 10,
   },
   infoLabel: {
-    color: "#555",
-    fontSize: 15,
+    color: "#666",
+    fontSize: 14,
     fontWeight: "600",
-    width: 80,
   },
   infoValue: {
     color: "#222",
-    fontSize: 15,
+    fontSize: 16,
+    fontWeight: "500",
     flex: 1,
-    marginLeft: 8,
+    marginLeft: 10,
+    textAlign: "right",
   },
-  // Edit buttons
   editButton: {
-    marginLeft: 8,
-    padding: 6,
+    marginLeft: 15,
+    padding: 8,
     backgroundColor: "rgba(52,184,255,0.1)",
     borderRadius: 8,
   },
@@ -628,17 +732,27 @@ const styles = StyleSheet.create({
   editInput: {
     flex: 1,
     backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     color: "#000",
     borderWidth: 1,
     borderColor: "#e0e0e0",
+    fontSize: 16,
+  },
+  editActions: {
+    flexDirection: "row",
+    marginLeft: 10,
+  },
+  actionButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
   },
   saveButton: {
     backgroundColor: "#34B8FF",
-    borderRadius: 25,
-    padding: 10,
-    marginLeft: 8,
     shadowColor: "#34B8FF",
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -646,56 +760,104 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: "#FF4C4C",
-    borderRadius: 25,
-    padding: 10,
-    marginLeft: 6,
   },
-  // Notifications
+  // Career Stats Button
+  careerStatsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#34B8FF",
+    padding: 18,
+    borderRadius: 16,
+    width: "100%",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  careerStatsContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  careerStatsText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 12,
+  },
   notificationContainer: {
     position: "absolute",
-    top: 50,
+    top: 60,
     left: 20,
     right: 20,
-    padding: 14,
+    padding: 16,
     borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     zIndex: 1000,
     shadowColor: "#000",
     shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 6,
   },
-  notificationIcon: {
-    marginRight: 10,
+  notificationContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
   },
   notificationText: {
     color: "#fff",
     fontSize: 15,
     flex: 1,
     fontWeight: "500",
+    marginLeft: 10,
   },
-  // Dropdown modal
+  notificationClose: {
+    padding: 4,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "flex-end",
   },
   modalContent: {
     backgroundColor: "white",
-    borderRadius: 10,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 30,
+    maxHeight: height * 0.6,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 20,
-    width: "80%",
-    maxHeight: "60%",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f4f8",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  modalClose: {
+    padding: 4,
+  },
+  optionsContainer: {
+    paddingHorizontal: 20,
   },
   optionItem: {
-    padding: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: "#f5f5f5",
   },
   optionText: {
     fontSize: 16,
+    color: "#333",
   },
 });
 
