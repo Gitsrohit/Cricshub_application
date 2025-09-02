@@ -372,84 +372,83 @@ const Home = () => {
           <View style={styles.sidebarFooter}>
             <Text style={styles.footerTextDark}>cricshub ©2025</Text>
           </View>
-      </View>
-    </Animated.View>
+        </Animated.View>
 
-        {/* Main content */ }
-  <View style={styles.mainContent}>
-    <View style={styles.content}>
-      <FlatList
-        data={sections}
-        numColumns={2}
-        keyExtractor={(item, index) => index.toString()}
-        scrollEnabled={true}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        renderItem={({ item, index }) => {
-          const animatedStyle = {
-            opacity: animatedValues.has(index)
-              ? animatedValues.get(index).interpolate({
-                inputRange: [0, 0.5, 1],
-                outputRange: [0, 0.5, 1],
-              })
-              : 0,
-            transform: [
-              {
-                scale: animatedValues.has(index)
-                  ? animatedValues.get(index).interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0.5, 1.1, 1],
-                  })
-                  : 0.5,
-              },
-            ],
-          };
+        {/* Main content */}
+        <View style={styles.mainContent}>
+          <View style={styles.content}>
+            <FlatList
+              data={sections}
+              numColumns={2}
+              keyExtractor={(item, index) => index.toString()}
+              scrollEnabled={true}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={viewabilityConfig}
+              renderItem={({ item, index }) => {
+                const animatedStyle = {
+                  opacity: animatedValues.has(index)
+                    ? animatedValues.get(index).interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0, 0.5, 1],
+                    })
+                    : 0,
+                  transform: [
+                    {
+                      scale: animatedValues.has(index)
+                        ? animatedValues.get(index).interpolate({
+                          inputRange: [0, 0.5, 1],
+                          outputRange: [0.5, 1.1, 1],
+                        })
+                        : 0.5,
+                    },
+                  ],
+                };
 
-          return (
-            <Animated.View
-              style={[
-                styles.card,
-                item.isFullWidth ? styles.fullWidthCard : {},
-                animatedStyle,
-              ]}
-            >
-              <LinearGradient
-                colors={AppGradients.primaryCard}
-                style={styles.cardBackground}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <MaterialIcons
-                  name={item.icon}
-                  size={40}
-                  color={AppColors.white}
-                  style={styles.cardIcon}
-                />
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <TouchableOpacity
-                  style={styles.cardButton}
-                  onPressIn={() => handleButtonPressIn(index)}
-                  onPressOut={() => handleButtonPressOut(index)}
-                  onPress={() => {
-                    if (item.title === "Fantasy Cricket") {
-                      setShowFantasyPopup(true);
-                    } else {
-                      navigation.navigate(item.navigateTo);
-                    }
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.cardButtonText}>
-                    {item.buttonText}
-                  </Text>
-                </TouchableOpacity>
-              </LinearGradient>
-            </Animated.View>
-          );
-        }}
-      />
-    </View>
-  </View>
+                return (
+                  <Animated.View
+                    style={[
+                      styles.card,
+                      item.isFullWidth ? styles.fullWidthCard : {},
+                      animatedStyle,
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={AppGradients.primaryCard}
+                      style={styles.cardBackground}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      <MaterialIcons
+                        name={item.icon}
+                        size={40}
+                        color={AppColors.white}
+                        style={styles.cardIcon}
+                      />
+                      <Text style={styles.cardTitle}>{item.title}</Text>
+                      <TouchableOpacity
+                        style={styles.cardButton}
+                        onPressIn={() => handleButtonPressIn(index)}
+                        onPressOut={() => handleButtonPressOut(index)}
+                        onPress={() => {
+                          if (item.title === "Fantasy Cricket") {
+                            setShowFantasyPopup(true);
+                          } else {
+                            navigation.navigate(item.navigateTo);
+                          }
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.cardButtonText}>
+                          {item.buttonText}
+                        </Text>
+                      </TouchableOpacity>
+                    </LinearGradient>
+                  </Animated.View>
+                );
+              }}
+            />
+          </View>
+        </View>
       </View >
     </SafeAreaView >
   );
