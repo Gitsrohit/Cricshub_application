@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
   Vibration,
   Alert,
+  SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -218,27 +219,27 @@ const InstantMatch = () => {
     });
 
     (async () => {
-        try {
-            const token = await AsyncStorage.getItem('jwtToken');
-            if (!token) {
-                console.warn("InstantMatch: No JWT token found when trying to schedule match in background.");
-                return;
-            }
-            const response = await apiService({
-                endpoint: 'matches/schedule',
-                method: 'POST',
-                body: requestBody,
-                token: token,
-            });
-
-            if (response.success && response.data.data && response.data.data.id) {
-                console.log("InstantMatch: Match scheduled successfully in background. Match ID:", response.data.data.id);
-            } else {
-                console.error("InstantMatch: Background match scheduling failed:", response.error);
-            }
-        } catch (err) {
-            console.error("InstantMatch: Error during background match scheduling:", err);
+      try {
+        const token = await AsyncStorage.getItem('jwtToken');
+        if (!token) {
+          console.warn("InstantMatch: No JWT token found when trying to schedule match in background.");
+          return;
         }
+        const response = await apiService({
+          endpoint: 'matches/schedule',
+          method: 'POST',
+          body: requestBody,
+          token: token,
+        });
+
+        if (response.success && response.data.data && response.data.data.id) {
+          console.log("InstantMatch: Match scheduled successfully in background. Match ID:", response.data.data.id);
+        } else {
+          console.error("InstantMatch: Background match scheduling failed:", response.error);
+        }
+      } catch (err) {
+        console.error("InstantMatch: Error during background match scheduling:", err);
+      }
     })();
   };
 
@@ -253,7 +254,7 @@ const InstantMatch = () => {
     <>
       <StatusBar barStyle="dark-content" backgroundColor={AppColors.white} translucent={false} />
 
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.instantMatchContainer}>
           <View style={styles.contentWrapper}>
             <Text style={styles.title}>Set Up Your Match</Text>
@@ -263,7 +264,7 @@ const InstantMatch = () => {
                 {team1Error ? <Text style={styles.errorText}>{team1Error}</Text> : null}
                 <Animated.View style={[{ transform: [{ translateX: team1ShakeAnim }] }, team1Error ? styles.errorBorderStrong : null, styles.teamCardOuter]}>
                   <TouchableOpacity
-                    style={styles.teamCircleButtonTouchable} 
+                    style={styles.teamCircleButtonTouchable}
                     onPress={() => {
                       setSelectedTeam('team1');
                       setTeamModalVisible(true);
@@ -426,7 +427,7 @@ const InstantMatch = () => {
             </KeyboardAvoidingView>
           </Pressable>
         </Modal>
-      </View>
+      </SafeAreaView>
     </>
   );
 };
@@ -440,7 +441,7 @@ const styles = StyleSheet.create({
   },
   instantMatchContainer: {
     flex: 1,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    // paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     justifyContent: 'center',
     alignItems: 'center',
   },

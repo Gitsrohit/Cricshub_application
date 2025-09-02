@@ -92,13 +92,15 @@ const Info = ({ id, isCreator }) => {
       const formattedStartDate = [startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate()];
       const formattedEndDate = [endDate.getFullYear(), endDate.getMonth() + 1, endDate.getDate()];
 
+      const cleanVenues = editedDetails.venues.map(v => v.trim()).filter(v => v.length > 0);
+
       const dataToSend = {
         name: editedDetails.name,
         startDate: formattedStartDate,
         endDate: formattedEndDate,
         type: Number(editedDetails.type),
         ballType: editedDetails.ballType,
-        venues: editedDetails.venues,
+        venues: cleanVenues,
         format: editedDetails.format,
       };
 
@@ -136,8 +138,8 @@ const Info = ({ id, isCreator }) => {
         <View style={styles.errorContainer}>
           <Icon name="error-outline" size={40} color="#E74C3C" />
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity 
-            style={styles.retryButton} 
+          <TouchableOpacity
+            style={styles.retryButton}
             onPress={() => fetchTournamentDetails(id)}
           >
             <Text style={styles.retryText}>Retry</Text>
@@ -154,7 +156,7 @@ const Info = ({ id, isCreator }) => {
             <View style={styles.header}>
               <Text style={styles.title}>{tournamentDetails.name}</Text>
               {isCreator && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.editButton}
                   onPress={() => setEditingTournament(true)}
                 >
@@ -166,11 +168,11 @@ const Info = ({ id, isCreator }) => {
               <View style={styles.headerDetailItem}>
                 <Icon name="calendar-today" size={16} color="#E0E0E0" />
                 <Text style={styles.headerDetailText}>
-                  {tournamentDetails.startDate 
+                  {tournamentDetails.startDate
                     ? moment(new Date(tournamentDetails.startDate[0], tournamentDetails.startDate[1] - 1, tournamentDetails.startDate[2])).format('DD MMM YYYY')
                     : 'N/A'}
                   {' - '}
-                  {tournamentDetails.endDate 
+                  {tournamentDetails.endDate
                     ? moment(new Date(tournamentDetails.endDate[0], tournamentDetails.endDate[1] - 1, tournamentDetails.endDate[2])).format('DD MMM YYYY')
                     : 'N/A'}
                 </Text>
@@ -202,8 +204,8 @@ const Info = ({ id, isCreator }) => {
                 <Icon name="group" size={20} color="#4A90E2" />
                 <Text style={styles.cardTitle}>Teams</Text>
               </View>
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.teamsContainer}
               >
@@ -244,6 +246,121 @@ const Info = ({ id, isCreator }) => {
           <Text style={styles.emptyText}>No tournament details available</Text>
         </View>
       )}
+      {/* Editing tournament modal */}
+      <Modal
+        visible={editingTournament}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditingTournament(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Edit Tournament</Text>
+
+            {/* Date Pickers */}
+            <View style={styles.dateRow}>
+              <TouchableOpacity
+                style={[styles.input, styles.dateInput]}
+                onPress={() => setShowStartDatePicker(true)}
+              >
+                <Text style={styles.placeholderText}>
+                  {moment(startDate).format('MMM D, YYYY')}
+                </Text>
+                <Icon name="calendar-today" size={20} color="#4A90E2" />
+              </TouchableOpacity>
+
+              <Text style={styles.dateSeparator}>to</Text>
+
+              <TouchableOpacity
+                style={[styles.input, styles.dateInput]}
+                onPress={() => setShowEndDatePicker(true)}
+              >
+                <Text style={styles.placeholderText}>
+                  {moment(endDate).format('MMM D, YYYY')}
+                </Text>
+                <Icon name="calendar-today" size={20} color="#4A90E2" />
+              </TouchableOpacity>
+            </View>
+
+            {showStartDatePicker && (
+              <DateTimePicker
+                value={startDate}
+                mode="date"
+                display="default"
+                minimumDate={new Date()}
+                onChange={(event, selectedDate) => {
+                  setShowStartDatePicker(false);
+                  if (selectedDate) {
+                    setStartDate(selectedDate);
+                    if (selectedDate > endDate) {
+                      setEndDate(selectedDate);
+                    }
+                  }
+                }}
+              />
+            )}
+
+            {showEndDatePicker && (
+              <DateTimePicker
+                value={endDate}
+                mode="date"
+                display="default"
+                minimumDate={startDate}
+                onChange={(event, selectedDate) => {
+                  setShowEndDatePicker(false);
+                  if (selectedDate) setEndDate(selectedDate);
+                }}
+              />
+            )}
+
+            {/* Venues */}
+            <Text style={styles.modalSubtitle}>Venues</Text>
+            {editedDetails.venues.map((venue, index) => (
+              <TextInput
+                key={index}
+                style={styles.input}
+                placeholder={`Venue ${index + 1}`}
+                value={venue}
+                onChangeText={(text) => {
+                  const newVenues = [...editedDetails.venues];
+                  newVenues[index] = text;
+                  setEditedDetails({ ...editedDetails, venues: newVenues });
+                }}
+              />
+            ))}
+
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() =>
+                setEditedDetails({
+                  ...editedDetails,
+                  venues: [...editedDetails.venues, ""],
+                })
+              }
+            >
+              <Icon name="add" size={20} color="#fff" />
+              <Text style={styles.addButtonText}>Add Venue</Text>
+            </TouchableOpacity>
+
+            {/* Action Buttons */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={() => setEditingTournament(false)}
+              >
+                <Text style={styles.actionText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.saveButton]}
+                onPress={updateTournamentDetails}
+              >
+                <Text style={[styles.actionText, { color: "#fff" }]}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </ScrollView>
   );
 };
@@ -257,7 +374,7 @@ const styles = StyleSheet.create({
   errorText: { color: '#dc3545', marginVertical: 16, fontSize: 16, textAlign: 'center' },
   retryButton: { backgroundColor: '#dc3545', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
   retryText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  headerContainer: { 
+  headerContainer: {
     padding: 20, borderRadius: 12, marginHorizontal: 16, marginTop: 16
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
@@ -268,8 +385,8 @@ const styles = StyleSheet.create({
   headerDetailText: { color: '#E0E0E0', marginLeft: 6, fontSize: 14 },
   contentContainer: { padding: 16 },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 18, marginBottom: 16 },
-  shadowCard: { 
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 3 
+  shadowCard: {
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 3
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   cardTitle: { fontSize: 16, fontWeight: '600', color: '#212529', marginLeft: 12 },
@@ -286,6 +403,97 @@ const styles = StyleSheet.create({
   detailValue: { fontSize: 15, fontWeight: '500', color: '#212529' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptyText: { color: '#95A5A6', fontSize: 16, marginTop: 16 },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    width: "100%",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#212529",
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginVertical: 12,
+    color: "#495057",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#dee2e6",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    fontSize: 14,
+    backgroundColor: "#f8f9fa",
+  },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  dateInput: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+  },
+  dateSeparator: {
+    marginHorizontal: 8,
+    fontWeight: "600",
+    color: "#495057",
+  },
+  placeholderText: {
+    fontSize: 14,
+    color: "#212529",
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#4A90E2",
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  addButtonText: {
+    color: "#fff",
+    marginLeft: 6,
+    fontWeight: "600",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 10,
+  },
+  actionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  cancelButton: {
+    backgroundColor: "#f1f3f5",
+  },
+  saveButton: {
+    backgroundColor: "#4A90E2",
+  },
+  actionText: {
+    fontWeight: "600",
+    fontSize: 14,
+    color: "#212529",
+  },
 });
 
 export default Info;

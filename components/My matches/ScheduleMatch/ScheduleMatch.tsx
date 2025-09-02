@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
   Vibration,
   ScrollView,
+  SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Renamed from 'MaterialIcons' to 'Icon' for consistency
@@ -318,7 +319,7 @@ const ScheduleMatch = () => {
     <>
       <StatusBar barStyle="dark-content" backgroundColor={AppColors.white} translucent={false} />
 
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
           style={styles.keyboardAvoidingContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -573,7 +574,7 @@ const ScheduleMatch = () => {
           onClose={handleDialogClose}
           type={dialogType}
         />
-      </View>
+      </SafeAreaView>
     </>
   );
 };
@@ -595,7 +596,7 @@ const styles = StyleSheet.create({
   },
   scheduleMatchContainer: {
     flex: 1,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    // paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     justifyContent: 'center',
     alignItems: 'center',
   },

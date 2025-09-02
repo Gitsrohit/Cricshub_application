@@ -57,7 +57,7 @@ const removeToken = async () => {
 };
 
 const Login = ({ navigation }) => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: 'user1@example.com', password: '123456' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 

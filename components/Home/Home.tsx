@@ -200,46 +200,46 @@ const Home = () => {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setShowFantasyPopup(false)}
             >
               <Ionicons name="close" size={24} color={AppColors.white} />
             </TouchableOpacity>
-            
+
             <View style={styles.modalHeader}>
               <Ionicons name="rocket-outline" size={40} color={AppColors.white} />
               <Text style={styles.modalTitle}>Get Ready for Fantasy Cricket!</Text>
             </View>
-            
+
             <View style={styles.modalBody}>
               <Text style={styles.modalText}>
-                We're building something extraordinary for cricket fans! 
+                We're building something extraordinary for cricket fans!
                 Our Fantasy Cricket platform will let you:
               </Text>
-              
+
               <View style={styles.featureList}>
                 <View style={styles.featureItem}>
                   <Ionicons name="trophy-outline" size={20} color={AppColors.white} />
                   <Text style={styles.featureText}>Create your dream team with real players</Text>
                 </View>
-                
+
                 <View style={styles.featureItem}>
                   <Ionicons name="trending-up-outline" size={20} color={AppColors.white} />
                   <Text style={styles.featureText}>Earn points based on real-match performances</Text>
                 </View>
-                
+
                 <View style={styles.featureItem}>
                   <Ionicons name="cash-outline" size={20} color={AppColors.white} />
                   <Text style={styles.featureText}>Compete for amazing prizes and bragging rights</Text>
                 </View>
-                
+
                 <View style={styles.featureItem}>
                   <Ionicons name="people-outline" size={20} color={AppColors.white} />
                   <Text style={styles.featureText}>Challenge friends and join leagues</Text>
                 </View>
               </View>
-              
+
               <View style={styles.countdownContainer}>
                 <Text style={styles.countdownTitle}>Mark Your Calendar!</Text>
                 <Text style={styles.countdownDate}>Launching on November 20, 2025</Text>
@@ -249,7 +249,7 @@ const Home = () => {
                 <Text style={styles.countdownText}>We're 75% complete with development</Text>
               </View>
             </View>
-            
+
             {/* <TouchableOpacity 
               style={styles.notifyButton}
               onPress={() => {
@@ -321,6 +321,16 @@ const Home = () => {
               </View>
               <Text style={styles.sidebarTitle}>{userName || "Guest User"}</Text>
             </View>
+            {/* Sidebar Header */}
+            <View style={styles.sidebarHeader}>
+              <View style={styles.userImageWrapper}>
+                <Image
+                  source={require("../../assets/defaultLogo.png")}
+                  style={styles.userImage}
+                />
+              </View>
+              <Text style={styles.sidebarTitle}>{userName || "Guest User"}</Text>
+            </View>
 
             {/* Sidebar Options */}
             <View style={styles.sidebarOptionsWrapper}>
@@ -351,91 +361,97 @@ const Home = () => {
                 <Text style={[styles.sidebarItemTextDark, { color: AppColors.error }]}>Logout</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Footer */}
-            <View style={styles.sidebarFooter}>
-              <Text style={styles.footerTextDark}>cricshub ©2025</Text>
-            </View>
+            {/* Logout Button */}
+            <TouchableOpacity style={[styles.sidebarItemPatch, styles.logoutPatch]} onPress={LogOutHandler}>
+              <Ionicons name="log-out-outline" size={22} color={AppColors.error} />
+              <Text style={[styles.sidebarItemTextDark, { color: AppColors.error }]}>Logout</Text>
+            </TouchableOpacity>
           </View>
-        </Animated.View>
 
-        {/* Main content */}
-        <View style={styles.mainContent}>
-          <View style={styles.content}>
-            <FlatList
-              data={sections}
-              numColumns={2}
-              keyExtractor={(item, index) => index.toString()}
-              scrollEnabled={true}
-              onViewableItemsChanged={onViewableItemsChanged}
-              viewabilityConfig={viewabilityConfig}
-              renderItem={({ item, index }) => {
-                const animatedStyle = {
-                  opacity: animatedValues.has(index)
-                    ? animatedValues.get(index).interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0, 0.5, 1],
-                    })
-                    : 0,
-                  transform: [
-                    {
-                      scale: animatedValues.has(index)
-                        ? animatedValues.get(index).interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [0.5, 1.1, 1],
-                        })
-                        : 0.5,
-                    },
-                  ],
-                };
-
-                return (
-                  <Animated.View
-                    style={[
-                      styles.card,
-                      item.isFullWidth ? styles.fullWidthCard : {},
-                      animatedStyle,
-                    ]}
-                  >
-                    <LinearGradient
-                      colors={AppGradients.primaryCard}
-                      style={styles.cardBackground}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <MaterialIcons
-                        name={item.icon}
-                        size={40}
-                        color={AppColors.white}
-                        style={styles.cardIcon}
-                      />
-                      <Text style={styles.cardTitle}>{item.title}</Text>
-                      <TouchableOpacity
-                        style={styles.cardButton}
-                        onPressIn={() => handleButtonPressIn(index)}
-                        onPressOut={() => handleButtonPressOut(index)}
-                        onPress={() => {
-                          if (item.title === "Fantasy Cricket") {
-                            setShowFantasyPopup(true);
-                          } else {
-                            navigation.navigate(item.navigateTo);
-                          }
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.cardButtonText}>
-                          {item.buttonText}
-                        </Text>
-                      </TouchableOpacity>
-                    </LinearGradient>
-                  </Animated.View>
-                );
-              }}
-            />
+          {/* Footer */}
+          <View style={styles.sidebarFooter}>
+            <Text style={styles.footerTextDark}>cricshub ©2025</Text>
           </View>
-        </View>
       </View>
-    </SafeAreaView>
+    </Animated.View>
+
+        {/* Main content */ }
+  <View style={styles.mainContent}>
+    <View style={styles.content}>
+      <FlatList
+        data={sections}
+        numColumns={2}
+        keyExtractor={(item, index) => index.toString()}
+        scrollEnabled={true}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        renderItem={({ item, index }) => {
+          const animatedStyle = {
+            opacity: animatedValues.has(index)
+              ? animatedValues.get(index).interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0, 0.5, 1],
+              })
+              : 0,
+            transform: [
+              {
+                scale: animatedValues.has(index)
+                  ? animatedValues.get(index).interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.5, 1.1, 1],
+                  })
+                  : 0.5,
+              },
+            ],
+          };
+
+          return (
+            <Animated.View
+              style={[
+                styles.card,
+                item.isFullWidth ? styles.fullWidthCard : {},
+                animatedStyle,
+              ]}
+            >
+              <LinearGradient
+                colors={AppGradients.primaryCard}
+                style={styles.cardBackground}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <MaterialIcons
+                  name={item.icon}
+                  size={40}
+                  color={AppColors.white}
+                  style={styles.cardIcon}
+                />
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <TouchableOpacity
+                  style={styles.cardButton}
+                  onPressIn={() => handleButtonPressIn(index)}
+                  onPressOut={() => handleButtonPressOut(index)}
+                  onPress={() => {
+                    if (item.title === "Fantasy Cricket") {
+                      setShowFantasyPopup(true);
+                    } else {
+                      navigation.navigate(item.navigateTo);
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.cardButtonText}>
+                    {item.buttonText}
+                  </Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </Animated.View>
+          );
+        }}
+      />
+    </View>
+  </View>
+      </View >
+    </SafeAreaView >
   );
 };
 
@@ -444,7 +460,7 @@ export const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "transparent" },
   topBarWrapper: {
     backgroundColor: AppColors.white,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === "android" ? StatusBar?.currentHeight : 0,
     shadowColor: AppColors.black,
     elevation: 3,
     zIndex: 10,
@@ -486,7 +502,7 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 10, 
+    elevation: 10,
   },
   sidebarBackground: { flex: 1, backgroundColor: AppColors.white },
   sidebarHeader: { marginTop: 80, marginBottom: 20, alignItems: "center" },
@@ -503,7 +519,7 @@ export const styles = StyleSheet.create({
   sidebarItemPatch: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f8f9fa", 
+    backgroundColor: "#f8f9fa",
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: 12,
@@ -548,7 +564,7 @@ export const styles = StyleSheet.create({
     elevation: 2,
     zIndex: 101,
   },
-  
+
   userImageWrapper: {
     width: 90,
     height: 90,
@@ -559,7 +575,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.15)",
   },
   userImage: { width: 80, height: 80, borderRadius: 40 },
-  
+
   sidebarItem: {
     flexDirection: "row",
     alignItems: "center",

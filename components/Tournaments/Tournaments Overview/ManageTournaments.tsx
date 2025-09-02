@@ -302,15 +302,15 @@ const styles = StyleSheet.create({
 
   gradientOverlay: { flex: 1 },
 
-  headerArea: { 
-    position: "absolute", 
-    top: 0, 
-    left: 0, 
-    right: 0, 
-    overflow: "hidden", 
-    zIndex: 10, 
-    paddingTop: StatusBar.currentHeight, 
-    alignItems: "center", 
+  headerArea: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    overflow: "hidden",
+    zIndex: 10,
+    paddingTop: StatusBar.currentHeight,
+    alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -319,56 +319,56 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
 
-  headerContentWrapper: { 
-    width: "100%", 
-    paddingHorizontal: 20, 
-    justifyContent: "center", 
-    alignItems: "center" 
+  headerContentWrapper: {
+    width: "100%",
+    paddingHorizontal: 20,
+    justifyContent: "center",
+    alignItems: "center"
   },
 
-  backButton: { 
-    position: "absolute", 
-    top: StatusBar.currentHeight + 15, 
-    left: 15, 
-    zIndex: 1, 
-    backgroundColor: "rgba(255,255,255,0.2)", 
-    borderRadius: 20, 
-    padding: 8 
+  backButton: {
+    position: "absolute",
+    top: StatusBar.currentHeight + 15,
+    left: 15,
+    zIndex: 1,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 20,
+    padding: 8
   },
 
-  tournamentDetailsTextContainer: { 
+  tournamentDetailsTextContainer: {
     alignItems: "center",
     marginTop: 10,
   },
 
-  tournamentNameHeader: { 
-    fontSize: 26, 
-    fontWeight: "bold", 
-    color: "#fff", 
-    textAlign: "center", 
-    marginBottom: 6 
+  tournamentNameHeader: {
+    fontSize: 26,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 6
   },
 
-  tournamentSubDetail: { 
-    fontSize: 14, 
-    color: "rgba(255,255,255,0.85)", 
-    textAlign: "center", 
-    marginBottom: 4, 
+  tournamentSubDetail: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.85)",
+    textAlign: "center",
+    marginBottom: 4,
     fontWeight: "500",
   },
 
-  collapsedHeader: { 
-    position: "absolute", 
-    top: 0, 
-    left: 0, 
-    right: 0, 
-    height: HEADER_MIN_HEIGHT, 
-    backgroundColor: "#34B8FF", 
-    justifyContent: "center", 
-    alignItems: "center", 
-    paddingTop: StatusBar.currentHeight, 
-    zIndex: 11, 
+  collapsedHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: HEADER_MIN_HEIGHT,
+    backgroundColor: "#34B8FF",
     flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: StatusBar.currentHeight,
+    zIndex: 11,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -376,30 +376,30 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
 
-  collapsedHeaderText: { 
-    color: "white", 
-    fontSize: 18, 
-    fontWeight: "bold", 
-    marginLeft: 50, 
-    flexShrink: 1 
+  collapsedHeaderText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginLeft: 50,
+    flexShrink: 1
   },
 
-  backButtonCollapsed: { 
-    position: "absolute", 
-    top: StatusBar.currentHeight + 15, 
-    left: 15, 
-    zIndex: 1, 
-    backgroundColor: "rgba(255,255,255,0.2)", 
-    borderRadius: 20, 
-    padding: 8 
+  backButtonCollapsed: {
+    position: "absolute",
+    top: StatusBar.currentHeight + 15,
+    left: 15,
+    zIndex: 1,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 20,
+    padding: 8
   },
 
-  toggleContainer: { 
-    position: "absolute", 
-    left: 10, 
-    right: 10, 
-    height: TAB_BAR_HEIGHT, 
-    backgroundColor: "rgba(255,255,255,0.15)", 
+  toggleContainer: {
+    position: "absolute",
+    left: 10,
+    right: 10,
+    height: TAB_BAR_HEIGHT,
+    backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 30,
     justifyContent: "center",
     marginHorizontal: 10,
@@ -407,114 +407,114 @@ const styles = StyleSheet.create({
     zIndex: 9,
   },
 
-  toggleScrollViewContent: { 
-    alignItems: "center", 
-    paddingHorizontal: 5, 
-    justifyContent: 'center' 
+  toggleScrollViewContent: {
+    alignItems: "center",
+    paddingHorizontal: 5,
+    justifyContent: 'center'
   },
 
-  toggleButton: { 
-    paddingVertical: 8, 
-    paddingHorizontal: 20, 
-    marginHorizontal: 4, 
-    backgroundColor: "transparent", 
-    borderRadius: 25, 
-    justifyContent: "center", 
-    alignItems: "center", 
-    borderWidth: 1, 
-    borderColor: 'rgba(255,255,255,0.5)' 
+  toggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    marginHorizontal: 4,
+    backgroundColor: "transparent",
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)'
   },
 
-  activeToggleButton: { 
-    backgroundColor: "#fff", 
-    borderWidth: 0, 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.2, 
-    shadowRadius: 2.62, 
-    elevation: 3 
+  activeToggleButton: {
+    backgroundColor: "#fff",
+    borderWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2.62,
+    elevation: 3
   },
 
-  toggleText: { 
-    color: "#fff", 
-    fontWeight: "600", 
-    fontSize: 14, 
-    letterSpacing: 0.5 
+  toggleText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+    letterSpacing: 0.5
   },
 
-  activeToggleText: { 
-    color: "#34B8FF", 
-    fontSize: 15, 
-    fontWeight: "bold" 
+  activeToggleText: {
+    color: "#34B8FF",
+    fontSize: 15,
+    fontWeight: "bold"
   },
 
   mainContentScrollView: { flex: 1 },
 
-  loadingOverlay: { 
-    flex: 1, 
-    minHeight: Dimensions.get("window").height - (HEADER_MIN_HEIGHT + TAB_BAR_HEIGHT + (StatusBar.currentHeight || 0) + 30), 
-    justifyContent: "center", 
-    alignItems: "center", 
-    backgroundColor: "rgba(255,255,255,0.95)", 
-    borderRadius: 15, 
-    marginVertical: 10, 
+  loadingOverlay: {
+    flex: 1,
+    minHeight: Dimensions.get("window").height - (HEADER_MIN_HEIGHT + TAB_BAR_HEIGHT + (StatusBar.currentHeight || 0) + 30),
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: 15,
+    marginVertical: 10,
     padding: 15,
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 3, 
-    elevation: 3 
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3
   },
 
-  loadingText: { 
-    marginTop: 12, 
-    fontSize: 16, 
-    color: "#555", 
-    fontWeight: "500" 
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#555",
+    fontWeight: "500"
   },
 
-  errorContainer: { 
-    flex: 1, 
-    minHeight: Dimensions.get("window").height - (HEADER_MIN_HEIGHT + TAB_BAR_HEIGHT + (StatusBar.currentHeight || 0) + 30), 
-    justifyContent: "center", 
-    alignItems: "center", 
-    backgroundColor: "#FFF3F3", 
-    borderRadius: 15, 
-    padding: 25, 
-    marginVertical: 10, 
-    borderWidth: 1, 
-    borderColor: "#FFCDD2", 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 3, 
-    elevation: 3 
+  errorContainer: {
+    flex: 1,
+    minHeight: Dimensions.get("window").height - (HEADER_MIN_HEIGHT + TAB_BAR_HEIGHT + (StatusBar.currentHeight || 0) + 30),
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF3F3",
+    borderRadius: 15,
+    padding: 25,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: "#FFCDD2",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3
   },
 
-  errorText: { 
-    fontSize: 17, 
-    color: "#D32F2F", 
-    textAlign: "center", 
-    marginBottom: 20, 
-    fontWeight: "500" 
+  errorText: {
+    fontSize: 17,
+    color: "#D32F2F",
+    textAlign: "center",
+    marginBottom: 20,
+    fontWeight: "500"
   },
 
-  retryButton: { 
-    backgroundColor: "#34B8FF", 
-    paddingVertical: 12, 
-    paddingHorizontal: 25, 
-    borderRadius: 12, 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.25, 
-    shadowRadius: 3.5, 
-    elevation: 5 
+  retryButton: {
+    backgroundColor: "#34B8FF",
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.5,
+    elevation: 5
   },
 
-  retryButtonText: { 
-    color: "white", 
-    fontSize: 16, 
-    fontWeight: "bold", 
-    textTransform: "uppercase" 
+  retryButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+    textTransform: "uppercase"
   },
 });

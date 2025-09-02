@@ -100,7 +100,7 @@ const Notification = ({ message, type, visible, onHide }) => {
 
 const CreateTournament = () => {
   const navigation = useNavigation();
-  
+
   // Tournament state
   const [tournamentName, setTournamentName] = useState('');
   const [startDate, setStartDate] = useState(new Date());
@@ -121,12 +121,12 @@ const CreateTournament = () => {
     message: "",
     type: "success",
   });
-  
+
   const [isFormValid, setIsFormValid] = useState(false);
   useEffect(() => {
-    const isValid = tournamentName.trim() !== '' && 
-                   format !== '' && 
-                   ballType !== '';
+    const isValid = tournamentName.trim() !== '' &&
+      format !== '' &&
+      ballType !== '';
     setIsFormValid(isValid);
   }, [tournamentName, format, ballType]);
 
@@ -264,7 +264,7 @@ const CreateTournament = () => {
   }, []);
 
   const getFormatLabel = (value) => {
-    switch(value) {
+    switch (value) {
       case 'DOUBLE_ROUND_ROBIN': return 'Double Round Robin';
       case 'SINGLE_ROUND_ROBIN': return 'Single Round Robin';
       case 'KNOCKOUT': return 'Knockout';
@@ -273,7 +273,7 @@ const CreateTournament = () => {
   };
 
   const getBallTypeLabel = (value) => {
-    switch(value) {
+    switch (value) {
       case 'TENNIS': return 'Tennis Ball';
       case 'LEATHER': return 'Leather Ball';
       default: return 'Select Ball Type *';
@@ -290,7 +290,7 @@ const CreateTournament = () => {
         type={notification.type}
         onHide={hideNotification}
       />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerButton}
@@ -303,12 +303,12 @@ const CreateTournament = () => {
         <View style={styles.headerButton} />
       </View>
 
-      <KeyboardAvoidingView 
-        style={styles.container} 
+      <KeyboardAvoidingView
+        style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}
@@ -396,17 +396,17 @@ const CreateTournament = () => {
               />
             )}
             <Text style={styles.label}>Tournament Format *</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dropdownButton}
               onPress={() => setShowFormatDropdown(!showFormatDropdown)}
             >
               <Text style={[styles.dropdownButtonText, !format && styles.placeholderText]}>
                 {getFormatLabel(format)}
               </Text>
-              <Ionicons 
-                name={showFormatDropdown ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color={AppColors.primary} 
+              <Ionicons
+                name={showFormatDropdown ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={AppColors.primary}
               />
             </TouchableOpacity>
 
@@ -427,17 +427,17 @@ const CreateTournament = () => {
               </View>
             )}
             <Text style={styles.label}>Ball Type *</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dropdownButton}
               onPress={() => setShowBallTypeDropdown(!showBallTypeDropdown)}
             >
               <Text style={[styles.dropdownButtonText, !ballType && styles.placeholderText]}>
                 {getBallTypeLabel(ballType)}
               </Text>
-              <Ionicons 
-                name={showBallTypeDropdown ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color={AppColors.primary} 
+              <Ionicons
+                name={showBallTypeDropdown ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={AppColors.primary}
               />
             </TouchableOpacity>
 
@@ -474,7 +474,7 @@ const CreateTournament = () => {
         <View style={styles.floatingButtonContainer}>
           <TouchableOpacity
             style={[
-              styles.floatingButton, 
+              styles.floatingButton,
               (loading || !isFormValid) && styles.disabledButton
             ]}
             onPress={handleCreateTournament}

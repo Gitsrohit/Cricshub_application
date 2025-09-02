@@ -13,6 +13,7 @@ import {
   StatusBar,
   Dimensions,
   Animated,
+  SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -32,7 +33,7 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
   const navigation = useNavigation();
   const [scaleValue] = useState(new Animated.Value(1));
   const [opacityValue] = useState(new Animated.Value(0));
-  
+
   useEffect(() => {
     // Staggered animation for cards
     Animated.sequence([
@@ -84,7 +85,7 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
 
   // Determine status and corresponding color
   const getStatusInfo = () => {
-    switch(tournamentTimeStatus) {
+    switch (tournamentTimeStatus) {
       case 'LIVE':
         return { text: 'LIVE', color: AppColors.liveGreen, icon: 'live-tv' };
       case 'UPCOMING':
@@ -100,94 +101,94 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
 
   return (
     <SafeAreaView>
-    <Animated.View 
-      style={[
-        styles.cardContainerWrapper, 
-        { 
-          opacity: opacityValue,
-          transform: [{ scale: scaleValue }] 
-        }
-      ]}
-    >
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onPress={() => handleNavigation(tournament, 'INFO')}
+      <Animated.View
+        style={[
+          styles.cardContainerWrapper,
+          {
+            opacity: opacityValue,
+            transform: [{ scale: scaleValue }]
+          }
+        ]}
       >
-        <View style={styles.cardElevation}>
-          {/* Status Badge */}
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
-            <Icon name={statusInfo.icon} size={14} color={AppColors.white} />
-            <Text style={styles.statusText}>{statusInfo.text}</Text>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={() => handleNavigation(tournament, 'INFO')}
+        >
+          <View style={styles.cardElevation}>
+            {/* Status Badge */}
+            <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+              <Icon name={statusInfo.icon} size={14} color={AppColors.white} />
+              <Text style={styles.statusText}>{statusInfo.text}</Text>
+            </View>
+
+            {/* Tournament Image */}
+            <Image
+              source={{ uri: sanitizedBannerUrl }}
+              style={styles.cardImage}
+              resizeMode='cover'
+            />
+
+            {/* Gradient Overlay on Image */}
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.7)']}
+              style={styles.imageOverlay}
+            />
+
+            {/* Card Content */}
+            <View style={styles.cardContent}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.tournamentNameCard} numberOfLines={1}>{tournament.name}</Text>
+                <Text style={styles.tournamentOversText}>{tournament.type} Overs</Text>
+              </View>
+
+              <View style={styles.cardDetails}>
+                <View style={styles.detailItem}>
+                  <Icon name="sports-baseball" color={AppColors.primaryBlue} size={16} />
+                  <Text style={styles.detailText} numberOfLines={1}>{tournament.ballType}</Text>
+                </View>
+
+                <View style={styles.detailItem}>
+                  <Icon name="location-on" color={AppColors.primaryBlue} size={16} />
+                  <Text style={styles.detailText} numberOfLines={1}>{tournament.location || 'Location not specified'}</Text>
+                </View>
+
+                <View style={styles.detailItem}>
+                  <Icon name="calendar-today" color={AppColors.primaryBlue} size={16} />
+                  <Text style={styles.detailText} numberOfLines={2}>
+                    {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]} - ${tournament.endDate[2]}/${tournament.endDate[1]}/${tournament.endDate[0]}`}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.cardActions}>
+                {(tournamentTimeStatus === 'LIVE' || tournamentTimeStatus === 'UPCOMING') && (
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.scheduleButton]}
+                    activeOpacity={0.8}
+                    onPress={() => handleNavigation(tournament, 'MATCHES')}
+                  >
+                    <Icon name="event" size={18} color={AppColors.white} />
+                    <Text style={styles.actionButtonText}>Schedule</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(tournamentTimeStatus === 'LIVE' || tournamentTimeStatus === 'PAST') && (
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.pointsButton]}
+                    activeOpacity={0.8}
+                    onPress={() => handleNavigation(tournament, 'POINTS TABLE')}
+                  >
+                    <Icon name="leaderboard" size={18} color={AppColors.white} />
+                    <Text style={styles.actionButtonText}>Standings</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
           </View>
-
-          {/* Tournament Image */}
-          <Image 
-            source={{ uri: sanitizedBannerUrl }} 
-            style={styles.cardImage} 
-            resizeMode='cover' 
-          />
-          
-          {/* Gradient Overlay on Image */}
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
-            style={styles.imageOverlay}
-          />
-
-          {/* Card Content */}
-          <View style={styles.cardContent}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.tournamentNameCard} numberOfLines={1}>{tournament.name}</Text>
-              <Text style={styles.tournamentOversText}>{tournament.type} Overs</Text>
-            </View>
-
-            <View style={styles.cardDetails}>
-              <View style={styles.detailItem}>
-                <Icon name="sports-baseball" color={AppColors.primaryBlue} size={16} />
-                <Text style={styles.detailText} numberOfLines={1}>{tournament.ballType}</Text>
-              </View>
-              
-              <View style={styles.detailItem}>
-                <Icon name="location-on" color={AppColors.primaryBlue} size={16} />
-                <Text style={styles.detailText} numberOfLines={1}>{tournament.location || 'Location not specified'}</Text>
-              </View>
-              
-              <View style={styles.detailItem}>
-                <Icon name="calendar-today" color={AppColors.primaryBlue} size={16} />
-                <Text style={styles.detailText} numberOfLines={2}>
-                  {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]} - ${tournament.endDate[2]}/${tournament.endDate[1]}/${tournament.endDate[0]}`}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.cardActions}>
-              {(tournamentTimeStatus === 'LIVE' || tournamentTimeStatus === 'UPCOMING') && (
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.scheduleButton]}
-                  activeOpacity={0.8}
-                  onPress={() => handleNavigation(tournament, 'MATCHES')}
-                >
-                  <Icon name="event" size={18} color={AppColors.white} />
-                  <Text style={styles.actionButtonText}>Schedule</Text>
-                </TouchableOpacity>
-              )}
-              
-              {(tournamentTimeStatus === 'LIVE' || tournamentTimeStatus === 'PAST') && (
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.pointsButton]}
-                  activeOpacity={0.8}
-                  onPress={() => handleNavigation(tournament, 'POINTS TABLE')}
-                >
-                  <Icon name="leaderboard" size={18} color={AppColors.white} />
-                  <Text style={styles.actionButtonText}>Standings</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
+        </TouchableOpacity>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -196,7 +197,7 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
   const navigation = useNavigation();
   const [scaleValue] = useState(new Animated.Value(1));
   const [opacityValue] = useState(new Animated.Value(0));
-  
+
   useEffect(() => {
     // Staggered animation for cards
     Animated.sequence([
@@ -284,14 +285,14 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
     'https://score360-7.onrender.com/api/v1/files/http:/',
     'https://'
   );
-  
+
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.myCardContainer, 
-        { 
+        styles.myCardContainer,
+        {
           opacity: opacityValue,
-          transform: [{ scale: scaleValue }] 
+          transform: [{ scale: scaleValue }]
         }
       ]}
     >
@@ -307,7 +308,7 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
             style={styles.myTournamentImage}
             resizeMode='cover'
           />
-          
+
           {/* Gradient Overlay on Image */}
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.7)']}
@@ -317,8 +318,8 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
           <View style={styles.myCardContent}>
             <View style={styles.myCardHeader}>
               <Text style={styles.myTournamentName} numberOfLines={2}>{tournament.name}</Text>
-              <TouchableOpacity 
-                onPress={() => deleteTournamentHandler(tournament.id)} 
+              <TouchableOpacity
+                onPress={() => deleteTournamentHandler(tournament.id)}
                 style={styles.deleteButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
@@ -340,11 +341,11 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
                   {tournament.type} overs • {tournament.ballType}
                 </Text>
               </View>
-              
+
               <View style={styles.myDetailItem}>
                 <Icon name="location-on" size={14} color={AppColors.primaryBlue} />
                 <Text style={styles.myDetailText} numberOfLines={1}>
-                  {tournament.location || 'Location not specified'}
+                  {tournament.venues?.join(', ') || 'Location not specified'}
                 </Text>
               </View>
             </View>
@@ -453,18 +454,18 @@ const Tournaments = () => {
     StatusBar.setBackgroundColor(AppGradients.primaryCard[0], true);
     StatusBar.setBarStyle('light-content', true); // Use 'light-content' for dark backgrounds
     if (Platform.OS === 'android') {
-        StatusBar.setTranslucent(false); // Ensure it's not translucent for solid color
+      StatusBar.setTranslucent(false); // Ensure it's not translucent for solid color
     }
   }, []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={AppGradients.primaryCard} 
+        colors={AppGradients.primaryCard}
         style={styles.header}
-        start={{ x: 0, y: 0 }} 
-        end={{ x: 1, y: 1 }}  
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
         <View style={styles.headerContentRow}>
           <TouchableOpacity
@@ -553,7 +554,7 @@ const Tournaments = () => {
                   </TouchableOpacity>
                 )}
                 {searchQuery && (
-                   <TouchableOpacity style={styles.clearSearchButton} onPress={() => setSearchQuery('')}>
+                  <TouchableOpacity style={styles.clearSearchButton} onPress={() => setSearchQuery('')}>
                     <Text style={styles.clearSearchButtonText}>CLEAR SEARCH</Text>
                   </TouchableOpacity>
                 )}
@@ -578,7 +579,7 @@ const Tournaments = () => {
           </ScrollView>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -592,7 +593,7 @@ const styles = StyleSheet.create({
 
   header: {
     paddingBottom: 20,
-    paddingTop: Platform.OS === 'ios' ? 30 : 50,
+    paddingTop: Platform.OS === 'ios' ? 30 : 30,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
     overflow: 'hidden',

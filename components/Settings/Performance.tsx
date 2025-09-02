@@ -33,7 +33,8 @@ const AppGradients = {
   secondaryCard: ["#6C5CE7", "#3498DB"],
 };
 
-const Performance = ({ navigation }) => {
+const Performance = ({ navigation, route }) => {
+  const playerId = route?.params?.playerId || null;
   const [playerData, setPlayerData] = useState({
     careerStats: {
       matchesPlayed: 0,
@@ -63,7 +64,7 @@ const Performance = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
-  
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
@@ -73,10 +74,21 @@ const Performance = ({ navigation }) => {
 
   const fetchPlayerData = async () => {
     try {
-      const response = await apiService({
-        endpoint: 'profile/current',
-        method: 'GET',
-      });
+      const token = await AsyncStorage.getItem("jwtToken");
+      if (!token) throw new Error("Authentication required");
+
+      var response = null;
+      if (playerId === null) {
+        response = await apiService({
+          endpoint: 'profile/current',
+          method: 'GET',
+        });
+      } else {
+        response = await apiService({
+          endpoint: `profile/user-details/${playerId}`,
+          method: 'GET',
+        });
+      }
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to load player data');
@@ -139,7 +151,7 @@ const Performance = ({ navigation }) => {
 
   const StatCard = ({ title, value, color = AppColors.blue, delay = 0 }) => {
     const cardAnim = useRef(new Animated.Value(0)).current;
-    
+
     useEffect(() => {
       setTimeout(() => {
         Animated.spring(cardAnim, {
@@ -152,10 +164,10 @@ const Performance = ({ navigation }) => {
     }, []);
 
     return (
-      <Animated.View 
+      <Animated.View
         style={[
           styles.statCard,
-          { 
+          {
             opacity: cardAnim,
             transform: [{
               scale: cardAnim.interpolate({
@@ -187,34 +199,34 @@ const Performance = ({ navigation }) => {
         return (
           <View style={styles.tabContent}>
             <View style={styles.statsGrid}>
-              <StatCard 
-                title="Matches" 
-                value={careerStats.matchesPlayed} 
+              <StatCard
+                title="Matches"
+                value={careerStats.matchesPlayed}
                 delay={100}
               />
-              <StatCard 
-                title="Runs" 
-                value={careerStats.runsScored} 
+              <StatCard
+                title="Runs"
+                value={careerStats.runsScored}
                 delay={200}
               />
-              <StatCard 
-                title="Wickets" 
-                value={playerData.totalWickets} 
+              <StatCard
+                title="Wickets"
+                value={playerData.totalWickets}
                 delay={300}
               />
-              <StatCard 
-                title="Centuries" 
-                value={careerStats.hundreds} 
+              <StatCard
+                title="Centuries"
+                value={careerStats.hundreds}
                 delay={400}
               />
-              <StatCard 
-                title="Fifties" 
-                value={careerStats.fifties} 
+              <StatCard
+                title="Fifties"
+                value={careerStats.fifties}
                 delay={500}
               />
-              <StatCard 
-                title="Catches" 
-                value={careerStats.catchesTaken} 
+              <StatCard
+                title="Catches"
+                value={careerStats.catchesTaken}
                 delay={600}
               />
             </View>
@@ -314,10 +326,10 @@ const Performance = ({ navigation }) => {
     }
 
     return (
-      <Animated.View 
+      <Animated.View
         style={[
           styles.content,
-          { 
+          {
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }]
           }
@@ -392,7 +404,7 @@ const Performance = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={AppColors.white} />
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >

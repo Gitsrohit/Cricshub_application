@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ActivityIndicator, 
-  Modal, 
-  TextInput, 
-  TouchableOpacity, 
-  FlatList, 
-  Pressable, 
-  Image, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Modal,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  Pressable,
+  Image,
   Animated,
   Dimensions,
   KeyboardAvoidingView,
@@ -18,7 +18,7 @@ import {
   TouchableWithoutFeedback
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import AntDesign from 'react-native-vector-icons/AntDesign'; 
+import AntDesign from 'react-native-vector-icons/AntDesign';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import apiService from '../../APIservices';
@@ -76,7 +76,7 @@ const Teams = ({ id, isCreator }) => {
         params: { name },
       });
       if (response.success) {
-        setDropdownOptions(response.data.data || []);
+        setDropdownOptions(response?.data?.data || []);
       } else {
         setError(response.error?.message || 'Failed to search teams');
       }
@@ -180,9 +180,9 @@ const Teams = ({ id, isCreator }) => {
     <View style={styles.teamCard}>
       <View style={styles.teamHeader}>
         <View style={styles.teamInfo}>
-          <Image 
-            source={{ uri: item.logoPath || 'https://via.placeholder.com/50' }} 
-            style={styles.teamImage} 
+          <Image
+            source={{ uri: item.logoPath || 'https://via.placeholder.com/50' }}
+            style={styles.teamImage}
           />
           <View style={styles.teamTextContainer}>
             <Text style={styles.teamName} numberOfLines={1}>{item.name}</Text>
@@ -193,7 +193,7 @@ const Teams = ({ id, isCreator }) => {
         </View>
       </View>
       {isCreator && (
-        <Pressable 
+        <Pressable
           onPress={() => deleteTeamHandler(item.id)}
           style={styles.deleteButton}
           disabled={loading.key === 'Delete' && loading.value}
@@ -219,9 +219,9 @@ const Teams = ({ id, isCreator }) => {
       disabled={isAddingTeam}
     >
       <View style={styles.teamOptionContent}>
-        <Image 
-          source={{ uri: item.logoPath || 'https://via.placeholder.com/50' }} 
-          style={styles.teamOptionImage} 
+        <Image
+          source={{ uri: item.logoPath || 'https://via.placeholder.com/50' }}
+          style={styles.teamOptionImage}
         />
         <View style={styles.teamOptionText}>
           <Text style={styles.teamOptionName} numberOfLines={1}>{item.name}</Text>
@@ -240,15 +240,15 @@ const Teams = ({ id, isCreator }) => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons 
-        name="account-group" 
-        size={60} 
-        color="#34B8FF" 
+      <MaterialCommunityIcons
+        name="account-group"
+        size={60}
+        color="#34B8FF"
         style={styles.emptyIcon}
       />
       <Text style={styles.emptyTitle}>No Teams Added Yet</Text>
       <Text style={styles.emptyText}>
-        {isCreator 
+        {isCreator
           ? "Get started by adding teams to your tournament"
           : "The tournament organizer hasn't added any teams yet"}
       </Text>
@@ -265,15 +265,15 @@ const Teams = ({ id, isCreator }) => {
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
-            <MaterialCommunityIcons 
-              name="alert-circle-outline" 
-              size={50} 
-              color="#FF5252" 
+            <MaterialCommunityIcons
+              name="alert-circle-outline"
+              size={50}
+              color="#FF5252"
             />
             <Text style={styles.errorTitle}>Error Loading Teams</Text>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity 
-              style={styles.retryButton} 
+            <TouchableOpacity
+              style={styles.retryButton}
               onPress={() => fetchTeams(id)}
             >
               <Text style={styles.retryButtonText}>Try Again</Text>
@@ -285,7 +285,7 @@ const Teams = ({ id, isCreator }) => {
               <FlatList
                 data={teams}
                 renderItem={renderTeamItem}
-                keyExtractor={(item) => item.id ? item.id.toString() : Math.random().toString()}
+                keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
                 ListHeaderComponent={
                   <Text style={styles.sectionHeader}>Tournament Teams</Text>
@@ -311,7 +311,7 @@ const Teams = ({ id, isCreator }) => {
 
         <Modal visible={modalVisible} transparent animationType="none">
           <TouchableWithoutFeedback onPress={closeModal}>
-            <View style={styles.modalOverlay}>
+            <View style={styles.modalOverlay} pointerEvents="box-none">
               <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1, justifyContent: 'flex-end' }}
@@ -324,11 +324,11 @@ const Teams = ({ id, isCreator }) => {
                     </TouchableOpacity>
                   </View>
                   <View style={styles.searchContainer}>
-                    <AntDesign 
-                      name="search1" 
-                      size={20} 
+                    <AntDesign
+                      name="search1"
+                      size={20}
                       color="#888"
-                      style={styles.searchIcon} 
+                      style={styles.searchIcon}
                     />
                     <TextInput
                       style={styles.searchInput}
@@ -581,7 +581,6 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   dropdownContainer: {
-    flex: 1,
     maxHeight: height * 0.5,
   },
   dropdownContent: {

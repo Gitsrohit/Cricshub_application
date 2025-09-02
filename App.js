@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SafeAreaView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { NavigationContainer, useNavigationState } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Login from './components/Authentication/Login';
@@ -41,7 +41,7 @@ import ScoreCard from './components/My matches/ScoreCard';
 import InternetConnectivityCheck from './components/InternetConnectivity';
 import ConnectLiveStream from './components/LiveStream/ConnectLiveStream';
 import AnimatedSplash from './assets/animations/SplashScreen.js'
-
+import { AppColors } from './assets/constants/colors';
 
 const Stack = createStackNavigator();
 
@@ -53,20 +53,18 @@ const App = () => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <InternetConnectivityCheck>
-          <Stack.Navigator
-            initialRouteName="Login"
-            screenOptions={{ headerShown: false }}
-          >
-            <Stack.Screen name="Login" component={Login} />
-            <Stack.Screen name="Registration" component={Registration} />
-            <Stack.Screen name="Main" component={MainScreens} />
-          </Stack.Navigator>
-        </InternetConnectivityCheck>
-      </NavigationContainer>
-    </SafeAreaView>
+    <NavigationContainer>
+      <InternetConnectivityCheck>
+        <Stack.Navigator
+          initialRouteName="Login"
+          screenOptions={{ headerShown: false }}
+        >
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="Registration" component={Registration} />
+          <Stack.Screen name="Main" component={MainScreens} />
+        </Stack.Navigator>
+      </InternetConnectivityCheck>
+    </NavigationContainer>
   );
 };
 
@@ -88,6 +86,7 @@ const MainScreens = () => {
     "MatchStartTransition",
     "ScoreCard",
     "ScheduleMatch",
+    "InstantMatch",
     "CommentaryScorecard",
     "CreateTournaments",
     "ManageTournaments",
@@ -96,6 +95,8 @@ const MainScreens = () => {
     "ConnectLiveStream",
     "ContestDetails",
     "CreateContestTeam",
+    "Login",
+    "Register",
     "PrivacyPolicy",
     "TossFlip",
     "Support"

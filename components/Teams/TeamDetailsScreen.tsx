@@ -25,7 +25,7 @@ import LottieView from 'lottie-react-native';
 import apiService from "../APIservices";
 import CustomDialog from "../Customs/CustomDialog.js";
 import { SvgUri } from 'react-native-svg';
-import { StatusBar } from "expo-status-bar"; 
+import { StatusBar } from "expo-status-bar";
 // import { AppGradients, AppColors } from "../../assets/constants/colors.js";
 
 const AppColors = {
@@ -35,7 +35,7 @@ const AppColors = {
   background: "#F8F9FA",
   cardBorder: "rgba(255, 255, 255, 0.2)",
   error: "#E74C3C",
-  textOnGradient: "#FFFFFF", 
+  textOnGradient: "#FFFFFF",
   textSecondaryOnGradient: "rgba(255, 255, 255, 0.9)",
   darkText: "#000000",
   lightText: "#888888",
@@ -65,11 +65,13 @@ interface PlayerCardProps {
   canEdit: boolean;
   teamCaptain: Player | null;
   onRemove: (playerId: string, player: Player) => void;
+  navigation: any;
 }
 
-const PlayerCard = memo<PlayerCardProps>(({ player, index, canEdit, teamCaptain, onRemove }) => {
+const PlayerCard = memo<PlayerCardProps>(({ player, index, canEdit, teamCaptain, onRemove, navigation }) => {
+  const isFirstDesign = index % 2 === 0;
   const cardAnim = useRef(new Animated.Value(0)).current;
-  
+
   const handleRemove = () => {
     Animated.timing(cardAnim, {
       toValue: -width,
@@ -83,52 +85,57 @@ const PlayerCard = memo<PlayerCardProps>(({ player, index, canEdit, teamCaptain,
   const isSvg = player.profilePic && player.profilePic.endsWith('.svg');
 
   return (
-    <Animated.View
-      style={[
-        styles.cardContainer,
-        {
-          transform: [{ translateX: cardAnim }],
-        },
-      ]}
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() => navigation.navigate("Performance", { playerId: player.id })}
     >
-      <LinearGradient
-        colors={AppGradients.primaryCard}
-        style={styles.playerCard}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <Animated.View
+        style={[
+          styles.cardContainer,
+          {
+            transform: [{ translateX: cardAnim }],
+          },
+        ]}
       >
-        <View style={styles.playerInfo}>
-          {isSvg ? (
-            <SvgUri
-              width="40"
-              height="40"
-              uri={player.profilePic}
-              style={styles.searchResultAvatar}
-            />
-          ) : (
-            <Image
-              source={player.profilePic ? { uri: player.profilePic } : require('../../assets/defaultLogo.png')}
-              style={styles.searchResultAvatar}
-              defaultSource={require('../../assets/defaultLogo.png')}
-            />
-          )}
-          <View style={styles.playerDetails}>
-            <Text style={styles.playerName}>{player?.name}</Text>
-            <Text style={styles.playerStats}>
-              {player.role} • {teamCaptain?.id === player.id && 'Captain'}
-            </Text>
+        <LinearGradient
+          colors={AppGradients.primaryCard}
+          style={styles.playerCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.playerInfo}>
+            {isSvg ? (
+              <SvgUri
+                width="40"
+                height="40"
+                uri={player.profilePic}
+                style={styles.searchResultAvatar}
+              />
+            ) : (
+              <Image
+                source={player.profilePic ? { uri: player.profilePic } : require('../../assets/defaultLogo.png')}
+                style={styles.searchResultAvatar}
+                defaultSource={require('../../assets/defaultLogo.png')}
+              />
+            )}
+            <View style={styles.playerDetails}>
+              <Text style={styles.playerName}>{player?.name}</Text>
+              <Text style={styles.playerStats}>
+                {player.role} • {teamCaptain?.id === player.id && 'Captain'}
+              </Text>
+            </View>
           </View>
-        </View>
-        {canEdit && (
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={handleRemove}
-          >
-            <MaterialIcons name="remove-circle" size={24} color={AppColors.white} />
-          </TouchableOpacity>
-        )}
-      </LinearGradient>
-    </Animated.View>
+          {canEdit && (
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={handleRemove}
+            >
+              <MaterialIcons name="remove-circle" size={24} color={AppColors.white} />
+            </TouchableOpacity>
+          )}
+        </LinearGradient>
+      </Animated.View>
+    </TouchableOpacity>
   );
 });
 
@@ -193,10 +200,10 @@ const TeamDetailsScreen = ({ route, navigation }) => {
         endpoint: `teams/${teamId}`,
         method: "GET",
       });
-  
+
       if (response.success && response.data?.data) {
         const allPlayers = response.data.data.players || [];
-        const uniquePlayers = allPlayers.filter((player: Player, index: number, self: Player[]) => 
+        const uniquePlayers = allPlayers.filter((player: Player, index: number, self: Player[]) =>
           index === self.findIndex(p => p.id === player.id)
         );
         setPlayers(uniquePlayers);
@@ -292,7 +299,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
 
   const removePlayerFromBackend = async (playerId: string, player: Player) => {
     const originalPlayers = [...players];
-    
+
     setPlayers(prevPlayers => prevPlayers.filter(p => p.id !== playerId));
 
     try {
@@ -375,6 +382,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
               canEdit={canEdit}
               teamCaptain={team?.captain}
               onRemove={removePlayerFromBackend}
+              navigation={navigation}
             />
           )}
           contentContainerStyle={styles.listContent}
@@ -494,7 +502,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#ffff", 
+    backgroundColor: "#ffff",
     paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0,
   },
   container: {

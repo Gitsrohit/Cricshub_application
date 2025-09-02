@@ -7,6 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { useNavigation } from '@react-navigation/native';
 import apiService from '../../APIservices';
+import { AppColors } from '../../../assets/constants/colors';
 
 export const Matches = ({ id, isCreator }) => {
   const [matchDetails, setMatchDetails] = useState([]);
@@ -32,6 +33,7 @@ export const Matches = ({ id, isCreator }) => {
   const [manualMatchShowDatePicker, setManualMatchShowDatePicker] = useState(false);
   const [manualMatchShowTimePicker, setManualMatchShowTimePicker] = useState(false);
   const [manualMatchVenue, setManualMatchVenue] = useState('');
+  const [showPlayOffMatchScheduler, setShowPlayOffMatchScheduler] = useState(false);
   const navigation = useNavigation();
 
   const fetchMatchDetails = async (id) => {
@@ -222,6 +224,50 @@ export const Matches = ({ id, isCreator }) => {
       navigation.navigate('CommentaryScorecard', { matchId: match.id });
   }
 
+  const playoffMatchScheduleHandler = async () => {
+    console.log(`${manualMatchTeamB}, ${manualMatchTeamA}, ${manualMatchDate}, ${manualMatchTime}, ${manualMatchVenue}`);
+
+    if (!manualMatchTeamA || !manualMatchTeamB || !manualMatchDate || !manualMatchTime || !manualMatchVenue) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+
+    if (manualMatchTeamA === manualMatchTeamB) {
+      Alert.alert("Error", "Team A and Team B cannot be the same.");
+      return;
+    }
+
+    const selectedDateTime = moment(manualMatchDate).set({
+      hour: moment(manualMatchTime).hour(),
+      minute: moment(manualMatchTime).minute(),
+    });
+
+    const payload = {
+      tournamentId: id,
+      team1Id: manualMatchTeamA,
+      team2Id: manualMatchTeamB,
+      overs: +tournamentData.type,
+      venue: manualMatchVenue,
+      matchDate: selectedDateTime.format("YYYY-MM-DD"),
+      matchTime: selectedDateTime.format("HH:mm"),
+    };
+
+    const { success, data, error } = await apiService({
+      endpoint: 'matches/schedule-playoff',
+      method: 'POST',
+      body: payload,
+    });
+
+    if (success) {
+      Alert.alert("Success", "Match scheduled successfully!");
+      setIsManualModalOpen(false);
+      fetchMatchDetails(id);
+    } else {
+      console.error("Manual match schedule error:", error);
+      Alert.alert("Error", "Failed to schedule match manually.");
+    }
+  }
+
   return (
     <View style={styles.matchTab}>
       {loading && <ActivityIndicator />}
@@ -302,6 +348,12 @@ export const Matches = ({ id, isCreator }) => {
         </>
       )}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      <TouchableOpacity
+        onPress={() => setShowPlayOffMatchScheduler(true)}
+        style={styles.bottomButton}
+      >
+        <Text style={styles.bottomButtonText}>Schedule Playoffs</Text>
+      </TouchableOpacity>
 
       <Modal
         visible={modalVisible}
@@ -468,6 +520,105 @@ export const Matches = ({ id, isCreator }) => {
         </Modal>
       )}
 
+      <Modal
+        visible={showPlayOffMatchScheduler}
+        onRequestClose={() => setShowPlayOffMatchScheduler(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <ScrollView contentContainerStyle={styles.manualModalContent}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Schedule PlayOff</Text>
+
+              <Text style={styles.label}>Team A</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={manualMatchTeamA}
+                  onValueChange={(itemValue) => setManualMatchTeamA(itemValue)}
+                >
+                  <Picker.Item label="Select Team A" value="" />
+                  {tournamentData?.teamNames.map((team) => (
+                    <Picker.Item key={team.id} label={team.name} value={team.id} />
+                  ))}
+                </Picker>
+              </View>
+
+              <Text style={styles.label}>Team B</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={manualMatchTeamB}
+                  onValueChange={(itemValue) => setManualMatchTeamB(itemValue)}
+                >
+                  <Picker.Item label="Select Team B" value="" />
+                  {tournamentData?.teamNames.map((team) => (
+                    <Picker.Item key={team.id} label={team.name} value={team.id} />
+                  ))}
+                </Picker>
+              </View>
+
+              <Text style={styles.label}>Date</Text>
+              <TouchableOpacity onPress={() => setManualMatchShowDatePicker(true)} style={styles.input}>
+                <Text>
+                  {manualMatchDate ? moment(manualMatchDate).format('YYYY-MM-DD') : 'Select Date'}
+                </Text>
+              </TouchableOpacity>
+              {manualMatchShowDatePicker && (
+                <DateTimePicker
+                  value={manualMatchDate || new Date()}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(event, selectedDate) => {
+                    setManualMatchShowDatePicker(false);
+                    if (selectedDate) setManualMatchDate(selectedDate);
+                  }}
+                />
+              )}
+
+              <Text style={styles.label}>Time</Text>
+              <TouchableOpacity onPress={() => setManualMatchShowTimePicker(true)} style={styles.input}>
+                <Text>
+                  {manualMatchTime ? moment(manualMatchTime).format('HH:mm') : 'Select Time'}
+                </Text>
+              </TouchableOpacity>
+              {manualMatchShowTimePicker && (
+                <DateTimePicker
+                  value={manualMatchTime || new Date()}
+                  mode="time"
+                  display="default"
+                  onChange={(event, selectedTime) => {
+                    setManualMatchShowTimePicker(false);
+                    if (selectedTime) setManualMatchTime(selectedTime);
+                  }}
+                />
+              )}
+
+              <Text style={styles.label}>Venue</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={manualMatchVenue}
+                  onValueChange={(itemValue) => setManualMatchVenue(itemValue)}
+                >
+                  <Picker.Item label="Select Venue" value="" />
+                  {tournamentData?.venues.map((venue, index) => (
+                    <Picker.Item key={index} label={venue} value={venue} />
+                  ))}
+                </Picker>
+              </View>
+
+              <View style={styles.modalButtonContainer}>
+                <TouchableOpacity style={styles.primaryBtn} onPress={playoffMatchScheduleHandler}>
+                  <Text style={styles.buttonText}>Schedule</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowPlayOffMatchScheduler(false)} style={styles.cancelBtn}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+
+      </Modal>
+
       {matchDetails.length > 0 && isCreator && (
         <TouchableOpacity style={styles.bottomButton} onPress={() => setIsManualModalOpen(true)}>
           <Text style={styles.bottomButtonText}>Schedule More Matches</Text>
@@ -555,7 +706,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
-  
+
   // Empty State and Scheduling Options
   emptyContainer: {
     flex: 1,
@@ -566,7 +717,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#777',
+    color: AppColors.white,
     textAlign: 'center',
     marginBottom: 10,
   },
