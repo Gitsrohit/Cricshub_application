@@ -460,65 +460,64 @@ const Tournaments = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={AppGradients.primaryCard}
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerContentRow}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <Icon name="arrow-back" size={28} color={AppColors.white} />
-          </TouchableOpacity>
-
-          <View style={styles.searchBarContainer}>
-            <Icon name="search" size={20} color={AppColors.white} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search tournaments..."
-              placeholderTextColor="rgba(255,255,255,0.8)"
-              onChangeText={onSearchTextChange}
-              value={searchQuery}
-              returnKeyType="search"
-            />
-          </View>
-        </View>
-
-        {/* Tabs */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabContainer}
+    {/* Header - Modified to extend into status bar */}
+    <LinearGradient
+      colors={AppGradients.primaryCard}
+      style={styles.header}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <View style={styles.headerContentRow}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          {['MY', 'LIVE', 'UPCOMING', 'PAST'].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tabButton,
-                activeTab === tab && styles.activeTabButton,
-              ]}
-              onPress={() => {
-                setActiveTab(tab);
-                setSearchQuery(''); // Clear search on tab change
-                fetchTournaments(tab.toUpperCase(), ''); // Refetch for new tab
-              }}
-            >
-              <Text style={[
-                styles.tabText,
-                activeTab === tab && styles.activeTabText,
-              ]}>
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </LinearGradient>
+          <Icon name="arrow-back" size={28} color={AppColors.white} />
+        </TouchableOpacity>
 
+        <View style={styles.searchBarContainer}>
+          <Icon name="search" size={20} color={AppColors.white} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search tournaments..."
+            placeholderTextColor="rgba(255,255,255,0.8)"
+            onChangeText={onSearchTextChange}
+            value={searchQuery}
+            returnKeyType="search"
+          />
+        </View>
+      </View>
+
+      {/* Tabs */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabContainer}
+      >
+        {['MY', 'LIVE', 'UPCOMING', 'PAST'].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[
+              styles.tabButton,
+              activeTab === tab && styles.activeTabButton,
+            ]}
+            onPress={() => {
+              setActiveTab(tab);
+              setSearchQuery(''); // Clear search on tab change
+              fetchTournaments(tab.toUpperCase(), ''); // Refetch for new tab
+            }}
+          >
+            <Text style={[
+              styles.tabText,
+              activeTab === tab && styles.activeTabText,
+            ]}>
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </LinearGradient>
       {/* Content */}
       <View style={styles.content}>
         {loading ? (
@@ -593,7 +592,7 @@ const styles = StyleSheet.create({
 
   header: {
     paddingBottom: 20,
-    paddingTop: Platform.OS === 'ios' ? 30 : 30,
+    paddingTop: Platform.OS === 'ios' ? 40 : 40,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
     overflow: 'hidden',

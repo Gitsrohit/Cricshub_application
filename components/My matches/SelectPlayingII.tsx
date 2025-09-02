@@ -12,6 +12,8 @@ import {
   Animated,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
 import React, { useEffect, useState, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -308,163 +310,180 @@ const SelectPlayingXI = ({ route }) => {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <LottieView
-          source={require("../../assets/animations/Search for Players.json")}
-          autoPlay
-          loop
-          style={styles.lottieLoader}
-        />
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar backgroundColor={AppColors.BgColor} barStyle="dark-content" />
+        <View style={styles.loadingContainer}>
+          <LottieView
+            source={require("../../assets/animations/Search for Players.json")}
+            autoPlay
+            loop
+            style={styles.lottieLoader}
+          />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={
-            currentSelectionTeam === 1
-              ? initializeMatchAndTeams
-              : fetchTeam2Details
-          }
-        >
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar backgroundColor={AppColors.BgColor} barStyle="dark-content" />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={
+              currentSelectionTeam === 1
+                ? initializeMatchAndTeams
+                : fetchTeam2Details
+            }
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (!matchId || !team1Details) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={AppColors.primaryBlue} />
-        <Text style={styles.loadingText}>Initializing match...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar backgroundColor={AppColors.BgColor} barStyle="dark-content" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={AppColors.primaryBlue} />
+          <Text style={styles.loadingText}>Initializing match...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <CustomAlertDialog
-        visible={isAlertDialogVisible}
-        title="Selection Required"
-        message={alertDialogMessage}
-        onClose={handleCloseAlertDialog}
-        type={alertDialogType}
-      />
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar backgroundColor={AppColors.BgColor} barStyle="dark-content" />
+      <View style={styles.container}>
+        <CustomAlertDialog
+          visible={isAlertDialogVisible}
+          title="Selection Required"
+          message={alertDialogMessage}
+          onClose={handleCloseAlertDialog}
+          type={alertDialogType}
+        />
 
-      <Animated.View
-        style={[
-          styles.mainScreenContent,
-          { transform: [{ translateX: shakeAnimation }] },
-        ]}
-      >
-        {currentSelectionTeam === 1 && (
-          <>
-            <Text style={styles.sectionTitle}>
-              <Text style={styles.teamNameHighlight}>
-                {team1Details?.name}
-              </Text>{" "}
-              - Select Playing XI
-            </Text>
-            <Text style={styles.selectedCount}>
-              Selected:{" "}
-              <Text style={styles.countHighlight}>
-                {selectedTeam1.length}
+        <Animated.View
+          style={[
+            styles.mainScreenContent,
+            { transform: [{ translateX: shakeAnimation }] },
+          ]}
+        >
+          {currentSelectionTeam === 1 && (
+            <>
+              <Text style={styles.sectionTitle}>
+                <Text style={styles.teamNameHighlight}>
+                  {team1Details?.name}
+                </Text>{" "}
+                - Select Playing XI
               </Text>
-              /11
-            </Text>
-
-            <TextInput
-              style={styles.searchBar}
-              placeholder="Search players by name or role..."
-              placeholderTextColor="#888"
-              value={searchQuery}
-              onChangeText={(query) => handleSearch(query, 1)}
-            />
-
-            <FlatList
-              data={filteredTeam1Players}
-              keyExtractor={(item) =>
-                `team-${team1Details.id}-player-${item.id}`
-              }
-              renderItem={({ item }) => renderPlayerItem({ item, team: 1 })}
-              contentContainerStyle={styles.playerList}
-              keyboardShouldPersistTaps="handled"
-            />
-
-            <Pressable
-              style={[
-                styles.actionButton,
-                selectedTeam1.length !== 11 && styles.disabledButton,
-              ]}
-              onPress={handleContinueToTeam2}
-            >
-              <Text style={styles.actionButtonText}>
-                Continue to{" "}
-                <Text style={styles.teamNameHighlightSmall}>
-                  {team2Details?.name || "Team 2"}
+              <Text style={styles.selectedCount}>
+                Selected:{" "}
+                <Text style={styles.countHighlight}>
+                  {selectedTeam1.length}
                 </Text>
+                /11
               </Text>
-            </Pressable>
-          </>
-        )}
 
-        {currentSelectionTeam === 2 && team2Details && (
-          <>
-            <Text style={styles.sectionTitle}>
-              <Text style={styles.teamNameHighlight}>
-                {team2Details?.name}
-              </Text>{" "}
-              - Select Playing XI
-            </Text>
-            <Text style={styles.selectedCount}>
-              Selected:{" "}
-              <Text style={styles.countHighlight}>
-                {selectedTeam2.length}
+              <TextInput
+                style={styles.searchBar}
+                placeholder="Search players by name or role..."
+                placeholderTextColor="#888"
+                value={searchQuery}
+                onChangeText={(query) => handleSearch(query, 1)}
+              />
+
+              <FlatList
+                data={filteredTeam1Players}
+                keyExtractor={(item) =>
+                  `team-${team1Details.id}-player-${item.id}`
+                }
+                renderItem={({ item }) => renderPlayerItem({ item, team: 1 })}
+                contentContainerStyle={styles.playerList}
+                keyboardShouldPersistTaps="handled"
+              />
+
+              <Pressable
+                style={[
+                  styles.actionButton,
+                  selectedTeam1.length !== 11 && styles.disabledButton,
+                ]}
+                onPress={handleContinueToTeam2}
+              >
+                <Text style={styles.actionButtonText}>
+                  Continue to{" "}
+                  <Text style={styles.teamNameHighlightSmall}>
+                    {team2Details?.name || "Team 2"}
+                  </Text>
+                </Text>
+              </Pressable>
+            </>
+          )}
+
+          {currentSelectionTeam === 2 && team2Details && (
+            <>
+              <Text style={styles.sectionTitle}>
+                <Text style={styles.teamNameHighlight}>
+                  {team2Details?.name}
+                </Text>{" "}
+                - Select Playing XI
               </Text>
-              /11
-            </Text>
+              <Text style={styles.selectedCount}>
+                Selected:{" "}
+                <Text style={styles.countHighlight}>
+                  {selectedTeam2.length}
+                </Text>
+                /11
+              </Text>
 
-            <TextInput
-              style={styles.searchBar}
-              placeholder="Search players by name or role..."
-              placeholderTextColor="#888"
-              value={searchQuery}
-              onChangeText={(query) => handleSearch(query, 2)}
-            />
+              <TextInput
+                style={styles.searchBar}
+                placeholder="Search players by name or role..."
+                placeholderTextColor="#888"
+                value={searchQuery}
+                onChangeText={(query) => handleSearch(query, 2)}
+              />
 
-            <FlatList
-              data={filteredTeam2Players}
-              keyExtractor={(item) =>
-                `team-${team2Details.id}-player-${item.id}`
-              }
-              renderItem={({ item }) => renderPlayerItem({ item, team: 2 })}
-              contentContainerStyle={styles.playerList}
-              keyboardShouldPersistTaps="handled"
-            />
+              <FlatList
+                data={filteredTeam2Players}
+                keyExtractor={(item) =>
+                  `team-${team2Details.id}-player-${item.id}`
+                }
+                renderItem={({ item }) => renderPlayerItem({ item, team: 2 })}
+                contentContainerStyle={styles.playerList}
+                keyboardShouldPersistTaps="handled"
+              />
 
-            <Pressable
-              style={[
-                styles.actionButton,
-                selectedTeam2.length !== 11 && styles.disabledButton,
-              ]}
-              onPress={handleStartMatch}
-              disabled={isLoading}
-            >
-              <Text style={styles.actionButtonText}>Start Match</Text>
-            </Pressable>
-          </>
-        )}
-      </Animated.View>
-    </View>
+              <Pressable
+                style={[
+                  styles.actionButton,
+                  selectedTeam2.length !== 11 && styles.disabledButton,
+                ]}
+                onPress={handleStartMatch}
+                disabled={isLoading}
+              >
+                <Text style={styles.actionButtonText}>Start Match</Text>
+              </Pressable>
+            </>
+          )}
+        </Animated.View>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: AppColors.BgColor,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   container: {
     flex: 1,
     backgroundColor: AppColors.BgColor,

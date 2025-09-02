@@ -385,21 +385,24 @@ const Settings = ({ navigation }) => {
         onSelect={handleRoleSelect}
         onClose={() => setDropdownVisible(false)}
       />
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-left" size={24} color={AppColors.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile Settings</Text>
-        <View style={styles.headerRight} />
+      
+      {/* Header with SafeAreaView padding */}
+      <View style={styles.headerContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Icon name="arrow-left" size={24} color={AppColors.black} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profile Settings</Text>
+          <View style={styles.headerRight} />
+        </View>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={AppColors.blue} />
-          {/* <Text style={styles.loadingText}>Loading your profile...</Text> */}
         </View>
       ) : (
         <KeyboardAvoidingView
@@ -573,6 +576,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: AppColors.background,
   },
+  // Add header container with padding for status bar
+  headerContainer: {
+    backgroundColor: AppColors.white,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: AppColors.black,
+  },
+  headerRight: {
+    width: 40,
+  },
   keyboardAvoid: {
     flex: 1,
   },
@@ -591,28 +619,6 @@ const styles = StyleSheet.create({
     color: AppColors.black,
     marginTop: 15,
     fontSize: 16,
-  },
-  // Header styles matching Performance component
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: AppColors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: AppColors.black,
-  },
-  headerRight: {
-    width: 40,
   },
   profileContainer: {
     alignItems: "center",
@@ -787,7 +793,7 @@ const styles = StyleSheet.create({
   },
   notificationContainer: {
     position: "absolute",
-    top: 60,
+    top: Platform.OS === 'android' ? StatusBar.currentHeight + 80 : 80,
     left: 20,
     right: 20,
     padding: 16,
@@ -858,6 +864,14 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 16,
     color: "#333",
+  },
+  shimmerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
 });
 

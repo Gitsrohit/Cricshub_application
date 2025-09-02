@@ -9,18 +9,21 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
-import { LinearGradient } from 'expo-linear-gradient';
 import apiService from '../../APIservices';
+
+const { width } = Dimensions.get('window');
 
 const Info = ({ id, isCreator }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [tournamentDetails, setTournamentDetails] = useState(null);
   const [editingTournament, setEditingTournament] = useState(false);
+  const [showTeamsModal, setShowTeamsModal] = useState(false);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -130,65 +133,62 @@ const Info = ({ id, isCreator }) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {loading ? (
-        <View style={styles.loaderContainer}>
+        <View style={styles.centeredContainer}>
           <ActivityIndicator size="large" color="#4A90E2" style={styles.loader} />
-          <Text style={styles.loadingText}>Loading tournament details...</Text>
+          {/* <Text style={styles.loadingText}>Loading tournament details...</Text> */}
         </View>
       ) : error ? (
-        <View style={styles.errorContainer}>
-          <Icon name="error-outline" size={40} color="#E74C3C" />
+        <View style={styles.centeredContainer}>
+          <Icon name="error-outline" size={50} color="#E74C3C" />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity
-            style={styles.retryButton}
+            style={styles.primaryButton}
             onPress={() => fetchTournamentDetails(id)}
           >
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.buttonText}>Retry</Text>
           </TouchableOpacity>
         </View>
       ) : tournamentDetails ? (
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <LinearGradient
-            colors={['#4A90E2', '#1976d2']}
-            start={[0, 0]}
-            end={[1, 1]}
-            style={styles.headerContainer}
-          >
+        <Animated.View style={[styles.animatedContainer, { opacity: fadeAnim }]}>
+          {/* Header Section */}
+          <View style={styles.headerContainer}>
             <View style={styles.header}>
               <Text style={styles.title}>{tournamentDetails.name}</Text>
               {isCreator && (
                 <TouchableOpacity
-                  style={styles.editButton}
+                  style={styles.iconButton}
                   onPress={() => setEditingTournament(true)}
                 >
-                  <Icon name="edit" size={24} color="#fff" />
+                  <Icon name="edit" size={22} color="#4A90E2" />
                 </TouchableOpacity>
               )}
             </View>
-            <View style={styles.headerDetails}>
-              <View style={styles.headerDetailItem}>
-                <Icon name="calendar-today" size={16} color="#E0E0E0" />
-                <Text style={styles.headerDetailText}>
+            
+            <View style={styles.dateLocationContainer}>
+              <View style={styles.dateLocationRow}>
+                <Icon name="event" size={16} color="#6c757d" />
+                <Text style={styles.dateLocationText}>
                   {tournamentDetails.startDate
-                    ? moment(new Date(tournamentDetails.startDate[0], tournamentDetails.startDate[1] - 1, tournamentDetails.startDate[2])).format('DD MMM YYYY')
+                    ? moment(new Date(tournamentDetails.startDate[0], tournamentDetails.startDate[1] - 1, tournamentDetails.startDate[2])).format('MMM DD, YYYY')
                     : 'N/A'}
                   {' - '}
                   {tournamentDetails.endDate
-                    ? moment(new Date(tournamentDetails.endDate[0], tournamentDetails.endDate[1] - 1, tournamentDetails.endDate[2])).format('DD MMM YYYY')
+                    ? moment(new Date(tournamentDetails.endDate[0], tournamentDetails.endDate[1] - 1, tournamentDetails.endDate[2])).format('MMM DD, YYYY')
                     : 'N/A'}
                 </Text>
               </View>
-              <View style={styles.headerDetailItem}>
-                <Icon name="location-on" size={16} color="#E0E0E0" />
-                <Text style={styles.headerDetailText}>
+              <View style={styles.dateLocationRow}>
+                <Icon name="location-on" size={16} color="#6c757d" />
+                <Text style={styles.dateLocationText}>
                   {tournamentDetails.venues?.join(", ") || 'Multiple Venues'}
                 </Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
 
           <View style={styles.contentContainer}>
             {/* Organizer Card */}
-            <View style={[styles.card, styles.shadowCard]}>
+            <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <Icon name="person" size={20} color="#4A90E2" />
                 <Text style={styles.cardTitle}>Organizer</Text>
@@ -199,53 +199,112 @@ const Info = ({ id, isCreator }) => {
             </View>
 
             {/* Teams Card */}
-            <View style={[styles.card, styles.shadowCard]}>
+            <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Icon name="group" size={20} color="#4A90E2" />
+                <Icon name="groups" size={20} color="#4A90E2" />
                 <Text style={styles.cardTitle}>Teams</Text>
+                <TouchableOpacity 
+                  style={styles.eyeButton}
+                  onPress={() => setShowTeamsModal(true)}
+                >
+                  <Icon name="visibility" size={20} color="#4A90E2" />
+                </TouchableOpacity>
               </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.teamsContainer}
-              >
-                {tournamentDetails.teamNames?.map((team, index) => (
-                  <View key={index} style={styles.teamPill}>
-                    <Text style={styles.teamName}>{team?.name || 'Unknown'}</Text>
-                  </View>
-                ))}
-              </ScrollView>
+              <Text style={styles.teamsCount}>
+                {tournamentDetails.teamNames?.length || 0} teams participating
+              </Text>
             </View>
 
             {/* Details Grid */}
             <View style={styles.detailsSection}>
               <Text style={styles.sectionTitle}>Tournament Details</Text>
               <View style={styles.detailGrid}>
-                {[
-                  { label: 'Overs', value: tournamentDetails.type, icon: 'timer' },
-                  { label: 'Ball Type', value: tournamentDetails.ballType, icon: 'sports-baseball' },
-                  { label: 'Format', value: tournamentDetails.format, icon: 'description' },
-                ].map((item, idx) => (
-                  <View key={idx} style={[styles.detailItem, styles.shadowCard]}>
-                    <View style={styles.detailIconContainer}>
-                      <Icon name={item.icon} size={20} color="#4A90E2" />
-                    </View>
-                    <View>
-                      <Text style={styles.detailLabel}>{item.label}</Text>
-                      <Text style={styles.detailValue}>{item.value || 'N/A'}</Text>
-                    </View>
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIconContainer}>
+                    <Icon name="timer" size={20} color="#4A90E2" />
                   </View>
-                ))}
+                  <View>
+                    <Text style={styles.detailLabel}>Overs</Text>
+                    <Text style={styles.detailValue}>{tournamentDetails.type || 'N/A'}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIconContainer}>
+                    <Icon name="sports-cricket" size={20} color="#4A90E2" />
+                  </View>
+                  <View>
+                    <Text style={styles.detailLabel}>Ball Type</Text>
+                    <Text style={styles.detailValue}>{tournamentDetails.ballType || 'N/A'}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIconContainer}>
+                    <Icon name="description" size={20} color="#4A90E2" />
+                  </View>
+                  <View>
+                    <Text style={styles.detailLabel}>Format</Text>
+                    <Text style={styles.detailValue}>{tournamentDetails.format || 'N/A'}</Text>
+                  </View>
+                </View>
               </View>
             </View>
           </View>
         </Animated.View>
       ) : (
-        <View style={styles.emptyContainer}>
-          <Icon name="info-outline" size={40} color="#95A5A6" />
+        <View style={styles.centeredContainer}>
+          <Icon name="info-outline" size={50} color="#95A5A6" />
           <Text style={styles.emptyText}>No tournament details available</Text>
         </View>
       )}
+      
+      {/* Teams Modal - Enhanced */}
+      <Modal
+        visible={showTeamsModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTeamsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.teamsModalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Participating Teams</Text>
+              <TouchableOpacity 
+                onPress={() => setShowTeamsModal(false)}
+                style={styles.closeButton}
+              >
+                <Icon name="close" size={24} color="#6c757d" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.teamsCountHeader}>
+              <Text style={styles.teamsCountText}>
+                {tournamentDetails?.teamNames?.length || 0} teams participating
+              </Text>
+            </View>
+            
+            <ScrollView style={styles.teamsList}>
+              {tournamentDetails?.teamNames?.map((team, index) => (
+                <View key={index} style={styles.teamListItem}>
+                  <View style={styles.teamNumber}>
+                    <Text style={styles.teamNumberText}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.teamListName}>{team?.name || 'Unknown Team'}</Text>
+                </View>
+              ))}
+              
+              {(!tournamentDetails?.teamNames || tournamentDetails.teamNames.length === 0) && (
+                <View style={styles.noTeamsContainer}>
+                  <Icon name="info-outline" size={40} color="#95a5a6" />
+                  <Text style={styles.noTeamsText}>No teams registered yet</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Editing tournament modal */}
       <Modal
         visible={editingTournament}
@@ -254,93 +313,141 @@ const Info = ({ id, isCreator }) => {
         onRequestClose={() => setEditingTournament(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Edit Tournament</Text>
-
-            {/* Date Pickers */}
-            <View style={styles.dateRow}>
-              <TouchableOpacity
-                style={[styles.input, styles.dateInput]}
-                onPress={() => setShowStartDatePicker(true)}
+          <View style={styles.editModalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Tournament</Text>
+              <TouchableOpacity 
+                onPress={() => setEditingTournament(false)}
+                style={styles.closeButton}
               >
-                <Text style={styles.placeholderText}>
-                  {moment(startDate).format('MMM D, YYYY')}
-                </Text>
-                <Icon name="calendar-today" size={20} color="#4A90E2" />
-              </TouchableOpacity>
-
-              <Text style={styles.dateSeparator}>to</Text>
-
-              <TouchableOpacity
-                style={[styles.input, styles.dateInput]}
-                onPress={() => setShowEndDatePicker(true)}
-              >
-                <Text style={styles.placeholderText}>
-                  {moment(endDate).format('MMM D, YYYY')}
-                </Text>
-                <Icon name="calendar-today" size={20} color="#4A90E2" />
+                <Icon name="close" size={24} color="#6c757d" />
               </TouchableOpacity>
             </View>
 
-            {showStartDatePicker && (
-              <DateTimePicker
-                value={startDate}
-                mode="date"
-                display="default"
-                minimumDate={new Date()}
-                onChange={(event, selectedDate) => {
-                  setShowStartDatePicker(false);
-                  if (selectedDate) {
-                    setStartDate(selectedDate);
-                    if (selectedDate > endDate) {
-                      setEndDate(selectedDate);
-                    }
-                  }
-                }}
-              />
-            )}
-
-            {showEndDatePicker && (
-              <DateTimePicker
-                value={endDate}
-                mode="date"
-                display="default"
-                minimumDate={startDate}
-                onChange={(event, selectedDate) => {
-                  setShowEndDatePicker(false);
-                  if (selectedDate) setEndDate(selectedDate);
-                }}
-              />
-            )}
-
-            {/* Venues */}
-            <Text style={styles.modalSubtitle}>Venues</Text>
-            {editedDetails.venues.map((venue, index) => (
+            <ScrollView style={styles.modalScrollView}>
+              {/* Tournament Name */}
+              <Text style={styles.inputLabel}>Tournament Name</Text>
               <TextInput
-                key={index}
                 style={styles.input}
-                placeholder={`Venue ${index + 1}`}
-                value={venue}
-                onChangeText={(text) => {
-                  const newVenues = [...editedDetails.venues];
-                  newVenues[index] = text;
-                  setEditedDetails({ ...editedDetails, venues: newVenues });
-                }}
+                placeholder="Tournament Name"
+                value={editedDetails.name}
+                onChangeText={(text) => setEditedDetails({ ...editedDetails, name: text })}
               />
-            ))}
 
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() =>
-                setEditedDetails({
-                  ...editedDetails,
-                  venues: [...editedDetails.venues, ""],
-                })
-              }
-            >
-              <Icon name="add" size={20} color="#fff" />
-              <Text style={styles.addButtonText}>Add Venue</Text>
-            </TouchableOpacity>
+              {/* Dates */}
+              <Text style={styles.inputLabel}>Tournament Dates</Text>
+              <View style={styles.dateRow}>
+                <TouchableOpacity
+                  style={[styles.input, styles.dateInput]}
+                  onPress={() => setShowStartDatePicker(true)}
+                >
+                  <Text style={styles.placeholderText}>
+                    {moment(startDate).format('MMM D, YYYY')}
+                  </Text>
+                  <Icon name="calendar-today" size={20} color="#4A90E2" />
+                </TouchableOpacity>
+
+                <Text style={styles.dateSeparator}>to</Text>
+
+                <TouchableOpacity
+                  style={[styles.input, styles.dateInput]}
+                  onPress={() => setShowEndDatePicker(true)}
+                >
+                  <Text style={styles.placeholderText}>
+                    {moment(endDate).format('MMM D, YYYY')}
+                  </Text>
+                  <Icon name="calendar-today" size={20} color="#4A90E2" />
+                </TouchableOpacity>
+              </View>
+
+              {showStartDatePicker && (
+                <DateTimePicker
+                  value={startDate}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(event, selectedDate) => {
+                    setShowStartDatePicker(false);
+                    if (selectedDate) {
+                      setStartDate(selectedDate);
+                      if (selectedDate > endDate) {
+                        setEndDate(selectedDate);
+                      }
+                    }
+                  }}
+                />
+              )}
+
+              {showEndDatePicker && (
+                <DateTimePicker
+                  value={endDate}
+                  mode="date"
+                  display="default"
+                  minimumDate={startDate}
+                  onChange={(event, selectedDate) => {
+                    setShowEndDatePicker(false);
+                    if (selectedDate) setEndDate(selectedDate);
+                  }}
+                />
+              )}
+
+              {/* Tournament Type */}
+              <Text style={styles.inputLabel}>Overs</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Number of overs"
+                value={editedDetails.type}
+                onChangeText={(text) => setEditedDetails({ ...editedDetails, type: text })}
+                keyboardType="numeric"
+              />
+
+              {/* Ball Type */}
+              <Text style={styles.inputLabel}>Ball Type</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ball type"
+                value={editedDetails.ballType}
+                onChangeText={(text) => setEditedDetails({ ...editedDetails, ballType: text })}
+              />
+
+              {/* Format */}
+              <Text style={styles.inputLabel}>Format</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Tournament format"
+                value={editedDetails.format}
+                onChangeText={(text) => setEditedDetails({ ...editedDetails, format: text })}
+              />
+
+              {/* Venues */}
+              <Text style={styles.inputLabel}>Venues</Text>
+              {editedDetails.venues.map((venue, index) => (
+                <TextInput
+                  key={index}
+                  style={styles.input}
+                  placeholder={`Venue ${index + 1}`}
+                  value={venue}
+                  onChangeText={(text) => {
+                    const newVenues = [...editedDetails.venues];
+                    newVenues[index] = text;
+                    setEditedDetails({ ...editedDetails, venues: newVenues });
+                  }}
+                />
+              ))}
+
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() =>
+                  setEditedDetails({
+                    ...editedDetails,
+                    venues: [...editedDetails.venues, ""],
+                  })
+                }
+              >
+                <Icon name="add" size={20} color="#4A90E2" />
+                <Text style={styles.secondaryButtonText}>Add Venue</Text>
+              </TouchableOpacity>
+            </ScrollView>
 
             {/* Action Buttons */}
             <View style={styles.modalActions}>
@@ -348,61 +455,186 @@ const Info = ({ id, isCreator }) => {
                 style={[styles.actionButton, styles.cancelButton]}
                 onPress={() => setEditingTournament(false)}
               >
-                <Text style={styles.actionText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionButton, styles.saveButton]}
+                style={[styles.actionButton, styles.primaryButton]}
                 onPress={updateTournamentDetails}
               >
-                <Text style={[styles.actionText, { color: "#fff" }]}>Save</Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Save Changes</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, paddingBottom: 20, backgroundColor: '#f1f3f5' },
-  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  loader: { marginBottom: 16 },
-  loadingText: { marginTop: 16, color: '#4A90E2', fontSize: 16, fontWeight: '500' },
-  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  errorText: { color: '#dc3545', marginVertical: 16, fontSize: 16, textAlign: 'center' },
-  retryButton: { backgroundColor: '#dc3545', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
-  retryText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  container: { 
+    marginTop:10,
+    flexGrow: 1, 
+    backgroundColor: '#f5f7fa',
+    borderRadius:10,
+    padding: 10,
+  },
+  animatedContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  centeredContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 24 
+  },
+  loader: { 
+    marginBottom: 16 
+  },
+  loadingText: { 
+    marginTop: 16, 
+    color: '#6c757d', 
+    fontSize: 16, 
+    fontWeight: '500' 
+  },
+  errorText: { 
+    color: '#dc3545', 
+    marginVertical: 16, 
+    fontSize: 16, 
+    textAlign: 'center',
+    fontWeight: '500'
+  },
+  emptyText: { 
+    color: '#6c757d', 
+    fontSize: 16, 
+    marginTop: 16,
+    fontWeight: '500'
+  },
   headerContainer: {
-    padding: 20, borderRadius: 12, marginHorizontal: 16, marginTop: 16
+    padding: 24, 
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
+    backgroundColor: '#f9fafb',
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  title: { fontSize: 22, fontWeight: '700', color: '#fff', flex: 1 },
-  editButton: { padding: 8, marginLeft: 12 },
-  headerDetails: { marginTop: 4 },
-  headerDetailItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  headerDetailText: { color: '#E0E0E0', marginLeft: 6, fontSize: 14 },
-  contentContainer: { padding: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 18, marginBottom: 16 },
-  shadowCard: {
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 3
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-start', 
+    marginBottom: 16 
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: '#212529', marginLeft: 12 },
-  cardContent: { fontSize: 15, color: '#495057', lineHeight: 22 },
-  teamsContainer: { flexDirection: 'row', paddingVertical: 4 },
-  teamPill: { backgroundColor: '#e9ecef', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, marginRight: 8 },
-  teamName: { color: '#495057', fontSize: 13, fontWeight: '500' },
-  detailsSection: { marginTop: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#212529', marginBottom: 16 },
-  detailGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  detailItem: { width: '100%', borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  detailIconContainer: { backgroundColor: '#f1f3f5', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  detailLabel: { fontSize: 12, color: '#6c757d', marginBottom: 4, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
-  detailValue: { fontSize: 15, fontWeight: '500', color: '#212529' },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  emptyText: { color: '#95A5A6', fontSize: 16, marginTop: 16 },
+  title: { 
+    fontSize: 24, 
+    fontWeight: '600', 
+    color: '#2c3e50', 
+    flex: 1,
+    marginRight: 12,
+  },
+  iconButton: { 
+    padding: 4,
+  },
+  dateLocationContainer: {
+    marginTop: 8,
+  },
+  dateLocationRow: {
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 8 
+  },
+  dateLocationText: { 
+    color: '#6c757d', 
+    marginLeft: 8, 
+    fontSize: 14 
+  },
+  contentContainer: { 
+    padding: 20 
+  },
+  card: { 
+    backgroundColor: '#fff', 
+    borderRadius: 12, 
+    padding: 20, 
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  cardHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 12 
+  },
+  cardTitle: { 
+    fontSize: 16, 
+    fontWeight: '600', 
+    color: '#2c3e50',
+    marginLeft: 8,
+    flex: 1,
+  },
+  cardContent: { 
+    fontSize: 15, 
+    color: '#495057', 
+    lineHeight: 22 
+  },
+  eyeButton: {
+    padding: 4,
+  },
+  teamsCount: {
+    fontSize: 14,
+    color: '#6c757d',
+  },
+  detailsSection: { 
+    marginTop: 8 
+  },
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: '600', 
+    color: '#2c3e50', 
+    marginBottom: 16 
+  },
+  detailGrid: {
+    flexDirection: 'column',
+  },
+  detailItem: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
+  },
+  detailIconContainer: { 
+    backgroundColor: '#e8f4fd', 
+    width: 40, 
+    height: 40, 
+    borderRadius: 20, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 12 
+  },
+  detailLabel: { 
+    fontSize: 12, 
+    color: '#6c757d', 
+    marginBottom: 4, 
+    fontWeight: '500', 
+    textTransform: 'uppercase', 
+    letterSpacing: 0.5 
+  },
+  detailValue: { 
+    fontSize: 15, 
+    fontWeight: '500', 
+    color: '#2c3e50' 
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
@@ -410,32 +642,117 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     padding: 20,
   },
-  modalContainer: {
+  teamsModalContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    width: "90%",
+    maxHeight: "80%",
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  editModalContainer: {
     backgroundColor: "#fff",
     borderRadius: 12,
+    width: "90%",
+    maxHeight: "90%",
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
-    width: "100%",
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 16,
-    color: "#212529",
-  },
-  modalSubtitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
-    marginVertical: 12,
-    color: "#495057",
+    color: "#2c3e50",
+  },
+  closeButton: {
+    padding: 4,
+  },
+  teamsCountHeader: {
+    backgroundColor: '#f8f9fa',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
+  },
+  teamsCountText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#495057',
+    textAlign: 'center',
+  },
+  teamsList: {
+    padding: 20,
+  },
+  teamListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f3f5',
+  },
+  teamNumber: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#e8f4fd',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  teamNumberText: {
+    color: '#4A90E2',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  teamListName: {
+    fontSize: 16,
+    color: '#2c3e50',
+    fontWeight: '500',
+  },
+  noTeamsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  noTeamsText: {
+    textAlign: 'center',
+    color: '#6c757d',
+    fontSize: 16,
+    marginTop: 12,
+    fontWeight: '500',
+  },
+  modalScrollView: {
+    padding: 20,
+    maxHeight: '70%',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#495057',
+    marginBottom: 8,
+    marginTop: 12,
   },
   input: {
     borderWidth: 1,
     borderColor: "#dee2e6",
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 15,
+    backgroundColor: "#f9f9f9",
     marginBottom: 12,
-    fontSize: 14,
-    backgroundColor: "#f8f9fa",
   },
   dateRow: {
     flexDirection: "row",
@@ -447,52 +764,68 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#f9f9f9",
   },
   dateSeparator: {
     marginHorizontal: 8,
-    fontWeight: "600",
+    fontWeight: "500",
     color: "#495057",
   },
   placeholderText: {
-    fontSize: 14,
-    color: "#212529",
+    fontSize: 15,
+    color: "#2c3e50",
   },
-  addButton: {
+  primaryButton: {
+    backgroundColor: "#4A90E2",
+    paddingVertical: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginTop: 16,
+    paddingHorizontal: 20,
+  },
+  secondaryButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#4A90E2",
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: "#e8f4fd",
+    paddingVertical: 12,
+    borderRadius: 6,
     marginBottom: 16,
   },
-  addButtonText: {
-    color: "#fff",
+  secondaryButtonText: {
+    color: "#4A90E2",
     marginLeft: 6,
-    fontWeight: "600",
+    fontWeight: "500",
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "500",
+    fontSize: 15,
   },
   modalActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginTop: 10,
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#eaeaea',
   },
   actionButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 6,
     marginLeft: 10,
+    minWidth: 100,
+    alignItems: 'center',
   },
   cancelButton: {
     backgroundColor: "#f1f3f5",
   },
-  saveButton: {
-    backgroundColor: "#4A90E2",
-  },
-  actionText: {
-    fontWeight: "600",
-    fontSize: 14,
-    color: "#212529",
+  cancelButtonText: {
+    fontWeight: "500",
+    fontSize: 15,
+    color: "#6c757d",
   },
 });
 

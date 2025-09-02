@@ -15,7 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppColors, AppGradients } from '../../assets/constants/colors.js'
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const TossScreen = ({ navigation }) => {
   const [isFlipping, setIsFlipping] = useState(false);
@@ -56,86 +56,69 @@ const TossScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={AppColors.background}
-        translucent={false}
-      />
+    <View style={styles.safeArea}>
+      <SafeAreaView style={styles.safeAreaContainer}>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor={AppColors.background}
+          translucent={false}
+        />
 
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons name="arrow-back" size={24} color={AppColors.darkText} />
-        </TouchableOpacity>
-        <Text style={styles.heading}>Coin Toss</Text>
-        <View style={styles.headerButton} />
-      </View>
-
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Coin Toss</Text>
-          <Text style={styles.subtitle}>
-            Tap to flip and see if it's heads or tails
-          </Text>
-          <TouchableOpacity 
-            onPress={flipCoin}
-            disabled={isFlipping}
-            activeOpacity={0.9}
-            style={styles.coinTouchable}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
           >
-            <View style={styles.coinContainer}>
-              <Animated.View style={[styles.coin, animatedStyle]}>
-                <View style={styles.coinFace}>
-                  {!showResult ? (
-                    <MaterialIcons name="help-outline" size={44} color={AppColors.primary} />
-                  ) : result === 'Heads' ? (
-                    <View style={styles.coinContent}>
-                      <MaterialIcons name="looks-one" size={36} color={AppColors.primary} />
-                      <Text style={styles.coinText}>Heads</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.coinContent}>
-                      <MaterialIcons name="looks-two" size={36} color={AppColors.primary} />
-                      <Text style={styles.coinText}>Tails</Text>
-                    </View>
-                  )}
-                </View>
-              </Animated.View>
-            </View>
+            <MaterialIcons name="arrow-back" size={24} color={AppColors.darkText} />
           </TouchableOpacity>
+          <Text style={styles.heading}>Coin Toss</Text>
+          <View style={styles.headerButton} />
+        </View>
 
-          {/* Result Display - Minimal */}
-          {/* {showResult && (
-            <View style={styles.resultContainer}>
-              <Text style={styles.resultText}>{result}</Text>
+        <View style={styles.container}>
+          <View style={styles.content}>
+            <Text style={styles.title}>Coin Toss</Text>
+            <Text style={styles.subtitle}>
+              Tap to flip and see if it's heads or tails
+            </Text>
+            <TouchableOpacity 
+              onPress={flipCoin}
+              disabled={isFlipping}
+              activeOpacity={0.9}
+              style={styles.coinTouchable}
+            >
+              <View style={styles.coinContainer}>
+                <Animated.View style={[styles.coin, animatedStyle]}>
+                  <View style={styles.coinFace}>
+                    {!showResult ? (
+                      <MaterialIcons name="help-outline" size={44} color={AppColors.primary} />
+                    ) : result === 'Heads' ? (
+                      <View style={styles.coinContent}>
+                        <MaterialIcons name="looks-one" size={36} color={AppColors.primary} />
+                        <Text style={styles.coinText}>Heads</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.coinContent}>
+                        <MaterialIcons name="looks-two" size={36} color={AppColors.primary} />
+                        <Text style={styles.coinText}>Tails</Text>
+                      </View>
+                    )}
+                  </View>
+                </Animated.View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Minimal Info Section */}
+            <View style={styles.infoContainer}>
+              <Text style={styles.infoText}>
+                The coin toss decides which team bats or bowls first in cricket
+              </Text>
             </View>
-          )} */}
-
-          {/* Toss Button - Secondary action */}
-          {/* <TouchableOpacity
-            style={[styles.tossButton, isFlipping && styles.disabledButton]}
-            onPress={flipCoin}
-            disabled={isFlipping}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.buttonText}>
-              {isFlipping ? 'Tossing...' : 'Flip Coin'}
-            </Text>
-          </TouchableOpacity> */}
-
-          {/* Minimal Info Section */}
-          <View style={styles.infoContainer}>
-            <Text style={styles.infoText}>
-              The coin toss decides which team bats or bowls first in cricket
-            </Text>
           </View>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 
@@ -143,6 +126,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: AppColors.white,
+  },
+  safeAreaContainer: {
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   container: {
     flex: 1,
@@ -231,43 +218,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: AppColors.primary,
     marginTop: 6,
-  },
-  resultContainer: {
-    marginBottom: 32,
-    padding: 16,
-    backgroundColor: AppColors.white,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: AppColors.cardBorder,
-    minWidth: 120,
-  },
-  resultText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: AppColors.primary,
-    textAlign: 'center',
-  },
-  tossButton: {
-    backgroundColor: AppColors.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    minWidth: 160,
-    marginBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: AppColors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   infoContainer: {
     padding: 16,

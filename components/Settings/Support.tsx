@@ -11,8 +11,12 @@ import {
   SafeAreaView,
   StatusBar as RNStatusBar,
   Alert,
+  Dimensions
 } from 'react-native';
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
+
+const { width, height } = Dimensions.get('window');
+
 const AppColors = {
   white: "#FFFFFF",
   black: "#000000",
@@ -87,138 +91,140 @@ const SupportScreen = ({ navigation }) => {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {Platform.OS === "android" && <RNStatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />}
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons name="arrow-back" size={26} color={AppColors.darkText} />
-        </TouchableOpacity>
-        <Text style={styles.heading}>Support</Text>
-        <View style={styles.headerButton} />
-      </View>
+    <View style={styles.safeArea}>
+      <SafeAreaView style={styles.safeAreaContainer}>
+        <RNStatusBar
+          barStyle="dark-content"
+          backgroundColor={AppColors.white}
+          translucent={false}
+        />
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Contact Methods */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Get Help Quickly</Text>
-          <View style={styles.contactMethods}>
-            <TouchableOpacity style={styles.contactCard} onPress={openEmail}>
-              <View style={[styles.iconContainer, { backgroundColor: '#E3F2FD' }]}>
-                <MaterialIcons name="email" size={24} color={AppColors.primary} />
-              </View>
-              <Text style={styles.contactText}>Email Support</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.contactCard} onPress={openPhone}>
-              <View style={[styles.iconContainer, { backgroundColor: '#E8F5E9' }]}>
-                <MaterialIcons name="phone" size={24} color={AppColors.success} />
-              </View>
-              <Text style={styles.contactText}>Call Us</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.contactCard} onPress={openWebsite}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FFF3E0' }]}>
-                <Ionicons name="globe-outline" size={24} color={AppColors.warning} />
-              </View>
-              <Text style={styles.contactText}>Visit Help Center</Text>
-            </TouchableOpacity>
-          </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back" size={26} color={AppColors.darkText} />
+          </TouchableOpacity>
+          <Text style={styles.heading}>Support</Text>
+          <View style={styles.headerButton} />
         </View>
 
-        {/* FAQ Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-          <View style={styles.faqContainer}>
-            {faqs.map((faq, index) => (
-              <View key={index} style={styles.faqItem}>
-                <Text style={styles.faqQuestion}>
-                  <FontAwesome5 name="question-circle" size={16} color={AppColors.primary} /> {faq.question}
-                </Text>
-                <Text style={styles.faqAnswer}>{faq.answer}</Text>
-              </View>
-            ))}
-          </View>
-          {/* <TouchableOpacity style={styles.faqButton}>
-            <Text style={styles.faqButtonText}>View All FAQs</Text>
-            <MaterialIcons name="arrow-forward" size={18} color={AppColors.primary} />
-          </TouchableOpacity> */}
-        </View>
+        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+          {/* Contact Methods */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Get Help Quickly</Text>
+            <View style={styles.contactMethods}>
+              <TouchableOpacity style={styles.contactCard} onPress={openEmail}>
+                <View style={[styles.iconContainer, { backgroundColor: '#E3F2FD' }]}>
+                  <MaterialIcons name="email" size={24} color={AppColors.primary} />
+                </View>
+                <Text style={styles.contactText}>Email Support</Text>
+              </TouchableOpacity>
 
-        {/* Contact Form */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Send us a Message</Text>
-          <View style={styles.form}>
-            <View style={styles.inputRow}>
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Your Name *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your name"
-                  placeholderTextColor={AppColors.lightText}
-                  value={name}
-                  onChangeText={setName}
-                />
-              </View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email Address *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your email"
-                  placeholderTextColor={AppColors.lightText}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
+              <TouchableOpacity style={styles.contactCard} onPress={openPhone}>
+                <View style={[styles.iconContainer, { backgroundColor: '#E8F5E9' }]}>
+                  <MaterialIcons name="phone" size={24} color={AppColors.success} />
+                </View>
+                <Text style={styles.contactText}>Call Us</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.contactCard} onPress={openWebsite}>
+                <View style={[styles.iconContainer, { backgroundColor: '#FFF3E0' }]}>
+                  <Ionicons name="globe-outline" size={24} color={AppColors.warning} />
+                </View>
+                <Text style={styles.contactText}>Visit Help Center</Text>
+              </TouchableOpacity>
             </View>
-            
-            <Text style={styles.label}>Subject *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="What is this regarding?"
-              placeholderTextColor={AppColors.lightText}
-              value={subject}
-              onChangeText={setSubject}
-            />
-            
-            <Text style={styles.label}>Message *</Text>
-            <TextInput
-              style={[styles.input, styles.messageInput]}
-              placeholder="Describe your issue or question in detail..."
-              placeholderTextColor={AppColors.lightText}
-              value={message}
-              onChangeText={setMessage}
-              multiline
-              numberOfLines={5}
-              textAlignVertical="top"
-            />
-            
-            <TouchableOpacity
-              style={[styles.submitButton, isSubmitting && styles.disabledButton]}
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.submitButtonText}>
-                {isSubmitting ? 'Sending...' : 'Send Message'}
-              </Text>
-            </TouchableOpacity>
           </View>
-        </View>
 
-        {/* App Info */}
-        <View style={styles.appInfo}>
-          <Text style={styles.appVersion}>CricsHub v1.2.4</Text>
-          <Text style={styles.appCopyright}>© 2025 CricsHub. All rights reserved.</Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          {/* FAQ Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+            <View style={styles.faqContainer}>
+              {faqs.map((faq, index) => (
+                <View key={index} style={styles.faqItem}>
+                  <Text style={styles.faqQuestion}>
+                    <FontAwesome5 name="question-circle" size={16} color={AppColors.primary} /> {faq.question}
+                  </Text>
+                  <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Contact Form */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Send us a Message</Text>
+            <View style={styles.form}>
+              <View style={styles.inputRow}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Your Name *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your name"
+                    placeholderTextColor={AppColors.lightText}
+                    value={name}
+                    onChangeText={setName}
+                  />
+                </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Email Address *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor={AppColors.lightText}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+              
+              <Text style={styles.label}>Subject *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="What is this regarding?"
+                placeholderTextColor={AppColors.lightText}
+                value={subject}
+                onChangeText={setSubject}
+              />
+              
+              <Text style={styles.label}>Message *</Text>
+              <TextInput
+                style={[styles.input, styles.messageInput]}
+                placeholder="Describe your issue or question in detail..."
+                placeholderTextColor={AppColors.lightText}
+                value={message}
+                onChangeText={setMessage}
+                multiline
+                numberOfLines={5}
+                textAlignVertical="top"
+              />
+              
+              <TouchableOpacity
+                style={[styles.submitButton, isSubmitting && styles.disabledButton]}
+                onPress={handleSubmit}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.submitButtonText}>
+                  {isSubmitting ? 'Sending...' : 'Send Message'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* App Info */}
+          <View style={styles.appInfo}>
+            <Text style={styles.appVersion}>CricsHub v1.2.4</Text>
+            <Text style={styles.appCopyright}>© 2025 CricsHub. All rights reserved.</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 
@@ -226,7 +232,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: AppColors.white,
-    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0,
+  },
+  safeAreaContainer: {
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
   container: {
     flex: 1,
@@ -312,17 +321,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: AppColors.lightText,
     lineHeight: 20,
-  },
-  faqButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-  },
-  faqButtonText: {
-    color: AppColors.primary,
-    fontWeight: '500',
-    marginRight: 6,
   },
   form: {
     marginTop: 8,

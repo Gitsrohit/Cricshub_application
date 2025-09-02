@@ -15,7 +15,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  RefreshControl
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -44,6 +45,7 @@ const Teams = ({ id, isCreator }) => {
   const [enteredTeamName, setEnteredTeamName] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [isAddingTeam, setIsAddingTeam] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(500)).current;
 
@@ -64,8 +66,14 @@ const Teams = ({ id, isCreator }) => {
       setError('Failed to fetch teams. Please try again.');
     } finally {
       setLoading({ key: 'All', value: false });
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchTeams(id);
+  }, [id]);
 
   const searchTeamsByName = async (name) => {
     try {
@@ -252,6 +260,14 @@ const Teams = ({ id, isCreator }) => {
           ? "Get started by adding teams to your tournament"
           : "The tournament organizer hasn't added any teams yet"}
       </Text>
+      {isCreator && (
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={openModal}
+        >
+          <Text style={styles.addButtonText}>Add Teams</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -261,7 +277,7 @@ const Teams = ({ id, isCreator }) => {
         {loading.value && loading.key === 'All' ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#34B8FF" />
-            <Text style={styles.loadingText}>Loading teams...</Text>
+            {/* <Text style={styles.loadingText}>Loading teams...</Text> */}
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
@@ -270,7 +286,7 @@ const Teams = ({ id, isCreator }) => {
               size={50}
               color="#FF5252"
             />
-            <Text style={styles.errorTitle}>Error Loading Teams</Text>
+            {/* <Text style={styles.errorTitle}>Error Loading Teams</Text> */}
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
               style={styles.retryButton}
@@ -287,8 +303,13 @@ const Teams = ({ id, isCreator }) => {
                 renderItem={renderTeamItem}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
-                ListHeaderComponent={
-                  <Text style={styles.sectionHeader}>Tournament Teams</Text>
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    colors={['#34B8FF']}
+                    tintColor={'#34B8FF'}
+                  />
                 }
                 ListFooterComponent={<View style={styles.listFooter} />}
               />
@@ -298,14 +319,21 @@ const Teams = ({ id, isCreator }) => {
           </>
         )}
 
-        {isCreator && (
+        {isCreator && teams.length > 0 && (
           <TouchableOpacity
             style={styles.floatingAddButton}
             onPress={openModal}
             activeOpacity={0.85}
             disabled={loading.value && loading.key === 'All'}
           >
-            <Icon name="add" size={28} color="#FFF" />
+            <LinearGradient
+              colors={['#34B8FF', '#0071BC']}
+              style={styles.gradientButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Icon name="add" size={28} color="#FFF" />
+            </LinearGradient>
           </TouchableOpacity>
         )}
 
@@ -366,7 +394,6 @@ const Teams = ({ id, isCreator }) => {
                       </View>
                     )}
                   </View>
-                  {/* Removed the close button from the bottom */}
                 </Animated.View>
               </KeyboardAvoidingView>
             </View>
@@ -379,16 +406,23 @@ const Teams = ({ id, isCreator }) => {
 
 const styles = StyleSheet.create({
   safeArea: {
+    marginTop:10,
     flex: 1,
+    backgroundColor: '#F5F7FA',
+    borderRadius:10,
+    paddingVertical: 10,
   },
   container: {
     flex: 1,
     position: 'relative',
+    borderRadius:10,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F5F7FA',
+    borderRadius:10,
   },
   loadingText: {
     marginTop: 16,
@@ -457,12 +491,17 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     lineHeight: 24,
   },
-  sectionHeader: {
-    fontSize: 18,
+  addButton: {
+    backgroundColor: '#34B8FF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  addButtonText: {
+    color: '#FFF',
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    fontSize: 16,
   },
   listContent: {
     paddingVertical: 16,
@@ -524,7 +563,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#34B8FF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -533,6 +571,14 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 6,
     zIndex: 10,
+    overflow: 'hidden',
+  },
+  gradientButton: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalOverlay: {
     flex: 1,
@@ -550,29 +596,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(240,240,240,0.9)",
-    borderRadius: 25,
+    backgroundColor: "#F5F7FA",
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     color: "#003b5c",
+    marginLeft: 8,
   },
   searchIcon: {
-    marginLeft: 8,
+    marginRight: 8,
   },
   modalLoader: {
     flex: 1,
@@ -630,12 +677,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   searchHintText: {
-    color: '#CCC',
+    color: '#999',
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
   },
-  // Removed closeButton and closeButtonText styles
 });
 
 export default Teams;

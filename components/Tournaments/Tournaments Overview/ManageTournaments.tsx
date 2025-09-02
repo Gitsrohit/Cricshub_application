@@ -12,6 +12,7 @@ import {
   Alert,
   Dimensions,
   StatusBar,
+  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,11 +27,14 @@ import Matches from "./TournamentMatches";
 import PointsTable from "./TournamentPointtable";
 import { AppGradients } from "../../../assets/constants/colors";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const HEADER_MAX_HEIGHT = 120; // Reduced header height
 const HEADER_MIN_HEIGHT = 60 + (StatusBar.currentHeight || 0);
 const TAB_BAR_HEIGHT = 60;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+
+// Calculate status bar height for different platforms
+const STATUS_BAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
 
 type ManageTournamentsRouteParams = {
   tab: string;
@@ -135,6 +139,8 @@ export default function ManageTournaments({
           styles.toggleText,
           activeTab === item && styles.activeToggleText,
         ]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
       >
         {item}
       </Text>
@@ -161,7 +167,7 @@ export default function ManageTournaments({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar
         barStyle="light-content"
         backgroundColor="transparent"
@@ -171,136 +177,147 @@ export default function ManageTournaments({
         colors={["#34B8FF", "#192f6a"]}
         style={styles.gradientOverlay}
       >
-        {/* Simplified Header Area */}
-        <Animated.View style={[styles.headerArea, { height: headerHeight }]}>
+        <SafeAreaView style={styles.safeArea} edges={['right', 'left', 'top']}>
+          {/* Simplified Header Area */}
+          <Animated.View style={[styles.headerArea, { height: headerHeight }]}>
+            <Animated.View
+              style={[
+                styles.headerContentWrapper,
+                { opacity: headerContentOpacity },
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+                activeOpacity={0.7}
+              >
+                <Icon name="arrow-back" size={24} color="white" />
+              </TouchableOpacity>
+
+              {!loading && tournamentDetails && (
+                <View style={styles.tournamentDetailsTextContainer}>
+                  <Text style={styles.tournamentNameHeader}>
+                    {tournamentDetails.name}
+                  </Text>
+                  {tournamentDetails.startDate && tournamentDetails.endDate && (
+                    <Text style={styles.tournamentSubDetail}>
+                      <Icon
+                        name="calendar-today"
+                        size={14}
+                        color="rgba(255,255,255,0.8)"
+                      />{" "}
+                      {formatTournamentDates()}
+                    </Text>
+                  )}
+                  {tournamentDetails.location && (
+                    <Text style={styles.tournamentSubDetail}>
+                      <Icon
+                        name="location-on"
+                        size={14}
+                        color="rgba(255,255,255,0.8)"
+                      />{" "}
+                      {tournamentDetails.location}
+                    </Text>
+                  )}
+                </View>
+              )}
+            </Animated.View>
+          </Animated.View>
+
+          {/* Collapsed Header */}
           <Animated.View
-            style={[
-              styles.headerContentWrapper,
-              { opacity: headerContentOpacity },
-            ]}
+            style={[styles.collapsedHeader, { opacity: collapsedTitleOpacity }]}
           >
-            <TouchableOpacity
-              style={styles.backButton}
+            {/* <TouchableOpacity
+              style={styles.backButtonCollapsed}
               onPress={() => navigation.goBack()}
               activeOpacity={0.7}
             >
               <Icon name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-
-            {!loading && tournamentDetails && (
-              <View style={styles.tournamentDetailsTextContainer}>
-                <Text style={styles.tournamentNameHeader}>
-                  {tournamentDetails.name}
-                </Text>
-                {tournamentDetails.startDate && tournamentDetails.endDate && (
-                  <Text style={styles.tournamentSubDetail}>
-                    <Icon
-                      name="calendar-today"
-                      size={14}
-                      color="rgba(255,255,255,0.8)"
-                    />{" "}
-                    {formatTournamentDates()}
-                  </Text>
-                )}
-                {tournamentDetails.location && (
-                  <Text style={styles.tournamentSubDetail}>
-                    <Icon
-                      name="location-on"
-                      size={14}
-                      color="rgba(255,255,255,0.8)"
-                    />{" "}
-                    {tournamentDetails.location}
-                  </Text>
-                )}
-              </View>
-            )}
+            </TouchableOpacity> */}
+            <Text style={styles.collapsedHeaderText} numberOfLines={1}>
+              {tournamentDetails?.name || "Tournament"}
+            </Text>
           </Animated.View>
-        </Animated.View>
 
-        {/* Collapsed Header */}
-        <Animated.View
-          style={[styles.collapsedHeader, { opacity: collapsedTitleOpacity }]}
-        >
-          <TouchableOpacity
-            style={styles.backButtonCollapsed}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
+          {/* Sticky Tab Bar */}
+          <Animated.View
+            style={[
+              styles.toggleContainer,
+              { transform: [{ translateY: tabTopPosition }] },
+            ]}
           >
-            <Icon name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.collapsedHeaderText} numberOfLines={1}>
-            {tournamentDetails?.name || "Tournament"}
-          </Text>
-        </Animated.View>
+            <FlatList
+              ref={flatListRef}
+              data={tabs}
+              renderItem={renderTab}
+              keyExtractor={(item) => item}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.toggleScrollViewContent}
+            />
+          </Animated.View>
 
-        {/* Sticky Tab Bar */}
-        <Animated.View
-          style={[
-            styles.toggleContainer,
-            { transform: [{ translateY: tabTopPosition }] },
-          ]}
-        >
-          <FlatList
-            ref={flatListRef}
-            data={tabs}
-            renderItem={renderTab}
-            keyExtractor={(item) => item}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.toggleScrollViewContent}
-          />
-        </Animated.View>
-
-        {/* Main Content Area */}
-        <Animated.ScrollView
-          style={styles.mainContentScrollView}
-          contentContainerStyle={{
-            paddingTop: HEADER_MAX_HEIGHT + TAB_BAR_HEIGHT,
-            paddingHorizontal: 15,
-            paddingBottom: 20,
-          }}
-          scrollEventThrottle={16}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
-          )}
-          onMomentumScrollEnd={handleScrollEnd}
-        >
-          {loading ? (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color="#34B8FF" />
-              <Text style={styles.loadingText}>Loading tournament data...</Text>
-            </View>
-          ) : error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={() => fetchTournamentDetails(id)}
-              >
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              {activeTab === "INFO" && <Info id={id} isCreator={isCreator} />}
-              {activeTab === "TEAMS" && <Teams id={id} isCreator={isCreator} />}
-              {activeTab === "MATCHES" && (
-                <Matches id={id} isCreator={isCreator} />
-              )}
-              {activeTab === "POINTS TABLE" && <PointsTable id={id} />}
-            </>
-          )}
-        </Animated.ScrollView>
+          {/* Main Content Area */}
+          <Animated.ScrollView
+            style={styles.mainContentScrollView}
+            contentContainerStyle={{
+              paddingTop: HEADER_MAX_HEIGHT + TAB_BAR_HEIGHT,
+              paddingHorizontal: 15,
+              paddingBottom: 20,
+            }}
+            scrollEventThrottle={16}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: false }
+            )}
+            onMomentumScrollEnd={handleScrollEnd}
+          >
+            {loading ? (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#34B8FF" />
+                <Text style={styles.loadingText}>Loading tournament data...</Text>
+              </View>
+            ) : error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={() => fetchTournamentDetails(id)}
+                >
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                {activeTab === "INFO" && <Info id={id} isCreator={isCreator} />}
+                {activeTab === "TEAMS" && <Teams id={id} isCreator={isCreator} />}
+                {activeTab === "MATCHES" && (
+                  <Matches id={id} isCreator={isCreator} />
+                )}
+                {activeTab === "POINTS TABLE" && <PointsTable id={id} />}
+              </>
+            )}
+          </Animated.ScrollView>
+        </SafeAreaView>
       </LinearGradient>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f9fa" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#f8f9fa" 
+  },
+  
+  safeArea: {
+    flex: 1,
+  },
 
-  gradientOverlay: { flex: 1 },
+  gradientOverlay: { 
+    flex: 1 
+  },
 
   headerArea: {
     position: "absolute",
@@ -309,7 +326,7 @@ const styles = StyleSheet.create({
     right: 0,
     overflow: "hidden",
     zIndex: 10,
-    paddingTop: StatusBar.currentHeight,
+    paddingTop: STATUS_BAR_HEIGHT,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
@@ -323,22 +340,28 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingHorizontal: 20,
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
+    flex: 1,
   },
 
   backButton: {
     position: "absolute",
-    top: StatusBar.currentHeight + 15,
     left: 15,
     zIndex: 1,
     backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 20,
-    padding: 8
+    padding: 8,
+    // Center vertically within the header
+    top: '50%',
+    marginTop: -20, // Half of button height (icon size 24 + padding 16 = ~40/2 = 20)
   },
 
   tournamentDetailsTextContainer: {
     alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
     marginTop: 10,
+    paddingHorizontal: 50, // Add padding to prevent text overlapping with back button
   },
 
   tournamentNameHeader: {
@@ -367,7 +390,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: StatusBar.currentHeight,
+    paddingTop: STATUS_BAR_HEIGHT,
     zIndex: 11,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -380,49 +403,54 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
-    marginLeft: 50,
-    flexShrink: 1
+    flex: 1,
+    textAlign: 'center',
+    paddingHorizontal: 50, // Add padding to prevent text overlapping with back button
   },
 
   backButtonCollapsed: {
     position: "absolute",
-    top: StatusBar.currentHeight + 15,
     left: 15,
     zIndex: 1,
     backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 20,
-    padding: 8
+    padding: 8,
+    // Center vertically within the collapsed header
+    top: '50%',
+    marginTop: -20, // Half of button height
   },
 
   toggleContainer: {
     position: "absolute",
-    left: 10,
-    right: 10,
+    left: 15,
+    right: 15,
     height: TAB_BAR_HEIGHT,
     backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 30,
     justifyContent: "center",
-    marginHorizontal: 10,
-    marginTop: 5,
     zIndex: 9,
+    overflow: 'hidden', // Prevent overflow
   },
 
   toggleScrollViewContent: {
     alignItems: "center",
-    paddingHorizontal: 5,
-    justifyContent: 'center'
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    flexGrow: 1,
   },
 
   toggleButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     marginHorizontal: 4,
     backgroundColor: "transparent",
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)'
+    borderColor: 'rgba(255,255,255,0.5)',
+    minWidth: 100, // Fixed width for better alignment
+    height: 40, // Fixed height for consistent sizing
   },
 
   activeToggleButton: {
@@ -438,21 +466,24 @@ const styles = StyleSheet.create({
   toggleText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 14,
-    letterSpacing: 0.5
+    fontSize: 13, // Slightly smaller to fit better
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
 
   activeToggleText: {
     color: "#34B8FF",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "bold"
   },
 
-  mainContentScrollView: { flex: 1 },
+  mainContentScrollView: { 
+    flex: 1,
+  },
 
   loadingOverlay: {
     flex: 1,
-    minHeight: Dimensions.get("window").height - (HEADER_MIN_HEIGHT + TAB_BAR_HEIGHT + (StatusBar.currentHeight || 0) + 30),
+    minHeight: height - (HEADER_MIN_HEIGHT + TAB_BAR_HEIGHT + STATUS_BAR_HEIGHT + 30),
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.95)",
@@ -475,7 +506,7 @@ const styles = StyleSheet.create({
 
   errorContainer: {
     flex: 1,
-    minHeight: Dimensions.get("window").height - (HEADER_MIN_HEIGHT + TAB_BAR_HEIGHT + (StatusBar.currentHeight || 0) + 30),
+    minHeight: height - (HEADER_MIN_HEIGHT + TAB_BAR_HEIGHT + STATUS_BAR_HEIGHT + 30),
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FFF3F3",

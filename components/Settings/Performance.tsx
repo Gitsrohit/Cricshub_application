@@ -12,6 +12,7 @@ import {
   Dimensions,
   SafeAreaView,
   StatusBar,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -403,17 +404,19 @@ const Performance = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={AppColors.white} />
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-back" size={24} color={AppColors.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Performance Stats</Text>
-        <View style={styles.headerRight} />
-      </View>
-      {renderContent()}
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Icon name="arrow-back" size={24} color={AppColors.black} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Performance Stats</Text>
+          <View style={styles.headerRight} />
+        </View>
+        {renderContent()}
+      </SafeAreaView>
     </SafeAreaView>
   );
 };
@@ -422,6 +425,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: AppColors.background,
+  },
+  safeArea: {
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
     flexDirection: "row",

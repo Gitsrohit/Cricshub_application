@@ -786,7 +786,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingBottom: 20,
-    paddingTop: Platform.OS === 'ios' ? 30 : 40,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
     overflow: 'hidden',

@@ -321,16 +321,6 @@ const Home = () => {
               </View>
               <Text style={styles.sidebarTitle}>{userName || "Guest User"}</Text>
             </View>
-            {/* Sidebar Header */}
-            <View style={styles.sidebarHeader}>
-              <View style={styles.userImageWrapper}>
-                <Image
-                  source={require("../../assets/defaultLogo.png")}
-                  style={styles.userImage}
-                />
-              </View>
-              <Text style={styles.sidebarTitle}>{userName || "Guest User"}</Text>
-            </View>
 
             {/* Sidebar Options */}
             <View style={styles.sidebarOptionsWrapper}>
@@ -361,11 +351,7 @@ const Home = () => {
                 <Text style={[styles.sidebarItemTextDark, { color: AppColors.error }]}>Logout</Text>
               </TouchableOpacity>
             </View>
-            {/* Logout Button */}
-            <TouchableOpacity style={[styles.sidebarItemPatch, styles.logoutPatch]} onPress={LogOutHandler}>
-              <Ionicons name="log-out-outline" size={22} color={AppColors.error} />
-              <Text style={[styles.sidebarItemTextDark, { color: AppColors.error }]}>Logout</Text>
-            </TouchableOpacity>
+
           </View>
 
           {/* Footer */}
@@ -549,7 +535,7 @@ export const styles = StyleSheet.create({
   },
   closeSidebarButton: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 50 : 20,
+    top: Platform.OS === "ios" ? 50 : 50,
     right: 12,
     width: 36,
     height: 36,
