@@ -152,11 +152,11 @@ const AllMatches = () => {
 };
 
 
-const MatchCard = ({ 
-  item, 
-  onPress, 
-  status = 'UPCOMING', 
-  showScores = true, 
+const MatchCard = ({
+  item,
+  onPress,
+  status = 'UPCOMING',
+  showScores = true,
   showWinner = false,
   userId
 }) => {
@@ -474,9 +474,9 @@ const LiveMatch = ({ searchQuery }) => {
   const liveMatchClickHandler = async (match) => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      const creatorId = match.creatorName.id;
+      const isUserInMatchOps = match.matchOps.includes(userId);
 
-      if (userId === creatorId) {
+      if (isUserInMatchOps) {
         navigation.navigate('Scoring', { matchId: match.id });
       } else {
         navigation.navigate('CommentaryScorecard', { matchId: match.id });

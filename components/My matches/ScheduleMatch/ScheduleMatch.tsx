@@ -21,7 +21,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Renamed from 'MaterialIcons' to 'Icon' for consistency
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import apiService from '../../APIservices';
 import { AppGradients, AppColors, AppButtons } from '../../../assets/constants/colors.js';
@@ -29,7 +28,7 @@ import CustomAlertDialog from '../../Customs/CustomDialog.js'; // Import your cu
 
 const moment = require('moment-timezone');
 
-const ScheduleMatch = () => {
+const ScheduleMatch = ({ navigation }) => {
   const [overs, setOvers] = useState('');
   const [venue, setVenue] = useState('');
   const [teamModalVisible, setTeamModalVisible] = useState(false);
@@ -71,7 +70,6 @@ const ScheduleMatch = () => {
   const timeShakeAnim = useRef(new Animated.Value(0)).current;
 
   const slideAnim = useRef(new Animated.Value(500)).current;
-  const navigation = useNavigation();
 
   useEffect(() => {
     if (teamModalVisible) {
@@ -243,12 +241,7 @@ const ScheduleMatch = () => {
       return;
     }
 
-    try {
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) throw new Error("Please login again");
-
-      setLoading(true);
-
+    if (!hasError) {
       const requestBody = {
         tournamentName: null,
         team1Id,
@@ -259,47 +252,79 @@ const ScheduleMatch = () => {
         venue,
       };
 
-      const response = await apiService({
-        endpoint: 'matches/schedule',
-        method: 'POST',
-        body: requestBody,
+      navigation.navigate("MatchOperatives", {
+        matchDetails: {
+          overs,
+          venue,
+          team1Id,
+          team1Name,
+          team1Logo,
+          team2Id,
+          team2Name,
+          team2Logo,
+        },
+        requestBody,
+        source: "schedule"
       });
-
-      if (response.success) {
-        // Show success message in custom dialog
-        setDialogTitle('Success!');
-        setDialogMessage('Match scheduled successfully!');
-        setDialogType('success');
-        setDialogVisible(true);
-        // Optionally, clear form fields after success
-        setOvers('');
-        setVenue('');
-        setTeam1Name('');
-        setTeam1Id(null);
-        setTeam1Logo(null);
-        setTeam2Name('');
-        setTeam2Id(null);
-        setTeam2Logo(null);
-        setSelectedDate(new Date());
-        setSelectedTime(new Date());
-      } else {
-        console.error("API Error:", response.error);
-        // Show error message in custom dialog
-        setDialogTitle('Error');
-        setDialogMessage(response.error?.message || 'Failed to schedule match. Please try again.');
-        setDialogType('error');
-        setDialogVisible(true);
-      }
-    } catch (err) {
-      console.error("Network/Other Error:", err);
-      // Show network/other error message in custom dialog
-      setDialogTitle('Error');
-      setDialogMessage('An unexpected error occurred. Please check your internet connection and try again.');
-      setDialogType('error');
-      setDialogVisible(true);
-    } finally {
-      setLoading(false);
     }
+
+    // try {
+    //   const token = await AsyncStorage.getItem("jwtToken");
+    //   if (!token) throw new Error("Please login again");
+
+    //   setLoading(true);
+
+    //   const requestBody = {
+    //     tournamentName: null,
+    //     team1Id,
+    //     team2Id,
+    //     overs: parseInt(overs, 10),
+    //     matchDate: selectedDateTime.format("YYYY-MM-DD"),
+    //     matchTime: selectedDateTime.format("HH:mm"),
+    //     venue,
+    //   };
+
+    //   const response = await apiService({
+    //     endpoint: 'matches/schedule',
+    //     method: 'POST',
+    //     body: requestBody,
+    //   });
+
+    //   if (response.success) {
+    //     // Show success message in custom dialog
+    //     setDialogTitle('Success!');
+    //     setDialogMessage('Match scheduled successfully!');
+    //     setDialogType('success');
+    //     setDialogVisible(true);
+    //     // Optionally, clear form fields after success
+    //     setOvers('');
+    //     setVenue('');
+    //     setTeam1Name('');
+    //     setTeam1Id(null);
+    //     setTeam1Logo(null);
+    //     setTeam2Name('');
+    //     setTeam2Id(null);
+    //     setTeam2Logo(null);
+    //     setSelectedDate(new Date());
+    //     setSelectedTime(new Date());
+    //   } else {
+    //     console.error("API Error:", response.error);
+    //     // Show error message in custom dialog
+    //     setDialogTitle('Error');
+    //     setDialogMessage(response.error?.message || 'Failed to schedule match. Please try again.');
+    //     setDialogType('error');
+    //     setDialogVisible(true);
+    //   }
+    // } catch (err) {
+    //   console.error("Network/Other Error:", err);
+    //   // Show network/other error message in custom dialog
+    //   setDialogTitle('Error');
+    //   setDialogMessage('An unexpected error occurred. Please check your internet connection and try again.');
+    //   setDialogType('error');
+    //   setDialogVisible(true);
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   const instantMatchHandler = () => {

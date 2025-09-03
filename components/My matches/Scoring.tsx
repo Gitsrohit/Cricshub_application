@@ -20,6 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 import apiService from '../APIservices';
 import { MaterialIcons } from "@expo/vector-icons";
 import { AppColors } from '../../assets/constants/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const driveImage = require('../../assets/images/DriveShot.png');
 const cutImage = require('../../assets/images/squareShot.png');
 const pullImage = require('../../assets/images/HookShot.png');
@@ -75,6 +76,7 @@ const ScoringScreen = ({ route }) => {
   const [selectedCatcher, setSelectedCatcher] = useState();
   const [runOutGetterId, setRunOutGetterId] = useState(null);
   const [runOutFielderId, setRunOutFielderId] = useState(null);
+  const [runOutRuns, setRunOutRuns] = useState('0');
   const [directionModalVisible, setDirectionModalVisible] = useState(false);
   const [selectedDirection, setSelectedDirection] = useState(null);
   const [selectedShot, setSelectedShot] = useState(null);
@@ -397,7 +399,7 @@ const ScoringScreen = ({ route }) => {
       setBattingTeamName(data.battingTeam.name);
 
       const formattedOverDetails =
-        data.currentOver?.map((ball) => {
+        data?.currentOver?.map((ball) => {
           let event = ball.runs?.toString() || "0";
           if (ball.wicket) event += ' W';
           if (ball.noBall) event += ' NB';
@@ -680,10 +682,11 @@ const ScoringScreen = ({ route }) => {
         throw new Error('STOMP submit client not connected');
       }
 
+      const userId = await AsyncStorage.getItem('userUUID');
       stompSubmitClientRef.current.publish({
         destination: `/app/match/${matchId}/ball`,
         body: JSON.stringify(payload),
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'userId': userId || '' },
       });
 
       setTimeout(() => {
@@ -849,7 +852,7 @@ const ScoringScreen = ({ route }) => {
             <Text style={styles.modalTitle}>Select Shot Direction</Text>
             <View style={styles.wagonWheelContainer}>
               <View style={styles.circleBackground} />
-              {directions.map((direction, index) => {
+              {directions?.map((direction, index) => {
                 const angleInRadians = (direction.angle * Math.PI) / 180;
                 const x = center + radius * Math.cos(angleInRadians) - 40;
                 const y = center + radius * Math.sin(angleInRadians) - 20;
@@ -1062,7 +1065,7 @@ const ScoringScreen = ({ route }) => {
               style={styles.picker}
             >
               <Picker.Item label="Select Batsman" value="" />
-              {availableBatsmen.map((batsman) => (
+              {availableBatsmen?.map((batsman) => (
                 <Picker.Item key={batsman.playerId} label={batsman?.name} value={batsman?.playerId} />
               ))}
             </Picker>
@@ -1110,7 +1113,7 @@ const ScoringScreen = ({ route }) => {
               style={styles.picker}
             >
               <Picker.Item label="Select Bowler" value="" />
-              {bowlingPlayingXI.map((bowler) => (
+              {bowlingPlayingXI?.map((bowler) => (
                 <Picker.Item key={bowler.playerId} label={bowler?.name} value={bowler?.playerId} />
               ))}
             </Picker>
@@ -1156,7 +1159,7 @@ const ScoringScreen = ({ route }) => {
               style={styles.picker}
             >
               <Picker.Item label="Select Catcher" value="" />
-              {bowlingPlayingXI.map((fielder) => (
+              {bowlingPlayingXI?.map((fielder) => (
                 <Picker.Item key={fielder.playerId} label={fielder?.name} value={fielder.playerId} />
               ))}
             </Picker>
@@ -1230,6 +1233,7 @@ const ScoringScreen = ({ route }) => {
                 style={{ textAlign: 'right' }}
               />
             </Pressable>
+
             <Text style={styles.modalTitle}>Select Fielder</Text>
             <Picker
               selectedValue={runOutFielderId}
@@ -1237,10 +1241,24 @@ const ScoringScreen = ({ route }) => {
               style={styles.picker}
             >
               <Picker.Item label="Select Fielder" value="" />
-              {bowlingPlayingXI.map((fielder) => (
-                <Picker.Item key={fielder.playerId} label={fielder.name} value={fielder.playerId} />
+              {bowlingPlayingXI?.map((fielder) => (
+                <Picker.Item
+                  key={fielder.playerId}
+                  label={fielder.name}
+                  value={fielder.playerId}
+                />
               ))}
             </Picker>
+
+            {/* 🔥 Add TextInput for runs */}
+            <Text style={{ marginTop: 10 }}>Runs Scored:</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={runOutRuns}
+              onChangeText={setRunOutRuns}
+              placeholder="Enter runs"
+            />
 
             <Pressable
               style={styles.submitButton}
@@ -1250,24 +1268,21 @@ const ScoringScreen = ({ route }) => {
                   return;
                 }
 
-                // Call score handler
+                const runs = parseInt(runOutRuns || '0');
+
+                // Call score handler with runs included
                 handleSubmit({
-                  runs: 0,
+                  runs: runs,
                   wicket: true,
                   wicketType: 'Run Out',
                   runOutGetterId: runOutGetterId,
                   runOutMakerId: runOutFielderId,
                 });
 
-                // const available = battingTeamII.filter(
-                //   (player) =>
-                //     player.ballsFaced === 0 &&
-                //     player.playerId !== strikerId &&
-                //     player.playerId !== nonStrikerId
-                // ).map(({ playerId, name }) => ({ playerId, name }));
-
                 setAvailableBatsmen(battingPlayingXI);
+                setRunOutRuns('0');
                 setModals((prev) => ({ ...prev, fielderSelect: false }));
+
                 setTimeout(() => {
                   if (wicket < 9) {
                     setModals((prev) => ({ ...prev, nextBatsman: true }));

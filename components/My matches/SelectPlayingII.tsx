@@ -66,7 +66,6 @@ const SelectPlayingXI = ({ route }) => {
         endpoint: "matches/schedule",
         method: "POST",
         body: requestBody,
-        token: token,
       });
 
       if (matchCreationResponse.success && matchCreationResponse.data.data?.id) {
@@ -79,7 +78,6 @@ const SelectPlayingXI = ({ route }) => {
         const response1 = await apiService({
           endpoint: `teams/${matchDetails.team1Id}`,
           method: "GET",
-          token: token,
         });
 
         if (response1.success) {
@@ -88,8 +86,7 @@ const SelectPlayingXI = ({ route }) => {
           console.log("Team 1 details fetched.");
         } else {
           setError(
-            `Failed to fetch team 1 details: ${
-              response1.error?.message || "Unknown error"
+            `Failed to fetch team 1 details: ${response1.error?.message || "Unknown error"
             }`
           );
         }
@@ -112,7 +109,6 @@ const SelectPlayingXI = ({ route }) => {
       const response2 = await apiService({
         endpoint: `teams/${matchDetails.team2Id}`,
         method: "GET",
-        token: token,
       });
 
       if (response2.success) {
@@ -121,8 +117,7 @@ const SelectPlayingXI = ({ route }) => {
         console.log("Team 2 details fetched.");
       } else {
         setError(
-          `Failed to fetch team 2 details: ${
-            response2.error?.message || "Unknown error"
+          `Failed to fetch team 2 details: ${response2.error?.message || "Unknown error"
           }`
         );
       }
@@ -169,8 +164,8 @@ const SelectPlayingXI = ({ route }) => {
       prev.includes(playerId)
         ? prev.filter((id) => id !== playerId)
         : prev.length < 11
-        ? [...prev, playerId]
-        : prev
+          ? [...prev, playerId]
+          : prev
     );
   };
 

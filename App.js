@@ -27,6 +27,7 @@ import AddPlayersToTeam from './components/Teams/AddPlayersToTeam';
 import SelectRoles2ndInnings from './components/My matches/SelectRoles2ndInnings';
 import AllMatches from './components/My matches/AllMatches/AllMatches';
 import ScheduleMatch from './components/My matches/ScheduleMatch/ScheduleMatch';
+import MatchOperatives from './components/My matches/MatchOperatives';
 import CommentaryScorecard from './components/My matches/CommentaryScorecard';
 import FantasyCricketScreen from './components/Fantasy/FantasyHome';
 import Contests from './components/Fantasy/Contests';
@@ -102,6 +103,7 @@ const MainScreens = () => {
     "TossFlip",
     "Support",
     "StreamMatch",
+    "MatchOperatives",
   ];
 
   const shouldShowFooter = !hideFooterScreens.includes(currentRoute);
@@ -130,6 +132,7 @@ const MainScreens = () => {
         <Stack.Screen name="SelectRoles2ndInnings" component={SelectRoles2ndInnings} />
         <Stack.Screen name="MatchScoreCard" component={ScoreCard} />
         <Stack.Screen name="ScheduleMatch" component={ScheduleMatch} />
+        <Stack.Screen name="MatchOperatives" component={MatchOperatives} />
         <Stack.Screen name="CommentaryScorecard" component={CommentaryScorecard} />
         <Stack.Screen name="FantasyCricketScreen" component={FantasyCricketScreen} />
         <Stack.Screen name="Contests" component={Contests} />

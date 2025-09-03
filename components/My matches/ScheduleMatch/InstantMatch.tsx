@@ -86,8 +86,7 @@ const InstantMatch = () => {
       const response = await apiService({
         endpoint: 'teams/search/name',
         method: 'GET',
-        params: { name },
-        token: token,
+        params: { name }
       });
 
       if (response.success) {
@@ -213,34 +212,7 @@ const InstantMatch = () => {
     };
 
     console.log("InstantMatch: Navigating immediately to SelectPlayingII with initial matchDetails and requestBody.");
-    navigation.navigate('SelectPlayingII', {
-      matchDetails: matchDetails,
-      requestBody: requestBody,
-    });
-
-    (async () => {
-      try {
-        const token = await AsyncStorage.getItem('jwtToken');
-        if (!token) {
-          console.warn("InstantMatch: No JWT token found when trying to schedule match in background.");
-          return;
-        }
-        const response = await apiService({
-          endpoint: 'matches/schedule',
-          method: 'POST',
-          body: requestBody,
-          token: token,
-        });
-
-        if (response.success && response.data.data && response.data.data.id) {
-          console.log("InstantMatch: Match scheduled successfully in background. Match ID:", response.data.data.id);
-        } else {
-          console.error("InstantMatch: Background match scheduling failed:", response.error);
-        }
-      } catch (err) {
-        console.error("InstantMatch: Error during background match scheduling:", err);
-      }
-    })();
+    navigation.navigate('MatchOperatives', { matchDetails, requestBody, source: 'instant' });
   };
 
   const scheduleMatchHandler = () => {
