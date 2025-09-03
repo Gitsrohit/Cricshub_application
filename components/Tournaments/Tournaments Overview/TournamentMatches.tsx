@@ -36,6 +36,7 @@ export const Matches = ({ id, isCreator }) => {
   const [manualMatchShowTimePicker, setManualMatchShowTimePicker] = useState(false);
   const [manualMatchVenue, setManualMatchVenue] = useState('');
   const [showPlayOffMatchScheduler, setShowPlayOffMatchScheduler] = useState(false);
+  const [canSchedulePlayoff, setCanSchedulePlayoff] = useState(false);
   const navigation = useNavigation();
 
   const fetchMatchDetails = async (id) => {
@@ -55,6 +56,11 @@ export const Matches = ({ id, isCreator }) => {
 
       if (response.success) {
         setMatchDetails(response.data.data);
+        const allCompleted = response.data.data.length > 0 && response.data.data.every(
+          (match) => match.status === 'Completed'
+        );
+        setCanSchedulePlayoff(allCompleted);
+        console.log(allCompleted);
       } else {
         setError('Failed to fetch matches');
         console.error('Error fetching matches:', response.error);
@@ -129,11 +135,11 @@ export const Matches = ({ id, isCreator }) => {
 
   const getInitials = (name) => {
     if (!name) return '';
-    return name
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
-      .join('')
-      .substring(0, 3); // Limit to 3 characters max
+    const words = name.trim().split(/\s+/);
+    if (words.length === 1) {
+      return words[0].substring(0, 3).toUpperCase();
+    }
+    return words.map(word => word.charAt(0).toUpperCase()).join('').substring(0, 3);
   };
 
   const handleScheduleSubmit = async () => {
@@ -299,8 +305,8 @@ export const Matches = ({ id, isCreator }) => {
           {matchDetails.length > 0 ? (
             <ScrollView style={styles.matchesContainer}>
               {matchDetails.map((match, index) => (
-                <Pressable 
-                  key={index} 
+                <Pressable
+                  key={index}
                   onPress={() => matchPressHandler(match)}
                   style={({ pressed }) => [
                     styles.matchCard,
@@ -320,21 +326,21 @@ export const Matches = ({ id, isCreator }) => {
                           {getInitials(match.team1?.name)}
                         </Text>
                       </View>
-                      
+
                       <View style={styles.vsContainer}>
                         <Text style={styles.vs}>VS</Text>
                         <View style={[styles.statusBadge, { backgroundColor: getMatchStatusColor(match) }]}>
                           <Text style={styles.statusText}>{getMatchStatusText(match)}</Text>
                         </View>
                       </View>
-                      
+
                       <View style={styles.teamContainer}>
                         <Text style={styles.matchTeamName}>
                           {getInitials(match.team2?.name)}
                         </Text>
                         <Image source={{ uri: match.team2.logoPath }} style={styles.logo} />
                       </View>
-                      
+
                       {isCreator && (
                         <Icon
                           name="edit"
@@ -351,22 +357,22 @@ export const Matches = ({ id, isCreator }) => {
                         />
                       )}
                     </View>
-                    
+
                     <View style={styles.cardBody}>
                       <Text style={styles.matchStage}>{match.stage}</Text>
-                      
+
                       <View style={styles.detailRow}>
                         <Icon name="location-on" color={AppColors.primary} size={18} />
                         <Text style={styles.matchText}>Venue: {match.venue || 'TBD'}</Text>
                       </View>
-                      
+
                       <View style={styles.detailRow}>
                         <Icon name="calendar-today" color={AppColors.primary} size={18} />
                         <Text style={styles.matchText}>
                           Date: {match.matchDate ? `${match.matchDate[2]}-${match.matchDate[1]}-${match.matchDate[0]}` : 'TBD'}
                         </Text>
                       </View>
-                      
+
                       {match.winner && (
                         <View style={styles.detailRow}>
                           <Icon name="emoji-events" color="#FFD700" size={18} />
@@ -385,8 +391,8 @@ export const Matches = ({ id, isCreator }) => {
                   <Text style={styles.emptyText}>No matches scheduled yet.</Text>
                   <Text style={styles.emptySubText}>How would you like to schedule the matches?</Text>
                   <View style={styles.scheduleOptions}>
-                    <TouchableOpacity 
-                      style={[styles.scheduleButton, styles.manualButton]} 
+                    <TouchableOpacity
+                      style={[styles.scheduleButton, styles.manualButton]}
                       onPress={() => setIsManualModalOpen(true)}
                     >
                       <LinearGradient
@@ -399,9 +405,9 @@ export const Matches = ({ id, isCreator }) => {
                         <Text style={styles.scheduleButtonText}>Manually</Text>
                       </LinearGradient>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[styles.scheduleButton, styles.aiButton]} 
+
+                    <TouchableOpacity
+                      style={[styles.scheduleButton, styles.aiButton]}
                       onPress={aiMatchScheduleHandler}
                     >
                       <LinearGradient
@@ -422,8 +428,8 @@ export const Matches = ({ id, isCreator }) => {
         </>
       )}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      
-      {isCreator && (
+
+      {canSchedulePlayoff && isCreator && (
         <>
           <TouchableOpacity
             onPress={() => setShowPlayOffMatchScheduler(true)}
@@ -441,8 +447,8 @@ export const Matches = ({ id, isCreator }) => {
           </TouchableOpacity>
 
           {matchDetails.length > 0 && (
-            <TouchableOpacity 
-              style={[styles.bottomButton, styles.scheduleMoreButton]} 
+            <TouchableOpacity
+              style={[styles.bottomButton, styles.scheduleMoreButton]}
               onPress={() => setIsManualModalOpen(true)}
             >
               <LinearGradient
@@ -475,12 +481,12 @@ export const Matches = ({ id, isCreator }) => {
               end={{ x: 1, y: 0 }}
             >
               <Text style={styles.modalTitle}>Edit Match</Text>
-              <Icon 
-                name="close" 
-                size={24} 
-                color="#fff" 
-                style={styles.closeIcon} 
-                onPress={() => setModalVisible(false)} 
+              <Icon
+                name="close"
+                size={24}
+                color="#fff"
+                style={styles.closeIcon}
+                onPress={() => setModalVisible(false)}
               />
             </LinearGradient>
 
@@ -498,8 +504,8 @@ export const Matches = ({ id, isCreator }) => {
               </View>
 
               <Text style={styles.label}>Date</Text>
-              <TouchableOpacity 
-                onPress={() => setShowDatePicker(true)} 
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(true)}
                 style={styles.inputContainer}
               >
                 <Icon name="calendar-today" size={20} color={AppColors.primary} style={styles.inputIcon} />
@@ -521,8 +527,8 @@ export const Matches = ({ id, isCreator }) => {
               )}
 
               <Text style={styles.label}>Time</Text>
-              <TouchableOpacity 
-                onPress={() => setShowTimePicker(true)} 
+              <TouchableOpacity
+                onPress={() => setShowTimePicker(true)}
                 style={styles.inputContainer}
               >
                 <Icon name="access-time" size={20} color={AppColors.primary} style={styles.inputIcon} />
@@ -572,12 +578,12 @@ export const Matches = ({ id, isCreator }) => {
                 end={{ x: 1, y: 0 }}
               >
                 <Text style={styles.modalTitle}>Schedule Match Manually</Text>
-                <Icon 
-                  name="close" 
-                  size={24} 
-                  color="#fff" 
-                  style={styles.closeIcon} 
-                  onPress={() => setIsManualModalOpen(false)} 
+                <Icon
+                  name="close"
+                  size={24}
+                  color="#fff"
+                  style={styles.closeIcon}
+                  onPress={() => setIsManualModalOpen(false)}
                 />
               </LinearGradient>
 
@@ -613,8 +619,8 @@ export const Matches = ({ id, isCreator }) => {
                 </View>
 
                 <Text style={styles.label}>Date</Text>
-                <TouchableOpacity 
-                  onPress={() => setManualMatchShowDatePicker(true)} 
+                <TouchableOpacity
+                  onPress={() => setManualMatchShowDatePicker(true)}
                   style={styles.inputContainer}
                 >
                   <Icon name="calendar-today" size={20} color={AppColors.primary} style={styles.inputIcon} />
@@ -636,8 +642,8 @@ export const Matches = ({ id, isCreator }) => {
                 )}
 
                 <Text style={styles.label}>Time</Text>
-                <TouchableOpacity 
-                  onPress={() => setManualMatchShowTimePicker(true)} 
+                <TouchableOpacity
+                  onPress={() => setManualMatchShowTimePicker(true)}
                   style={styles.inputContainer}
                 >
                   <Icon name="access-time" size={20} color={AppColors.primary} style={styles.inputIcon} />
@@ -702,12 +708,12 @@ export const Matches = ({ id, isCreator }) => {
               end={{ x: 1, y: 0 }}
             >
               <Text style={styles.modalTitle}>Schedule Playoff Match</Text>
-              <Icon 
-                name="close" 
-                size={24} 
-                color="#fff" 
-                style={styles.closeIcon} 
-                onPress={() => setShowPlayOffMatchScheduler(false)} 
+              <Icon
+                name="close"
+                size={24}
+                color="#fff"
+                style={styles.closeIcon}
+                onPress={() => setShowPlayOffMatchScheduler(false)}
               />
             </LinearGradient>
 
@@ -743,8 +749,8 @@ export const Matches = ({ id, isCreator }) => {
               </View>
 
               <Text style={styles.label}>Date</Text>
-              <TouchableOpacity 
-                onPress={() => setManualMatchShowDatePicker(true)} 
+              <TouchableOpacity
+                onPress={() => setManualMatchShowDatePicker(true)}
                 style={styles.inputContainer}
               >
                 <Icon name="calendar-today" size={20} color="#ff7e5f" style={styles.inputIcon} />
@@ -766,8 +772,8 @@ export const Matches = ({ id, isCreator }) => {
               )}
 
               <Text style={styles.label}>Time</Text>
-              <TouchableOpacity 
-                onPress={() => setManualMatchShowTimePicker(true)} 
+              <TouchableOpacity
+                onPress={() => setManualMatchShowTimePicker(true)}
                 style={styles.inputContainer}
               >
                 <Icon name="access-time" size={20} color="#ff7e5f" style={styles.inputIcon} />
@@ -803,14 +809,14 @@ export const Matches = ({ id, isCreator }) => {
               </View>
 
               <View style={styles.modalButtonContainer}>
-                <TouchableOpacity 
-                  style={[styles.primaryBtn, { backgroundColor: '#ff7e5f' }]} 
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { backgroundColor: '#ff7e5f' }]}
                   onPress={playoffMatchScheduleHandler}
                 >
                   <Text style={styles.buttonText}>Schedule Playoff</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={() => setShowPlayOffMatchScheduler(false)} 
+                <TouchableOpacity
+                  onPress={() => setShowPlayOffMatchScheduler(false)}
                   style={styles.cancelBtn}
                 >
                   <Text style={styles.buttonText}>Cancel</Text>
@@ -1046,7 +1052,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
-   
+
     borderRadius: 10,
     padding: 12,
     marginBottom: 15,

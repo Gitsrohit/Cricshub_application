@@ -19,108 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const OBS_REQUEST_TIMEOUT = 5000;
-const SCENES = [
-  {
-    name: 'mainScene',
-    inputSettings: {
-      url: `http://34.47.150.57:8081/api/v1/overlay/0b81375a-a800-4365-88c1-fe4b7075fb90?type=standard`,
-      width: '100vw',
-      height: 300,
-      positionX: 0,
-      positionY: 0,
-    },
-  },
-  {
-    name: 'boundaryScene',
-    inputSettings: {
-      url: `http://34.47.150.57:8081/api/v1/overlay/0b81375a-a800-4365-88c1-fe4b7075fb90?type=standard`,
-      width: '100vw',
-      height: 300,
-      positionX: 0,
-      positionY: 0,
-    },
-  },
-  {
-    name: 'sixScene',
-    inputSettings: {
-      url: `http://34.47.150.57:8081/api/v1/overlay/0b81375a-a800-4365-88c1-fe4b7075fb90?type=standard`,
-      width: '100vw',
-      height: 300,
-      positionX: 0,
-      positionY: 0,
-    },
-  },
-  {
-    name: 'wicketScene',
-    inputSettings: {
-      url: `http://34.47.150.57:8081/api/v1/overlay/0b81375a-a800-4365-88c1-fe4b7075fb90?type=standard`,
-      width: '100vw',
-      height: 300,
-      positionX: 0,
-      positionY: 0,
-    },
-  },
-  {
-    name: 'newBowlerScene',
-    inputSettings: {
-      url: `http://34.47.150.57:8081/api/v1/overlay/0b81375a-a800-4365-88c1-fe4b7075fb90?type=standard`,
-      width: '100vw',
-      height: 300,
-      positionX: 0,
-      positionY: 0,
-    },
-  },
-  {
-    name: 'newBatsmanScene',
-    inputSettings: {
-      url: `http://34.47.150.57:8081/api/v1/overlay/0b81375a-a800-4365-88c1-fe4b7075fb90?type=standard`,
-      width: '100vw',
-      height: 300,
-      positionX: 0,
-      positionY: 0,
-    },
-  },
-  {
-    name: 'scoreCardScene',
-    inputSettings: {
-      url: `http://34.47.150.57:8081/api/v1/overlay/0b81375a-a800-4365-88c1-fe4b7075fb90?type=standard`,
-      width: '100vw',
-      height: 300,
-      positionX: 0,
-      positionY: 0,
-    },
-  },
-  {
-    name: 'playingTeamsScene',
-    inputSettings: {
-      url: `http://34.47.150.57:8081/api/v1/overlay/0b81375a-a800-4365-88c1-fe4b7075fb90?type=standard`,
-      width: '100vw',
-      height: 300,
-      positionX: 0,
-      positionY: 0,
-    },
-  },
-  {
-    name: 'firstInningsCompleteScene',
-    inputSettings: {
-      url: `http://34.47.150.57:8081/api/v1/overlay/0b81375a-a800-4365-88c1-fe4b7075fb90?type=standard`,
-      width: '100vw',
-      height: 300,
-      positionX: 0,
-      positionY: 0,
-    },
-  },
-  {
-    name: 'playingXIScene',
-    inputSettings: {
-      url: `http://34.47.150.57:8081/api/v1/overlay/0b81375a-a800-4365-88c1-fe4b7075fb90?type=playingXI`,
-      width: '100vw',
-      height: 300,
-      positionX: 0,
-      positionY: 0,
-    },
-  },
-];
+
 
 const manualScenes = [
   'wicketScene',
@@ -131,8 +30,8 @@ const manualScenes = [
   'firstInningsCompleteScene',
 ];
 
-const ConnectLiveStream = () => {
-  const navigation = useNavigation();
+const ConnectLiveStream = ({ route, navigation }) => {
+  const { matchId } = route.params;
   const [obsIp, setObsIp] = useState('192.168.1.X');
   const [obsPassword, setObsPassword] = useState('');
   const [isObsConnected, setIsObsConnected] = useState(false);
@@ -140,6 +39,109 @@ const ConnectLiveStream = () => {
   const [obsConfigLoading, setObsConfigLoading] = useState(false);
   const [availableScenes, setAvailableScenes] = useState([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const SCENES = [
+    {
+      name: 'mainScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        width: '100vw',
+        height: 300,
+        positionX: 0,
+        positionY: 0,
+      },
+    },
+    {
+      name: 'boundaryScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        width: '100vw',
+        height: 300,
+        positionX: 0,
+        positionY: 0,
+      },
+    },
+    {
+      name: 'sixScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        width: '100vw',
+        height: 300,
+        positionX: 0,
+        positionY: 0,
+      },
+    },
+    {
+      name: 'wicketScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        width: '100vw',
+        height: 300,
+        positionX: 0,
+        positionY: 0,
+      },
+    },
+    {
+      name: 'newBowlerScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        width: '100vw',
+        height: 300,
+        positionX: 0,
+        positionY: 0,
+      },
+    },
+    {
+      name: 'newBatsmanScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        width: '100vw',
+        height: 300,
+        positionX: 0,
+        positionY: 0,
+      },
+    },
+    {
+      name: 'scoreCardScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        width: '100vw',
+        height: 300,
+        positionX: 0,
+        positionY: 0,
+      },
+    },
+    {
+      name: 'playingTeamsScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        width: '100vw',
+        height: 300,
+        positionX: 0,
+        positionY: 0,
+      },
+    },
+    {
+      name: 'firstInningsCompleteScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        width: '100vw',
+        height: 300,
+        positionX: 0,
+        positionY: 0,
+      },
+    },
+    {
+      name: 'playingXIScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=playingXI`,
+        width: '100vw',
+        height: 300,
+        positionX: 0,
+        positionY: 0,
+      },
+    },
+  ];
 
   const wsRef = useRef(null);
   const pendingRequestsRef = useRef({});
@@ -342,8 +344,8 @@ const ConnectLiveStream = () => {
 
         <ScrollView style={styles.container}>
           <View style={styles.section}>
-            <LinearGradient 
-              colors={AppGradients.primaryCard} 
+            <LinearGradient
+              colors={AppGradients.primaryCard}
               style={styles.card}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -352,7 +354,7 @@ const ConnectLiveStream = () => {
                 <MaterialCommunityIcons name="cast-connected" color="white" size={28} />
                 <Text style={styles.sectionTitle}>OBS Studio Configuration</Text>
               </View>
-              
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>IP Address:</Text>
                 <TextInput
@@ -365,17 +367,17 @@ const ConnectLiveStream = () => {
                 />
               </View>
 
-              <TouchableOpacity 
-                style={styles.advancedToggle} 
+              <TouchableOpacity
+                style={styles.advancedToggle}
                 onPress={() => setShowAdvanced(!showAdvanced)}
               >
                 <Text style={styles.advancedToggleText}>
                   Advanced Settings
                 </Text>
-                <MaterialIcons 
-                  name={showAdvanced ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-                  size={24} 
-                  color="#fff" 
+                <MaterialIcons
+                  name={showAdvanced ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                  size={24}
+                  color="#fff"
                 />
               </TouchableOpacity>
 
@@ -395,8 +397,8 @@ const ConnectLiveStream = () => {
             </LinearGradient>
 
             {!isObsConnected ? (
-              <TouchableOpacity 
-                style={[styles.button, styles.connectButton, obsConnectionLoading && styles.buttonDisabled]} 
+              <TouchableOpacity
+                style={[styles.button, styles.connectButton, obsConnectionLoading && styles.buttonDisabled]}
                 onPress={connectToOBS}
                 disabled={obsConnectionLoading}
               >
@@ -418,8 +420,8 @@ const ConnectLiveStream = () => {
                   </View>
                 </View>
 
-                <TouchableOpacity 
-                  style={[styles.button, styles.configureButton, obsConfigLoading && styles.buttonDisabled]} 
+                <TouchableOpacity
+                  style={[styles.button, styles.configureButton, obsConfigLoading && styles.buttonDisabled]}
                   onPress={configureOBS}
                   disabled={obsConfigLoading}
                 >
@@ -437,9 +439,9 @@ const ConnectLiveStream = () => {
                   <Text style={styles.scenesTitle}>Scene Controls</Text>
                   <View style={styles.scenesGrid}>
                     {manualScenes.map((scene) => (
-                      <TouchableOpacity 
-                        key={scene} 
-                        style={styles.sceneButton} 
+                      <TouchableOpacity
+                        key={scene}
+                        style={styles.sceneButton}
                         onPress={() => switchScene(scene)}
                       >
                         <MaterialCommunityIcons name="monitor" size={18} color="#fff" />
@@ -465,9 +467,9 @@ const ConnectLiveStream = () => {
 export default ConnectLiveStream;
 
 const styles = StyleSheet.create({
-  safeArea: { 
-    flex: 1, 
-    backgroundColor: AppColors.white 
+  safeArea: {
+    flex: 1,
+    backgroundColor: AppColors.white
   },
   topBarWrapper: {
     backgroundColor: AppColors.white,
@@ -492,9 +494,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: AppColors.blue,
   },
-  container: { 
-    flex: 1, 
-    backgroundColor: AppColors.white 
+  container: {
+    flex: 1,
+    backgroundColor: AppColors.white
   },
   section: {
     padding: 16,

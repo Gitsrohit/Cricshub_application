@@ -91,7 +91,7 @@ const Home = () => {
     {
       title: "Stream Match",
       buttonText: "Stream Now",
-      navigateTo: "ConnectLiveStream",
+      navigateTo: "StreamMatch",
       icon: "live-tv",
       isFullWidth: true,
     },

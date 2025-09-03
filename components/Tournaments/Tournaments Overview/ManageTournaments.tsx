@@ -306,17 +306,17 @@ export default function ManageTournaments({
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#f8f9fa" 
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9fa"
   },
-  
+
   safeArea: {
     flex: 1,
   },
 
-  gradientOverlay: { 
-    flex: 1 
+  gradientOverlay: {
+    flex: 1
   },
 
   headerArea: {
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold"
   },
 
-  mainContentScrollView: { 
+  mainContentScrollView: {
     flex: 1,
   },
 
