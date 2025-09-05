@@ -9,18 +9,32 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
+import apiService from '../APIservices';
 
 const { width } = Dimensions.get('window');
 const background = require('../../assets/images/cricsLogo.png');
 
 const CommentaryScorecard = ({ route, navigation }) => {
-  const { matchId } = route.params;
-  const [matchState, setMatchState] = useState(null);
-  const [loading, setLoading] = useState(false);
+  // const { matchId } = route.params;
+  // const [matchState, setMatchState] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [strikerStats, setStrikerStats] = useState(null);
-  const [nonStrikerStats, setNonStrikerStats] = useState(null);
-  const [bowlerStats, setBowlerStats] = useState(null);
+  // const [strikerStats, setStrikerStats] = useState(null);
+  // const [nonStrikerStats, setNonStrikerStats] = useState(null);
+  // const [bowlerStats, setBowlerStats] = useState(null);
+  const [matchId, setMatchId] = useState(route.params.matchId);
+  const [bowler, setBowler] = useState({ id: null, name: null, overs: 0, runsConceded: 0, wickets: 0 });
+  const [striker, setStriker] = useState({ id: null, name: null, runs: 0, ballsFaced: 0 });
+  const [nonStriker, setNonStriker] = useState({ id: null, name: null, runs: 0, ballsFaced: 0 });
+  const [score, setScore] = useState(null);
+  const [bowlingTeamName, setBowlingTeamName] = useState(null);
+  const [battingTeamName, setBattingTeamName] = useState(null);
+  const [wicket, setWicket] = useState(null);
+  const [completedOvers, setCompletedOvers] = useState(null);
+  const [overDetails, setOverDetails] = useState("");
+  const legalDeliveriesRef = useRef(0);
+  const [legalDeliveries, setLegalDeliveries] = useState(0);
+
   const [activeTab, setActiveTab] = useState('commentary');
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -39,30 +53,128 @@ const CommentaryScorecard = ({ route, navigation }) => {
     extrapolate: 'clamp',
   });
 
-  // handle incoming updates
-  const matchStateUpdateHandler = (data) => {
-    setMatchState(data);
-    console.log(data);
+  // ----------------------------
+  // 1. Initial match state fetch
+  // ----------------------------
+  const getMatchState = async () => {
+    try {
+      setLoading(true);
+      const { success, data, error } = await apiService({
+        endpoint: `matches/matchstate/${matchId}`,
+        method: 'GET',
+      });
 
-    setStrikerStats(
-      data?.battingTeam?.playingXI?.find(
-        (p) => p.playerId === data?.currentStriker?.playerId
-      )
-    );
+      if (!success) {
+        console.log("Error fetching match state:", error);
+        return;
+      }
 
-    setNonStrikerStats(
-      data?.battingTeam?.playingXI?.find(
-        (p) => p.playerId === data?.currentNonStriker?.playerId
-      )
-    );
+      console.log(data);
 
-    setBowlerStats(
-      data?.bowlingTeam?.playingXI?.find(
-        (p) => p.playerId === data?.currentBowler?.playerId
-      )
-    );
+      setMatchId(data.matchId);
+
+      setBowler({
+        id: data?.currentBowler?.playerId,
+        name: data?.currentBowler?.name,
+        overs: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.overs || 0,
+        runsConceded: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.runsConceded || 0,
+        wickets: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.wicketsTaken || 0
+      });
+
+      setStriker({
+        id: data?.currentStriker?.playerId,
+        name: data?.currentStriker?.name,
+        runs: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentStriker?.playerId)?.runs || 0,
+        ballsFaced: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentStriker?.playerId)?.ballsFaced || 0
+      });
+
+      setNonStriker({
+        id: data?.currentNonStriker?.playerId,
+        name: data?.currentNonStriker?.name,
+        runs: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentNonStriker?.playerId)?.runs || 0,
+        ballsFaced: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentNonStriker?.playerId)?.ballsFaced || 0
+      });
+
+      setCompletedOvers(data?.completedOvers || 0);
+      setScore(data?.battingTeam?.score || 0);
+      setWicket(data?.battingTeam?.wickets || 0);
+      setBattingTeamName(data.battingTeam.name);
+
+      const formattedOverDetails =
+        data?.currentOver?.map((ball) => {
+          let event = ball.runs?.toString() || "0";
+          if (ball.wicket) event += ' W';
+          if (ball.noBall) event += ' NB';
+          if (ball.wide) event += ' Wd';
+          if (ball.bye) event += ' B';
+          if (ball.legBye) event += ' LB';
+          return event.trim();
+        }) || [];
+
+      setOverDetails(formattedOverDetails.join(" ")); // remove commas
+
+      const deliveryCount =
+        data.currentOver?.reduce((count, ball) => {
+          return count + (ball.noBall || ball.wide ? 0 : 1);
+        }, 0) || 0;
+
+      legalDeliveriesRef.current = deliveryCount;
+      setLegalDeliveries(deliveryCount);
+
+      if (
+        data.completedOvers !== 0 &&
+        deliveryCount === 0 &&
+        data.completedOvers !== data.totalOvers
+      ) {
+        setOverDetails("");
+      };
+    } catch (error) {
+      console.log("Error fetching match state:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ----------------------------
+  // 2. Live updates handler
+  // ----------------------------
+  const matchStateUpdateHandler = (data) => {
+    setOverDetails((prev) => prev + " " + data?.ballString);
+    setBowler({ id: data.currentBowler?.id, name: data.currentBowler?.name, overs: data.currentBowler?.overs, runsConceded: data.currentBowler?.runsConceded, wickets: data.currentBowler?.wickets });
+    setStriker({ id: data.striker?.id, name: data.striker?.name, runs: data.striker?.runs, ballsFaced: data.striker?.ballsFaced });
+    setNonStriker({ id: data.nonStriker?.id, name: data.nonStriker?.name, runs: data.nonStriker?.runs, ballsFaced: data.nonStriker?.ballsFaced });
+    setCompletedOvers(data?.overNumber);
+    setScore(data?.totalRuns);
+    setWicket(data?.wicketsLost);
+    setBattingTeamName(data.battingTeam.name);
+    setBowlingTeamName(data.bowlingTeam.name);
+
+    if (data.overComplete === true) {
+      const newOver = true;
+      setOverDetails("");
+      legalDeliveriesRef.current = 0;
+      setLegalDeliveries(0);
+      if (data.overNumber !== data.totalOvers) {
+        console.log("next bowler modal open");
+      }
+    }
+    if (data.overComplete === false) {
+      const ballStr = data?.ballString?.toUpperCase();
+      const isWide = ballStr?.includes("WD");
+      const isNoBall = ballStr?.includes("NB");
+      const isLegalDelivery = !isWide && !isNoBall;
+
+      if (isLegalDelivery) {
+        const updatedLegalDeliveries = (legalDeliveriesRef.current + 1) % 6;
+        legalDeliveriesRef.current = updatedLegalDeliveries;
+        setLegalDeliveries(updatedLegalDeliveries);
+      }
+    }
+  }
+
+  // ----------------------------
+  // 3. STOMP connection
+  // ----------------------------
   const useStompConnection = () => {
     const [liveConnected, setLiveConnected] = useState(false);
 
@@ -81,7 +193,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
       console.log("Before connecting");
 
-
       clientRef.current = new Client();
       clientRef.current.configure({
         webSocketFactory: () => new SockJS('http://34.47.150.57:8081/ws'),
@@ -99,8 +210,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
           clientRef.current?.subscribe(`/topic/match/${matchId}`, (message: IMessage) => {
             try {
               const parsed = JSON.parse(message.body);
-              console.log("getting data");
-              console.log(parsed);
+              console.log("getting data", parsed);
               if (!parsed.eventName || !parsed.payload) return;
               const { eventName, payload } = parsed;
 
@@ -121,11 +231,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
                   console.warn('Unknown event type:', eventName, payload);
               }
             } catch (error) {
-              console.log(error);
-              console.log("Oops error");
               console.error('Error processing live message:', error, message.body);
             }
-            console.log("Done");
           });
         }
       };
@@ -146,21 +253,18 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
   const { setupClient } = useStompConnection();
 
+  // ----------------------------
+  // 4. Lifecycle
+  // ----------------------------
   useEffect(() => {
+    getMatchState(); // Fetch initial match state
     setupClient(stompLiveClientRef, 'live', matchId);
-    // setupClient(stompSubmitClientRef, 'submit');
 
     return () => {
       stompLiveClientRef.current?.deactivate();
       stompSubmitClientRef.current?.deactivate();
     };
   }, [matchId]);
-
-  // const onRefresh = useCallback(() => {
-  //   setRefreshing(true);
-  //   // just reset refresh, data comes from WS now
-  //   setRefreshing(false);
-  // }, []);
 
   const renderCommentary = ({ item }) => {
     const cleanedCommentary = item?.commentary?.replace(/[*\\"/]/g, '');
@@ -184,30 +288,30 @@ const CommentaryScorecard = ({ route, navigation }) => {
   };
 
   const getAllCommentary = () => {
-    if (!matchState) return [];
-    const overs = matchState.firstInnings
-      ? [...(matchState?.currentOver ?? []), ...(matchState?.innings1Overs?.flat() ?? [])]
-      : [...(matchState?.currentOver ?? []), ...(matchState?.innings2Overs?.flat() ?? []), ...(matchState?.innings1Overs?.flat() ?? [])];
-    return overs.reverse();
+    // if (!matchState) return [];
+    // const overs = matchState.firstInnings
+    //   ? [...(matchState?.currentOver ?? []), ...(matchState?.innings1Overs?.flat() ?? [])]
+    //   : [...(matchState?.currentOver ?? []), ...(matchState?.innings2Overs?.flat() ?? []), ...(matchState?.innings1Overs?.flat() ?? [])];
+    // return overs.reverse();
   };
 
   const getMatchStatus = () => {
-    if (!matchState) return 'Live';
-    if (matchState.status === 'COMPLETED') {
-      return `${matchState.winner} won by ${matchState.resultMargin}`;
-    }
-    return matchState.status || 'Live';
+    // if (!matchState) return 'Live';
+    // if (matchState.status === 'COMPLETED') {
+    //   return `${matchState.winner} won by ${matchState.resultMargin}`;
+    // }
+    // return matchState.status || 'Live';
   };
 
   const renderScorecard = () => (
     <View style={styles.scorecardContainer}>
       <View style={styles.teamScoreContainer}>
         <View style={styles.teamScore}>
-          <Text style={styles.teamName}>{matchState?.team1?.name}</Text>
+          <Text style={styles.teamName}>{battingTeamName}</Text>
           <Text style={styles.teamRuns}>
-            {matchState?.team1?.score}/{matchState?.team1?.wickets} ({matchState?.team1?.overs} ov)
+            {score}/{wicket} ({completedOvers} ov)
           </Text>
-          <Text style={styles.runRate}>RR: {matchState?.team1?.runRate || '-'}</Text>
+          {/* <Text style={styles.runRate}>RR: {matchState?.team1?.runRate || '-'}</Text> */}
         </View>
 
         <View style={styles.versusContainer}>
@@ -215,11 +319,11 @@ const CommentaryScorecard = ({ route, navigation }) => {
         </View>
 
         <View style={styles.teamScore}>
-          <Text style={styles.teamName}>{matchState?.team2?.name}</Text>
+          <Text style={styles.teamName}>{bowlingTeamName}</Text>
           <Text style={styles.teamRuns}>
-            {matchState?.team2?.score}/{matchState?.team2?.wickets} ({matchState?.team2?.overs} ov)
+            {score}/{wicket} ({completedOvers} ov)
           </Text>
-          <Text style={styles.runRate}>RR: {matchState?.team2?.runRate || '-'}</Text>
+          {/* <Text style={styles.runRate}>RR: {matchState?.team2?.runRate || '-'}</Text> */}
         </View>
       </View>
 
@@ -229,19 +333,19 @@ const CommentaryScorecard = ({ route, navigation }) => {
         <View style={styles.playerRow}>
           <View style={styles.playerInfo}>
             <View style={[styles.playerIcon, styles.strikerIcon]} />
-            <Text style={styles.playerName}>{strikerStats?.name}*</Text>
+            <Text style={styles.playerName}>{striker?.name}*</Text>
           </View>
-          <Text style={styles.playerStats}>{strikerStats?.runs} ({strikerStats?.ballsFaced})</Text>
-          <Text style={styles.playerExtra}>SR: {strikerStats?.strikeRate || '-'}</Text>
+          <Text style={styles.playerStats}>{striker?.runs} ({striker?.ballsFaced})</Text>
+          <Text style={styles.playerExtra}>SR: {striker.ballsFaced == 0 ? (striker?.runs * 100) / striker.ballsFaced : 0.0}</Text>
         </View>
 
         <View style={styles.playerRow}>
           <View style={styles.playerInfo}>
             <View style={[styles.playerIcon, styles.nonStrikerIcon]} />
-            <Text style={styles.playerName}>{nonStrikerStats?.name}</Text>
+            <Text style={styles.playerName}>{nonStriker?.name}</Text>
           </View>
-          <Text style={styles.playerStats}>{nonStrikerStats?.runs} ({nonStrikerStats?.ballsFaced})</Text>
-          <Text style={styles.playerExtra}>SR: {nonStrikerStats?.strikeRate || '-'}</Text>
+          <Text style={styles.playerStats}>{nonStriker?.runs} ({nonStriker?.ballsFaced})</Text>
+          <Text style={styles.playerExtra}>SR: {nonStriker.ballsFaced == 0 ? (nonStriker?.runs * 100) / nonStriker.ballsFaced : 0.0}</Text>
         </View>
 
         <View style={styles.divider} />
@@ -249,24 +353,24 @@ const CommentaryScorecard = ({ route, navigation }) => {
         <View style={styles.playerRow}>
           <View style={styles.playerInfo}>
             <View style={[styles.playerIcon, styles.bowlerIcon]} />
-            <Text style={styles.playerName}>{bowlerStats?.name}</Text>
+            <Text style={styles.playerName}>{bowler?.name}</Text>
           </View>
-          <Text style={styles.playerStats}>{bowlerStats?.wicketsTaken}/{bowlerStats?.runsConceded}</Text>
-          <Text style={styles.playerExtra}>Econ: {bowlerStats?.economy || '-'}</Text>
+          <Text style={styles.playerStats}>{bowler?.wickets}/{bowler?.runsConceded}</Text>
+          {/* <Text style={styles.playerExtra}>Econ: {bowlerStats?.economy || '-'}</Text> */}
         </View>
       </View>
 
       <View style={styles.matchInfoContainer}>
-        <View style={styles.infoItem}>
+        {/* <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Partnership</Text>
           <Text style={styles.infoValue}>
             {(strikerStats?.runsInPartnership || 0) + (nonStrikerStats?.runsInPartnership || 0)}
           </Text>
-        </View>
+        </View> */}
 
         <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Last 5 Overs</Text>
-          <Text style={styles.infoValue}>{matchState?.recentOvers?.join(' ') || '-'}</Text>
+          <Text style={styles.infoLabel}>Current Over</Text>
+          <Text style={styles.infoValue}>{overDetails || '-'}</Text>
         </View>
       </View>
     </View>
@@ -274,59 +378,64 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.header, { opacity: headerOpacity, transform: [{ translateY: headerTranslateY }] }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
-        </TouchableOpacity>
-
-        <View style={styles.headerContent}>
-          <Text style={styles.matchTitle} numberOfLines={1} ellipsizeMode="tail">
-            {matchState?.team1?.name} vs {matchState?.team2?.name}
-          </Text>
-          <Text style={styles.matchStatus}>{getMatchStatus()}</Text>
-        </View>
-      </Animated.View>
-
-      <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2ecc71" />
-            <Text style={styles.loadingText}>Loading match details...</Text>
-          </View>
-        ) : (
-          <Animated.ScrollView
-            style={styles.contentContainer}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: true }
-            )}
-            scrollEventThrottle={16}
-          >
-            <View style={styles.topSpacer} />
-
-            {renderScorecard()}
-
-            <View style={styles.tabContainer}>
-              <TouchableOpacity
-                style={[styles.tabButton, activeTab === 'commentary' && styles.activeTab]}
-                onPress={() => setActiveTab('commentary')}
-              >
-                <Text style={[styles.tabText, activeTab === 'commentary' && styles.activeTabText]}>
-                  Commentary
-                </Text>
+      {
+        loading ?
+          <ActivityIndicator color="blue" size={32} />
+          :
+          <>
+            <Animated.View style={[styles.header, { opacity: headerOpacity, transform: [{ translateY: headerTranslateY }] }]}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color="#FFF" />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.tabButton, activeTab === 'scorecard' && styles.activeTab]}
-                onPress={() => setActiveTab('scorecard')}
-              >
-                <Text style={[styles.tabText, activeTab === 'scorecard' && styles.activeTabText]}>
-                  Scorecard
+              <View style={styles.headerContent}>
+                <Text style={styles.matchTitle} numberOfLines={1} ellipsizeMode="tail">
+                  {battingTeamName} vs {bowlingTeamName}
                 </Text>
-              </TouchableOpacity>
-            </View>
+                {/* <Text style={styles.matchStatus}>{getMatchStatus()}</Text> */}
+              </View>
+            </Animated.View>
 
-            {activeTab === 'commentary' ? (
+            <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#2ecc71" />
+                  <Text style={styles.loadingText}>Loading match details...</Text>
+                </View>
+              ) : (
+                <Animated.ScrollView
+                  style={styles.contentContainer}
+                  onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: true }
+                  )}
+                  scrollEventThrottle={16}
+                >
+                  <View style={styles.topSpacer} />
+
+                  {renderScorecard()}
+
+                  <View style={styles.tabContainer}>
+                    <TouchableOpacity
+                      style={[styles.tabButton, activeTab === 'commentary' && styles.activeTab]}
+                      onPress={() => setActiveTab('commentary')}
+                    >
+                      <Text style={[styles.tabText, activeTab === 'commentary' && styles.activeTabText]}>
+                        Commentary
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.tabButton, activeTab === 'scorecard' && styles.activeTab]}
+                      onPress={() => setActiveTab('scorecard')}
+                    >
+                      <Text style={[styles.tabText, activeTab === 'scorecard' && styles.activeTabText]}>
+                        Scorecard
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* {activeTab === 'commentary' ? (
               <FlatList
                 data={getAllCommentary()}
                 renderItem={renderCommentary}
@@ -336,8 +445,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
                 refreshControl={
                   <RefreshControl
                     refreshing={refreshing}
-                    // onRefresh={onRefresh}
                     tintColor="#2ecc71"
+                    onRefresh={getMatchState}
                   />
                 }
                 ListEmptyComponent={
@@ -350,10 +459,12 @@ const CommentaryScorecard = ({ route, navigation }) => {
               <View style={styles.detailedScorecard}>
                 <Text style={styles.comingSoon}>Detailed scorecard coming soon</Text>
               </View>
-            )}
-          </Animated.ScrollView>
-        )}
-      </ImageBackground>
+            )} */}
+                </Animated.ScrollView>
+              )}
+            </ImageBackground>
+          </>
+      }
     </View>
   );
 };
