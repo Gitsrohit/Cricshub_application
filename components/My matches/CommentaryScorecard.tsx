@@ -37,8 +37,13 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [overDetails, setOverDetails] = useState("");
   const legalDeliveriesRef = useRef(0);
   const [legalDeliveries, setLegalDeliveries] = useState(0);
+  const [team1BattingOrder, setTeam1BattingOrder] = useState([]);
+  const [team2BattingOrder, setTeam2BattingOrder] = useState([]);
+  const [team1BowlingOrder, setTeam1BowlingOrder] = useState([]);
+  const [team2BowlingOrder, setTeam2BowlingOrder] = useState([]);
 
   const [activeTab, setActiveTab] = useState('commentary');
+  const [scoreTab, setScoreTab] = useState('T1B');
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
   const stompLiveClientRef = useRef<Client | null>(null);
@@ -55,6 +60,62 @@ const CommentaryScorecard = ({ route, navigation }) => {
     outputRange: [0, -50],
     extrapolate: 'clamp',
   });
+
+  const dedupeByPlayer = (arr = []) => {
+    const map = new Map();
+    for (const item of arr) {
+      const key = item?.playerId || item?.id || item?.name; // fallback
+      map.set(key, item); // keep latest
+    }
+    return Array.from(map.values());
+  };
+
+  const safeNumber = (n, d = 0) => (Number.isFinite(n) ? n : d);
+
+  const ballsToOvers = (balls) => {
+    const b = safeNumber(balls, 0);
+    const ov = Math.floor(b / 6);
+    const r = b % 6;
+    return `${ov}.${r}`;
+  };
+
+  const economy = (runsConceded, ballsBowled) => {
+    const r = safeNumber(runsConceded, 0);
+    const b = safeNumber(ballsBowled, 0);
+    if (b === 0) return '0.0';
+    const ov = b / 6;
+    return (r / ov).toFixed(1);
+  };
+
+  const strikeRateCalc = (runs, balls) => {
+    const r = safeNumber(runs, 0);
+    const b = safeNumber(balls, 0);
+    if (b === 0) return '0.0';
+    return ((r * 100) / b).toFixed(1);
+  };
+
+  const dismissalText = (wicketDetails) => {
+    if (!wicketDetails) return 'not out';
+    const { dismissalType, bowlerId, catcherId, runOutMakerId } = wicketDetails || {};
+    if (!dismissalType) return 'not out';
+    switch ((dismissalType || '').toLowerCase()) {
+      case 'bowled':
+        return 'b';
+      case 'caught':
+        return catcherId ? `c ${catcherId} b` : 'c & b';
+      case 'lbw':
+        return 'lbw';
+      case 'stumped':
+        return 'st';
+      case 'run out':
+      case 'runout':
+        return `run out`;
+      case 'hit wicket':
+        return 'hit wicket';
+      default:
+        return dismissalType;
+    }
+  };
 
   // ----------------------------
   // 1. Initial match state fetch
@@ -152,6 +213,13 @@ const CommentaryScorecard = ({ route, navigation }) => {
       ) {
         setOverDetails("");
       }
+
+      // NEW: set the orders for scorecards (deduped)
+      setTeam1BattingOrder(dedupeByPlayer(data?.team1BattingOrder || []));
+      setTeam2BattingOrder(dedupeByPlayer(data?.team2BattingOrder || []));
+      setTeam1BowlingOrder(dedupeByPlayer(data?.team1BowlingOrder || []));
+      setTeam2BowlingOrder(dedupeByPlayer(data?.team2BowlingOrder || []));
+
     } catch (error) {
       console.log("Error fetching match state:", error);
     } finally {
@@ -164,34 +232,39 @@ const CommentaryScorecard = ({ route, navigation }) => {
   // ----------------------------
   const matchStateUpdateHandler = (data) => {
     setOverDetails((prev) => prev + " " + (data?.ballString || ""));
-
     setBowler({
-      id: data?.currentBowler?.id || "",
-      name: data?.currentBowler?.name || "",
-      overs: data?.currentBowler?.overs || 0,
-      runsConceded: data?.currentBowler?.runsConceded || 0,
-      wickets: data?.currentBowler?.wickets || 0,
+      id: data?.currentBowler?.id,
+      name: data?.currentBowler?.name,
+      overs: data?.currentBowler?.overs,
+      runsConceded: data?.currentBowler?.runsConceded,
+      wickets: data?.currentBowler?.wickets,
     });
 
     setStriker({
-      id: data?.striker?.id || "",
-      name: data?.striker?.name || "",
-      runs: data?.striker?.runs || 0,
-      ballsFaced: data?.striker?.ballsFaced || 0,
+      id: data?.striker?.id,
+      name: data?.striker?.name,
+      runs: data?.striker?.runs,
+      ballsFaced: data?.striker?.ballsFaced,
     });
 
     setNonStriker({
-      id: data?.nonStriker?.id || "",
-      name: data?.nonStriker?.name || "",
-      runs: data?.nonStriker?.runs || 0,
-      ballsFaced: data?.nonStriker?.ballsFaced || 0,
+      id: data?.nonStriker?.id,
+      name: data?.nonStriker?.name,
+      runs: data?.nonStriker?.runs,
+      ballsFaced: data?.nonStriker?.ballsFaced,
     });
 
-    setCompletedOvers(data?.overNumber || 0);
-    setScore(data?.totalRuns || 0);
-    setWicket(data?.wicketsLost || 0);
-    setBattingTeamName(data?.battingTeam?.name || "");
-    setBowlingTeamName(data?.bowlingTeam?.name || "");
+    setCompletedOvers(data?.overNumber);
+    setScore(data?.totalRuns);
+    setWicket(data?.wicketsLost);
+    setBattingTeamName(data?.battingTeam?.name);
+    setBowlingTeamName(data?.bowlingTeam?.name);
+
+    // NEW: live arrays if present
+    if (Array.isArray(data?.team1BattingOrder)) setTeam1BattingOrder(dedupeByPlayer(data.team1BattingOrder));
+    if (Array.isArray(data?.team2BattingOrder)) setTeam2BattingOrder(dedupeByPlayer(data.team2BattingOrder));
+    if (Array.isArray(data?.team1BowlingOrder)) setTeam1BowlingOrder(dedupeByPlayer(data.team1BowlingOrder));
+    if (Array.isArray(data?.team2BowlingOrder)) setTeam2BowlingOrder(dedupeByPlayer(data.team2BowlingOrder));
 
     if (data?.overComplete === true) {
       setOverDetails("");
@@ -275,6 +348,18 @@ const CommentaryScorecard = ({ route, navigation }) => {
                 default:
                   console.warn('Unknown event type:', eventName, payload);
               }
+
+              if (eventName === 'live-score-board') {
+                matchStateUpdateHandler(payload);
+                console.log("Ball by ball");
+                console.log(payload);
+              }
+
+              if (eventName === 'ball-update') {
+                matchStateUpdateHandler(payload);
+                console.log("Ball by ball");
+                console.log(payload);
+              }
             } catch (error) {
               console.error('Error processing live message:', error, message.body);
             }
@@ -348,13 +433,14 @@ const CommentaryScorecard = ({ route, navigation }) => {
     // return matchState.status || 'Live';
   };
 
+  // ----- DO NOT TOUCH: renderScorecard (unchanged) -----
   const renderScorecard = () => (
     <View style={styles.scorecardContainer}>
       <View style={styles.teamScoreContainer}>
         <View style={styles.teamScore}>
           <Text style={styles.teamName}>{battingTeamName}</Text>
           <Text style={styles.teamRuns}>
-            {score}/{wicket} ({completedOvers} ov)
+            {score}/{wicket} ({completedOvers}.{legalDeliveries} ov)
           </Text>
           {/* <Text style={styles.runRate}>RR: {matchState?.team1?.runRate || '-'}</Text> */}
         </View>
@@ -366,7 +452,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
         <View style={styles.teamScore}>
           <Text style={styles.teamName}>{bowlingTeamName}</Text>
           <Text style={styles.teamRuns}>
-            {bowlingTeamScore}/{bowlingTeamWickets} ({totalOvers} ov)
+            {bowlingTeamScore}/{bowlingTeamWickets} ({totalOvers}.0 ov)
           </Text>
           {/* <Text style={styles.runRate}>RR: {matchState?.team2?.runRate || '-'}</Text> */}
         </View>
@@ -421,6 +507,124 @@ const CommentaryScorecard = ({ route, navigation }) => {
     </View>
   );
 
+  // --------- NEW: Scorecard tables (batting & bowling) ----------
+  const BattingRow = ({ item }) => {
+    const name = item?.name || '-';
+    const runs = safeNumber(item?.runs, 0);
+    const balls = safeNumber(item?.ballsFaced, 0);
+    const fours = safeNumber(item?.fours, 0);
+    const sixes = safeNumber(item?.sixes, 0);
+    const sr = strikeRateCalc(runs, balls);
+    const outText = dismissalText(item?.wicketDetails);
+
+    return (
+      <View style={styles.tableRow}>
+        <View style={[styles.cellName, styles.cell]}>
+          <Text style={styles.playerCellName} numberOfLines={1}>{name}</Text>
+          <Text style={styles.dismissalText} numberOfLines={1}>{outText}</Text>
+        </View>
+        <Text style={[styles.cell, styles.cellNum]}>{runs}</Text>
+        <Text style={[styles.cell, styles.cellNum]}>{balls}</Text>
+        <Text style={[styles.cell, styles.cellNum]}>{fours}</Text>
+        <Text style={[styles.cell, styles.cellNum]}>{sixes}</Text>
+        <Text style={[styles.cell, styles.cellNum]}>{sr}</Text>
+      </View>
+    );
+  };
+
+  const BowlingRow = ({ item }) => {
+    const name = item?.name || '-';
+    const balls = safeNumber(item?.ballsBowled, 0);
+    const oversDisp = ballsToOvers(balls);
+    const maidens = safeNumber(item?.maidens, 0);
+    const runs = safeNumber(item?.runsConceded, 0);
+    const wkts = safeNumber(item?.wicketsTaken, 0);
+    const eco = economy(runs, balls);
+
+    return (
+      <View style={styles.tableRow}>
+        <View style={[styles.cellName, styles.cell]}>
+          <Text style={styles.playerCellName} numberOfLines={1}>{name}</Text>
+        </View>
+        <Text style={[styles.cell, styles.cellNum]}>{oversDisp}</Text>
+        <Text style={[styles.cell, styles.cellNum]}>{maidens}</Text>
+        <Text style={[styles.cell, styles.cellNum]}>{runs}</Text>
+        <Text style={[styles.cell, styles.cellNum]}>{wkts}</Text>
+        <Text style={[styles.cell, styles.cellNum]}>{eco}</Text>
+      </View>
+    );
+  };
+
+  const BattingTable = ({ data }) => (
+    <View style={styles.tableContainer}>
+      <View style={[styles.tableRow, styles.tableHeader]}>
+        <Text style={[styles.cell, styles.cellName, styles.headerText]}>Batsman</Text>
+        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>R</Text>
+        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>B</Text>
+        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>4s</Text>
+        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>6s</Text>
+        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>SR</Text>
+      </View>
+      <FlatList
+        data={data}
+        keyExtractor={(item, idx) => (item?.playerId || item?.id || item?.name || '') + '_' + idx}
+        renderItem={({ item }) => <BattingRow item={item} />}
+        scrollEnabled={false}
+        ListEmptyComponent={<Text style={styles.emptyRow}>No batting data</Text>}
+      />
+    </View>
+  );
+
+  const BowlingTable = ({ data }) => (
+    <View style={styles.tableContainer}>
+      <View style={[styles.tableRow, styles.tableHeader]}>
+        <Text style={[styles.cell, styles.cellName, styles.headerText]}>Bowler</Text>
+        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>O</Text>
+        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>M</Text>
+        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>R</Text>
+        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>W</Text>
+        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>Econ</Text>
+      </View>
+      <FlatList
+        data={data}
+        keyExtractor={(item, idx) => (item?.playerId || item?.id || item?.name || '') + '_' + idx}
+        renderItem={({ item }) => <BowlingRow item={item} />}
+        scrollEnabled={false}
+        ListEmptyComponent={<Text style={styles.emptyRow}>No bowling data</Text>}
+      />
+    </View>
+  );
+
+  const ScoreTabs = () => (
+    <View style={styles.scoreTabsRow}>
+      <TouchableOpacity
+        style={[styles.scoreTabBtn, scoreTab === 'T1B' && styles.scoreTabActive]}
+        onPress={() => setScoreTab('T1B')}
+      >
+        <Text style={[styles.scoreTabText, scoreTab === 'T1B' && styles.scoreTabTextActive]}>Batting T1</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.scoreTabBtn, scoreTab === 'T1Bo' && styles.scoreTabActive]}
+        onPress={() => setScoreTab('T1Bo')}
+      >
+        <Text style={[styles.scoreTabText, scoreTab === 'T1Bo' && styles.scoreTabTextActive]}>Bowling T1</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.scoreTabBtn, scoreTab === 'T2B' && styles.scoreTabActive]}
+        onPress={() => setScoreTab('T2B')}
+      >
+        <Text style={[styles.scoreTabText, scoreTab === 'T2B' && styles.scoreTabTextActive]}>Batting T2</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.scoreTabBtn, scoreTab === 'T2Bo' && styles.scoreTabActive]}
+        onPress={() => setScoreTab('T2Bo')}
+      >
+        <Text style={[styles.scoreTabText, scoreTab === 'T2Bo' && styles.scoreTabTextActive]}>Bowling T2</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // ---------------- UI ----------------
   return (
     <View style={styles.container}>
       {
@@ -480,31 +684,39 @@ const CommentaryScorecard = ({ route, navigation }) => {
                     </TouchableOpacity>
                   </View>
 
-                  {/* {activeTab === 'commentary' ? (
-              <FlatList
-                data={getAllCommentary()}
-                renderItem={renderCommentary}
-                keyExtractor={(_, index) => index.toString()}
-                scrollEnabled={false}
-                contentContainerStyle={styles.commentaryList}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={refreshing}
-                    tintColor="#2ecc71"
-                    onRefresh={getMatchState}
-                  />
-                }
-                ListEmptyComponent={
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>No commentary available yet</Text>
-                  </View>
-                }
-              />
-            ) : (
-              <View style={styles.detailedScorecard}>
-                <Text style={styles.comingSoon}>Detailed scorecard coming soon</Text>
-              </View>
-            )} */}
+                  {activeTab === 'commentary' ? (
+                    <></>
+                    // <FlatList
+                    //   data={getAllCommentary()}
+                    //   renderItem={renderCommentary}
+                    //   keyExtractor={(_, index) => index.toString()}
+                    //   scrollEnabled={false}
+                    //   contentContainerStyle={styles.commentaryList}
+                    //   refreshControl={
+                    //     <RefreshControl
+                    //       refreshing={refreshing}
+                    //       tintColor="#2ecc71"
+                    //       onRefresh={getMatchState}
+                    //     />
+                    //   }
+                    //   ListEmptyComponent={
+                    //     <View style={styles.emptyContainer}>
+                    //       <Text style={styles.emptyText}>No commentary available yet</Text>
+                    //     </View>
+                    //   }
+                    // />
+                  ) : (
+                    <View style={styles.detailedScorecard}>
+                      {/* NEW: Inner tabs for batting/bowling of both teams */}
+                      <ScoreTabs />
+
+                      {/* Tables switcher */}
+                      {scoreTab === 'T1B' && <BattingTable data={team1BattingOrder} />}
+                      {scoreTab === 'T1Bo' && <BowlingTable data={team1BowlingOrder} />}
+                      {scoreTab === 'T2B' && <BattingTable data={team2BattingOrder} />}
+                      {scoreTab === 'T2Bo' && <BowlingTable data={team2BowlingOrder} />}
+                    </View>
+                  )}
                 </Animated.ScrollView>
               )}
             </ImageBackground>
@@ -514,263 +726,132 @@ const CommentaryScorecard = ({ route, navigation }) => {
   );
 };
 
-export default CommentaryScorecard;
-
+// ---------------- STYLES ----------------
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0d1b2a',
-  },
-  background: {
-    flex: 1,
-    width: '100%',
-  },
-  backgroundImage: {
-    opacity: 0.1,
-  },
+  container: { flex: 1, backgroundColor: '#0B1220' },
+
   header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: 'rgba(13, 27, 42, 0.9)',
-    zIndex: 100,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+    height: 60, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, backgroundColor: '#1F2A44'
   },
-  backButton: {
-    marginRight: 16,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  matchTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-  matchStatus: {
-    fontSize: 14,
-    color: '#90e0ef',
-    fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#FFF',
-    marginTop: 16,
-    fontSize: 16,
-  },
-  contentContainer: {
-    flex: 1,
-    paddingTop: 120,
-  },
-  topSpacer: {
-    height: 20,
-  },
-  scorecardContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  teamScoreContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  teamScore: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  versusContainer: {
-    paddingHorizontal: 10,
-  },
-  versusText: {
-    color: '#90e0ef',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  teamName: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  teamRuns: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  runRate: {
-    color: '#90e0ef',
-    fontSize: 12,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginVertical: 12,
-  },
-  playerContainer: {
-    marginBottom: 8,
-  },
-  playerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  playerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 2,
-  },
-  playerIcon: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  strikerIcon: {
-    backgroundColor: '#2ecc71',
-  },
-  nonStrikerIcon: {
-    backgroundColor: '#95a5a6',
-  },
-  bowlerIcon: {
-    backgroundColor: '#e74c3c',
-  },
-  playerName: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  playerStats: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'right',
-    flex: 1,
-  },
-  playerExtra: {
-    color: '#90e0ef',
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'right',
-    flex: 1,
-  },
-  matchInfoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  infoItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  infoLabel: {
-    color: '#90e0ef',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  infoValue: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 4,
-  },
+  backButton: { padding: 6, marginRight: 8 },
+  headerContent: { flex: 1 },
+  matchTitle: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+
+  background: { flex: 1 },
+  backgroundImage: { opacity: 0.08, resizeMode: 'contain' },
+
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { color: '#aaa', marginTop: 8 },
+
+  contentContainer: { paddingHorizontal: 12 },
+  topSpacer: { height: 70 },
+
+  // Tabs (commentary / scorecard)
   tabContainer: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    overflow: 'hidden',
+    backgroundColor: '#162036',
+    borderRadius: 12,
+    padding: 4,
+    marginTop: 12,
   },
   tabButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
+    flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10
   },
-  activeTab: {
-    backgroundColor: '#2ecc71',
+  activeTab: { backgroundColor: '#2c3e50' },
+  tabText: { color: '#aab0c6', fontWeight: '600' },
+  activeTabText: { color: '#fff' },
+
+  // Score summary card (existing)
+  scorecardContainer: {
+    backgroundColor: '#14203B',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
   },
-  tabText: {
-    color: '#FFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  activeTabText: {
-    color: '#0d1b2a',
-  },
-  commentaryList: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-  },
-  commentaryItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3498db',
-  },
-  wicketItem: {
-    borderLeftColor: '#e74c3c',
-    backgroundColor: 'rgba(231, 76, 60, 0.1)',
-  },
-  boundaryItem: {
-    borderLeftColor: '#f39c12',
-    backgroundColor: 'rgba(243, 156, 18, 0.1)',
-  },
-  commentaryHeader: {
+  teamScoreContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  teamScore: { flex: 1, alignItems: 'center' },
+  teamName: { color: '#E8ECF5', fontSize: 14, fontWeight: '700' },
+  teamRuns: { color: '#88E0A0', fontSize: 16, fontWeight: '800', marginTop: 4 },
+
+  versusContainer: { width: 50, alignItems: 'center' },
+  versusText: { color: '#d0d6ea', fontSize: 14, fontWeight: '700' },
+
+  divider: { height: 1, backgroundColor: '#22304f', marginVertical: 10 },
+
+  playerContainer: { marginTop: 6 },
+  playerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
+  playerInfo: { flexDirection: 'row', alignItems: 'center' },
+  playerIcon: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
+  strikerIcon: { backgroundColor: '#4CAF50' },
+  nonStrikerIcon: { backgroundColor: '#9E9E9E' },
+  bowlerIcon: { backgroundColor: '#FF7043' },
+  playerName: { color: '#fff', fontWeight: '600' },
+  playerStats: { color: '#fff', fontWeight: '600' },
+  playerExtra: { color: '#9fb2d1', fontSize: 12 },
+
+  matchInfoContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  infoItem: { flex: 1 },
+  infoLabel: { color: '#9fb2d1', fontSize: 12 },
+  infoValue: { color: '#fff', fontWeight: '700', marginTop: 2 },
+
+  // Commentary
+  commentaryItem: { backgroundColor: '#121A2F', borderRadius: 10, padding: 10, marginBottom: 8 },
+  wicketItem: { borderWidth: 1, borderColor: '#e74c3c55' },
+  boundaryItem: { borderWidth: 1, borderColor: '#f39c1255' },
+  commentaryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  overText: { color: '#8aa2c7', marginRight: 6 },
+  commentaryText: { color: '#e1e7f5' },
+  commentaryList: { paddingVertical: 12 },
+  emptyContainer: { padding: 20, alignItems: 'center' },
+  emptyText: { color: '#8aa2c7' },
+
+  // NEW: inner score tabs
+  scoreTabsRow: {
     flexDirection: 'row',
+    backgroundColor: '#0F1A2E',
+    borderRadius: 10,
+    padding: 4,
+    marginTop: 12,
     justifyContent: 'space-between',
+  },
+  scoreTabBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    backgroundColor: '#15213A',
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 8,
   },
-  overText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#90e0ef',
-  },
-  commentaryText: {
-    fontSize: 14,
-    color: '#ffffff',
-    lineHeight: 20,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    color: '#90e0ef',
-    fontSize: 16,
-  },
+  scoreTabActive: { backgroundColor: '#263a63' },
+  scoreTabText: { color: '#aab0c6', fontWeight: '600', fontSize: 12 },
+  scoreTabTextActive: { color: '#fff' },
+
+  // NEW: tables
   detailedScorecard: {
+    backgroundColor: '#111a30',
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 12,
+    marginBottom: 30
+  },
+  tableContainer: { marginTop: 8 },
+  tableHeader: { backgroundColor: '#1a2746', borderTopLeftRadius: 10, borderTopRightRadius: 10 },
+  tableRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#2b3a61'
   },
-  comingSoon: {
-    color: '#90e0ef',
-    fontSize: 16,
-  },
+  headerText: { color: '#cfe2ff', fontWeight: '700' },
+  cell: { paddingHorizontal: 8 },
+  cellName: { flex: 1.6 },
+  cellNum: { flex: 0.6, textAlign: 'right', color: '#e9eefb', fontWeight: '600' },
+  playerCellName: { color: '#e9eefb', fontWeight: '700' },
+  dismissalText: { color: '#9bb0d8', fontSize: 12, marginTop: 2 },
+  emptyRow: { color: '#9bb0d8', padding: 10, textAlign: 'center' },
 });
+
+export default CommentaryScorecard;
