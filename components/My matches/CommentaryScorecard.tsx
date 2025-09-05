@@ -29,6 +29,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [score, setScore] = useState(null);
   const [bowlingTeamName, setBowlingTeamName] = useState(null);
   const [battingTeamName, setBattingTeamName] = useState(null);
+  const [bowlingTeamScore, setBowlingTeamScore] = useState(null);
+  const [bowlingTeamWickets, setBowlingTeamWickets] = useState(null);
+  const [totalOvers, setTotalOvers] = useState(null);
   const [wicket, setWicket] = useState(null);
   const [completedOvers, setCompletedOvers] = useState(null);
   const [overDetails, setOverDetails] = useState("");
@@ -59,6 +62,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const getMatchState = async () => {
     try {
       setLoading(true);
+      console.log("initial match state");
       const { success, data, error } = await apiService({
         endpoint: `matches/matchstate/${matchId}`,
         method: 'GET',
@@ -69,52 +73,72 @@ const CommentaryScorecard = ({ route, navigation }) => {
         return;
       }
 
-      console.log(data);
+      console.log("Match state data:", data);
+      console.log("Bowling Team:", data?.bowlingTeam?.name || "N/A");
 
-      setMatchId(data.matchId);
+      setMatchId(data?.matchId);
 
       setBowler({
         id: data?.currentBowler?.playerId,
         name: data?.currentBowler?.name,
-        overs: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.overs || 0,
-        runsConceded: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.runsConceded || 0,
-        wickets: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.wicketsTaken || 0
+        overs: data?.bowlingTeam?.playingXI?.find(
+          (p) => p.playerId === data?.currentBowler?.playerId
+        )?.overs || 0,
+        runsConceded: data?.bowlingTeam?.playingXI?.find(
+          (p) => p.playerId === data?.currentBowler?.playerId
+        )?.runsConceded || 0,
+        wickets: data?.bowlingTeam?.playingXI?.find(
+          (p) => p.playerId === data?.currentBowler?.playerId
+        )?.wicketsTaken || 0,
       });
 
       setStriker({
         id: data?.currentStriker?.playerId,
         name: data?.currentStriker?.name,
-        runs: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentStriker?.playerId)?.runs || 0,
-        ballsFaced: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentStriker?.playerId)?.ballsFaced || 0
+        runs: data?.battingTeam?.playingXI?.find(
+          (p) => p.playerId === data?.currentStriker?.playerId
+        )?.runs || 0,
+        ballsFaced: data?.battingTeam?.playingXI?.find(
+          (p) => p.playerId === data?.currentStriker?.playerId
+        )?.ballsFaced || 0,
       });
 
       setNonStriker({
         id: data?.currentNonStriker?.playerId,
         name: data?.currentNonStriker?.name,
-        runs: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentNonStriker?.playerId)?.runs || 0,
-        ballsFaced: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentNonStriker?.playerId)?.ballsFaced || 0
+        runs: data?.battingTeam?.playingXI?.find(
+          (p) => p.playerId === data?.currentNonStriker?.playerId
+        )?.runs || 0,
+        ballsFaced: data?.battingTeam?.playingXI?.find(
+          (p) => p.playerId === data?.currentNonStriker?.playerId
+        )?.ballsFaced || 0,
       });
 
       setCompletedOvers(data?.completedOvers || 0);
       setScore(data?.battingTeam?.score || 0);
       setWicket(data?.battingTeam?.wickets || 0);
-      setBattingTeamName(data.battingTeam.name);
+      setBattingTeamName(data?.battingTeam?.name || "");
+      setTotalOvers(data.totalOvers);
+
+      setBowlingTeamName(data?.bowlingTeam?.name || "");
+      setBowlingTeamScore(data?.bowlingTeam?.score || 0);
+      setBowlingTeamWickets(data?.bowlingTeam?.wickets || 0);
 
       const formattedOverDetails =
         data?.currentOver?.map((ball) => {
           let event = ball.runs?.toString() || "0";
-          if (ball.wicket) event += ' W';
-          if (ball.noBall) event += ' NB';
-          if (ball.wide) event += ' Wd';
-          if (ball.bye) event += ' B';
-          if (ball.legBye) event += ' LB';
+          if (ball.wicket) event += " W";
+          if (ball.noBall) event += " NB";
+          if (ball.wide) event += " Wd";
+          if (ball.bye) event += " B";
+          if (ball.legBye) event += " LB";
           return event.trim();
         }) || [];
 
-      setOverDetails(formattedOverDetails.join(" ")); // remove commas
+      setOverDetails(formattedOverDetails.join(" "));
 
       const deliveryCount =
-        data.currentOver?.reduce((count, ball) => {
+        data?.currentOver?.reduce((count, ball) => {
           return count + (ball.noBall || ball.wide ? 0 : 1);
         }, 0) || 0;
 
@@ -122,12 +146,12 @@ const CommentaryScorecard = ({ route, navigation }) => {
       setLegalDeliveries(deliveryCount);
 
       if (
-        data.completedOvers !== 0 &&
+        data?.completedOvers !== 0 &&
         deliveryCount === 0 &&
-        data.completedOvers !== data.totalOvers
+        data?.completedOvers !== data?.totalOvers
       ) {
         setOverDetails("");
-      };
+      }
     } catch (error) {
       console.log("Error fetching match state:", error);
     } finally {
@@ -139,29 +163,50 @@ const CommentaryScorecard = ({ route, navigation }) => {
   // 2. Live updates handler
   // ----------------------------
   const matchStateUpdateHandler = (data) => {
-    setOverDetails((prev) => prev + " " + data?.ballString);
-    setBowler({ id: data.currentBowler?.id, name: data.currentBowler?.name, overs: data.currentBowler?.overs, runsConceded: data.currentBowler?.runsConceded, wickets: data.currentBowler?.wickets });
-    setStriker({ id: data.striker?.id, name: data.striker?.name, runs: data.striker?.runs, ballsFaced: data.striker?.ballsFaced });
-    setNonStriker({ id: data.nonStriker?.id, name: data.nonStriker?.name, runs: data.nonStriker?.runs, ballsFaced: data.nonStriker?.ballsFaced });
-    setCompletedOvers(data?.overNumber);
-    setScore(data?.totalRuns);
-    setWicket(data?.wicketsLost);
-    setBattingTeamName(data.battingTeam.name);
-    setBowlingTeamName(data.bowlingTeam.name);
+    setOverDetails((prev) => prev + " " + (data?.ballString || ""));
 
-    if (data.overComplete === true) {
-      const newOver = true;
+    setBowler({
+      id: data?.currentBowler?.id || "",
+      name: data?.currentBowler?.name || "",
+      overs: data?.currentBowler?.overs || 0,
+      runsConceded: data?.currentBowler?.runsConceded || 0,
+      wickets: data?.currentBowler?.wickets || 0,
+    });
+
+    setStriker({
+      id: data?.striker?.id || "",
+      name: data?.striker?.name || "",
+      runs: data?.striker?.runs || 0,
+      ballsFaced: data?.striker?.ballsFaced || 0,
+    });
+
+    setNonStriker({
+      id: data?.nonStriker?.id || "",
+      name: data?.nonStriker?.name || "",
+      runs: data?.nonStriker?.runs || 0,
+      ballsFaced: data?.nonStriker?.ballsFaced || 0,
+    });
+
+    setCompletedOvers(data?.overNumber || 0);
+    setScore(data?.totalRuns || 0);
+    setWicket(data?.wicketsLost || 0);
+    setBattingTeamName(data?.battingTeam?.name || "");
+    setBowlingTeamName(data?.bowlingTeam?.name || "");
+
+    if (data?.overComplete === true) {
       setOverDetails("");
       legalDeliveriesRef.current = 0;
       setLegalDeliveries(0);
-      if (data.overNumber !== data.totalOvers) {
+
+      if (data?.overNumber !== data?.totalOvers) {
         console.log("next bowler modal open");
       }
     }
-    if (data.overComplete === false) {
-      const ballStr = data?.ballString?.toUpperCase();
-      const isWide = ballStr?.includes("WD");
-      const isNoBall = ballStr?.includes("NB");
+
+    if (data?.overComplete === false) {
+      const ballStr = data?.ballString?.toUpperCase() || "";
+      const isWide = ballStr.includes("WD");
+      const isNoBall = ballStr.includes("NB");
       const isLegalDelivery = !isWide && !isNoBall;
 
       if (isLegalDelivery) {
@@ -170,7 +215,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
         setLegalDeliveries(updatedLegalDeliveries);
       }
     }
-  }
+  };
 
   // ----------------------------
   // 3. STOMP connection
@@ -321,7 +366,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
         <View style={styles.teamScore}>
           <Text style={styles.teamName}>{bowlingTeamName}</Text>
           <Text style={styles.teamRuns}>
-            {score}/{wicket} ({completedOvers} ov)
+            {bowlingTeamScore}/{bowlingTeamWickets} ({totalOvers} ov)
           </Text>
           {/* <Text style={styles.runRate}>RR: {matchState?.team2?.runRate || '-'}</Text> */}
         </View>
@@ -336,7 +381,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
             <Text style={styles.playerName}>{striker?.name}*</Text>
           </View>
           <Text style={styles.playerStats}>{striker?.runs} ({striker?.ballsFaced})</Text>
-          <Text style={styles.playerExtra}>SR: {striker.ballsFaced == 0 ? (striker?.runs * 100) / striker.ballsFaced : 0.0}</Text>
+          <Text style={styles.playerExtra}>SR: {striker.ballsFaced != 0 ? (striker?.runs * 100) / striker.ballsFaced : 0.0}</Text>
         </View>
 
         <View style={styles.playerRow}>
@@ -345,7 +390,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
             <Text style={styles.playerName}>{nonStriker?.name}</Text>
           </View>
           <Text style={styles.playerStats}>{nonStriker?.runs} ({nonStriker?.ballsFaced})</Text>
-          <Text style={styles.playerExtra}>SR: {nonStriker.ballsFaced == 0 ? (nonStriker?.runs * 100) / nonStriker.ballsFaced : 0.0}</Text>
+          <Text style={styles.playerExtra}>SR: {nonStriker.ballsFaced != 0 ? (nonStriker?.runs * 100) / nonStriker.ballsFaced : 0.0}</Text>
         </View>
 
         <View style={styles.divider} />
