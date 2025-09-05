@@ -113,12 +113,14 @@ const MatchOperatives = ({ route, navigation }) => {
       });
 
       if (response.success) {
+        const createdMatchId = response.data.data.id;
         if (source === "schedule") {
           navigation.navigate('MyMatches');
         } else {
           navigation.navigate("SelectPlayingII", {
             matchDetails: oldMatchDetails,
             requestBody: finalBody,
+            matchId: createdMatchId,
           });
         }
       } else {

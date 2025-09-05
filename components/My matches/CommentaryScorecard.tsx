@@ -5,19 +5,18 @@ import {
 } from 'react-native';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
-import EventSource from 'react-native-event-source';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import apiService from '../APIservices';
+import SockJS from 'sockjs-client';
+import { Client, IMessage } from '@stomp/stompjs';
 
 const { width } = Dimensions.get('window');
 const background = require('../../assets/images/cricsLogo.png');
 
 const CommentaryScorecard = ({ route, navigation }) => {
-  const [matchId, setMatchId] = useState(route.params.matchId);
+  const { matchId } = route.params;
   const [matchState, setMatchState] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [strikerStats, setStrikerStats] = useState(null);
   const [nonStrikerStats, setNonStrikerStats] = useState(null);
@@ -25,6 +24,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [activeTab, setActiveTab] = useState('commentary');
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
+  const stompLiveClientRef = useRef<Client | null>(null);
+  const stompSubmitClientRef = useRef<Client | null>(null);
 
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 100],
@@ -38,97 +39,133 @@ const CommentaryScorecard = ({ route, navigation }) => {
     extrapolate: 'clamp',
   });
 
-  const getMatchState = async () => {
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('jwtToken');
-      if (!token) return console.error('No token found');
+  // handle incoming updates
+  const matchStateUpdateHandler = (data) => {
+    setMatchState(data);
+    console.log(data);
 
-      const response = await apiService({
-        endpoint: `matches/matchstate/${matchId}`,
-        method: 'GET',
-      });
+    setStrikerStats(
+      data?.battingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentStriker?.playerId
+      )
+    );
 
-      if (response.success) {
-        const data = response.data;
+    setNonStrikerStats(
+      data?.battingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentNonStriker?.playerId
+      )
+    );
 
-        setMatchState(data);
-        setMatchId(data.matchId);
-
-        setStrikerStats(
-          data.battingTeam.playingXI.find(
-            (p) => p.playerId === data.currentStriker.playerId
-          )
-        );
-
-        setNonStrikerStats(
-          data.battingTeam.playingXI.find(
-            (p) => p.playerId === data.currentNonStriker.playerId
-          )
-        );
-
-        setBowlerStats(
-          data.bowlingTeam.playingXI.find(
-            (p) => p.playerId === data.currentBowler.playerId
-          )
-        );
-      } else {
-        console.error('Failed to fetch match state:', response.error);
-      }
-    } catch (error) {
-      console.error('Error fetching match state:', error);
-    } finally {
-      setLoading(false);
-    }
+    setBowlerStats(
+      data?.bowlingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentBowler?.playerId
+      )
+    );
   };
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    getMatchState().then(() => setRefreshing(false));
-  }, []);
+  const useStompConnection = () => {
+    const [liveConnected, setLiveConnected] = useState(false);
 
-  useEffect(() => {
-    getMatchState();
-  }, []);
-
-  useEffect(() => {
-    const getLiveMatchUpdates = async () => {
-      try {
-        const token = await AsyncStorage.getItem('jwtToken');
-        const eventSource = new EventSource(
-          `https://score360-7.onrender.com/api/v1/matches/${matchId}/subscribe`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        eventSource.addEventListener('ball-update', (event) => {
-          const data = JSON.parse(event.data);
-          setMatchState(data);
-          setStrikerStats(data.battingTeam.playingXI.find(p => p.playerId === data.currentStriker.playerId));
-          setNonStrikerStats(data.battingTeam.playingXI.find(p => p.playerId === data.currentNonStriker.playerId));
-          setBowlerStats(data.bowlingTeam.playingXI.find(p => p.playerId === data.currentBowler.playerId));
-        });
-
-        eventSource.onerror = (error) => {
-          console.error('SSE Error:', error);
-          eventSource.close();
-        };
-
-        return () => {
-          eventSource.close();
-        };
-      } catch (err) {
-        console.log(err);
-      }
+    const updateConnectionState = (type: 'live', isConnected: boolean) => {
+      if (type === 'live') setLiveConnected(isConnected);
     };
 
-    getLiveMatchUpdates();
+    const setupClient = (
+      clientRef: React.MutableRefObject<Client | null>,
+      type: 'submit' | 'live',
+      matchId: string | null = null
+    ) => {
+      if (clientRef.current && clientRef.current.active) {
+        return;
+      }
+
+      console.log("Before connecting");
+
+
+      clientRef.current = new Client();
+      clientRef.current.configure({
+        webSocketFactory: () => new SockJS('http://34.47.150.57:8081/ws'),
+        reconnectDelay: 5000,
+        heartbeatIncoming: 10000,
+        heartbeatOutgoing: 10000,
+      });
+
+      clientRef.current.onConnect = () => {
+        console.log("Connected");
+
+        updateConnectionState('live', true);
+
+        if (type === 'live' && matchId) {
+          clientRef.current?.subscribe(`/topic/match/${matchId}`, (message: IMessage) => {
+            try {
+              const parsed = JSON.parse(message.body);
+              console.log("getting data");
+              console.log(parsed);
+              if (!parsed.eventName || !parsed.payload) return;
+              const { eventName, payload } = parsed;
+
+              switch (eventName) {
+                case 'ball-update':
+                  matchStateUpdateHandler(payload);
+                  break;
+                case 'match-complete':
+                  navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
+                  break;
+                case 'innings-complete':
+                  matchStateUpdateHandler(payload);
+                  break;
+                case 'second-innings-started':
+                  matchStateUpdateHandler(payload);
+                  break;
+                default:
+                  console.warn('Unknown event type:', eventName, payload);
+              }
+            } catch (error) {
+              console.log(error);
+              console.log("Oops error");
+              console.error('Error processing live message:', error, message.body);
+            }
+            console.log("Done");
+          });
+        }
+      };
+
+      clientRef.current.onStompError = () => {
+        updateConnectionState('live', false);
+      };
+
+      clientRef.current.onDisconnect = () => {
+        updateConnectionState('live', false);
+      };
+
+      clientRef.current.activate();
+    };
+
+    return { liveConnected, setupClient };
+  };
+
+  const { setupClient } = useStompConnection();
+
+  useEffect(() => {
+    setupClient(stompLiveClientRef, 'live', matchId);
+    // setupClient(stompSubmitClientRef, 'submit');
+
+    return () => {
+      stompLiveClientRef.current?.deactivate();
+      stompSubmitClientRef.current?.deactivate();
+    };
   }, [matchId]);
 
-  const renderCommentary = ({ item, index }) => {
+  // const onRefresh = useCallback(() => {
+  //   setRefreshing(true);
+  //   // just reset refresh, data comes from WS now
+  //   setRefreshing(false);
+  // }, []);
+
+  const renderCommentary = ({ item }) => {
     const cleanedCommentary = item?.commentary?.replace(/[*\\"/]/g, '');
     const isWicket = /out|wicket|bowled|caught|lbw|stumped|run out/i.test(cleanedCommentary);
     const isBoundary = /six|four|boundary/i.test(cleanedCommentary);
-    const isImportant = isWicket || isBoundary;
 
     return (
       <View style={[
@@ -299,7 +336,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
                 refreshControl={
                   <RefreshControl
                     refreshing={refreshing}
-                    onRefresh={onRefresh}
+                    // onRefresh={onRefresh}
                     tintColor="#2ecc71"
                   />
                 }

@@ -265,7 +265,7 @@ const MatchCard = ({
             {item?.matchTime && (
               <View style={styles.detailRow}>
                 <Icon name="access-time" size={16} color={AppColors.primaryBlue} />
-                <Text style={styles.detailText}>{item.matchTime}</Text>
+                <Text style={styles.detailText}>{item.matchTime[0]}:{item.matchTime[1]}</Text>
               </View>
             )}
 
@@ -318,9 +318,9 @@ const MyMatch = ({ searchQuery }) => {
       if (response.success) {
         // Filter matches based on search query
         const filteredMatches = response.data.data.filter(match =>
-          match.tournamentResponse?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          match.team1?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          match.team2?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+          match.tournamentResponse?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+          match.team1?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+          match.team2?.name?.toLowerCase()?.includes(searchQuery.toLowerCase())
         );
         setMatches(filteredMatches);
         setError(null);
@@ -443,9 +443,9 @@ const LiveMatch = ({ searchQuery }) => {
       if (response.success) {
         // Filter matches based on search query
         const filteredMatches = response.data.data.filter(match =>
-          match.tournamentResponse?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          match.team1?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          match.team2?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+          match.tournamentResponse?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+          match.team1?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+          match.team2?.name?.toLowerCase()?.includes(searchQuery.toLowerCase())
         );
         setMatches(filteredMatches);
         setError(null);
@@ -474,7 +474,7 @@ const LiveMatch = ({ searchQuery }) => {
   const liveMatchClickHandler = async (match) => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      const isUserInMatchOps = match.matchOps.includes(userId);
+      const isUserInMatchOps = match.matchOps?.includes(userId);
 
       if (isUserInMatchOps) {
         navigation.navigate('Scoring', { matchId: match.id });
@@ -569,9 +569,9 @@ const UpcomingMatch = ({ searchQuery }) => {
       if (response.success) {
         // Filter matches based on search query
         const filteredMatches = response.data.data.filter(match =>
-          match.tournamentResponse?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          match.team1?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          match.team2?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+          match.tournamentResponse?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+          match.team1?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+          match.team2?.name?.toLowerCase()?.includes(searchQuery.toLowerCase())
         );
         setMatches(filteredMatches);
         setError(null);
@@ -691,9 +691,9 @@ const PastMatch = ({ searchQuery }) => {
       if (response.success) {
         // Filter matches based on search query
         const filteredMatches = response.data.data.filter(match =>
-          match.tournamentResponse?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          match.team1?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          match.team2?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+          match.tournamentResponse?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+          match.team1?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+          match.team2?.name?.toLowerCase()?.includes(searchQuery.toLowerCase())
         );
         setMatches(filteredMatches);
         setError(null);

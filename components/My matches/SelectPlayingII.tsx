@@ -50,48 +50,33 @@ const SelectPlayingXI = ({ route }) => {
   const initialized = useRef(false);
 
   // ✅ Initialize match and fetch only Team1
-  const initializeMatchAndTeams = async () => {
+  const initializeTeams = async () => {
     setIsLoading(true);
     setError(null);
     const token = await AsyncStorage.getItem("jwtToken");
     if (!token) {
-      setError("Please login again to create match.");
+      setError("Please login again.");
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log("Creating match with requestBody:", requestBody);
-      const matchCreationResponse = await apiService({
-        endpoint: "matches/schedule",
-        method: "POST",
-        body: requestBody,
+      setMatchId(route.params.matchId);
+
+      // Fetch only team1 initially
+      const response1 = await apiService({
+        endpoint: `teams/${matchDetails.team1Id}`,
+        method: "GET",
       });
 
-      if (matchCreationResponse.success && matchCreationResponse.data.data?.id) {
-        const newMatchId = matchCreationResponse.data.data.id;
-        setMatchId(newMatchId);
-
-        console.log("Match created successfully, ID:", newMatchId);
-
-        // ✅ Fetch only team1 here
-        const response1 = await apiService({
-          endpoint: `teams/${matchDetails.team1Id}`,
-          method: "GET",
-        });
-
-        if (response1.success) {
-          setTeam1Details(response1.data.data);
-          setFilteredTeam1Players(response1.data.data.players || []);
-          console.log("Team 1 details fetched.");
-        } else {
-          setError(
-            `Failed to fetch team 1 details: ${response1.error?.message || "Unknown error"
-            }`
-          );
-        }
+      if (response1.success) {
+        setTeam1Details(response1.data.data);
+        setFilteredTeam1Players(response1.data.data.players || []);
+        console.log("Team 1 details fetched.");
       } else {
-        setError("Failed to create match.");
+        setError(
+          `Failed to fetch team 1 details: ${response1.error?.message || "Unknown error"}`
+        );
       }
     } catch (err) {
       setError("An unexpected error occurred: " + err.message);
@@ -130,7 +115,7 @@ const SelectPlayingXI = ({ route }) => {
 
   useEffect(() => {
     if (!initialized.current) {
-      initializeMatchAndTeams();
+      initializeTeams();
       initialized.current = true;
     }
   }, []);

@@ -445,7 +445,7 @@ const ConnectLiveStream = ({ route, navigation }) => {
                         onPress={() => switchScene(scene)}
                       >
                         <MaterialCommunityIcons name="monitor" size={18} color="#fff" />
-                        <Text style={styles.sceneButtonText}>{scene.replace('Scene', '')}</Text>
+                        <Text style={styles.buttonText}> Show {scene}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
