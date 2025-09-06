@@ -42,9 +42,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [matchId, setMatchId] = useState(route.params.matchId);
-  const [bowler, setBowler] = useState({ id: null, name: null, overs: 0, runsConceded: 0, wickets: 0 });
-  const [striker, setStriker] = useState({ id: null, name: null, runs: 0, ballsFaced: 0 });
-  const [nonStriker, setNonStriker] = useState({ id: null, name: null, runs: 0, ballsFaced: 0 });
+  const [bowler, setBowler] = useState({ id: null, name: null, overs: 0, runsConceded: 0, wickets: 0, economyRate: 0.0 });
+  const [striker, setStriker] = useState({ id: null, name: null, runs: 0, ballsFaced: 0, strikeRate: 0.0 });
+  const [nonStriker, setNonStriker] = useState({ id: null, name: null, runs: 0, ballsFaced: 0, strikeRate: 0.0 });
   const [score, setScore] = useState(null);
   const [bowlingTeamName, setBowlingTeamName] = useState(null);
   const [battingTeamName, setBattingTeamName] = useState(null);
@@ -163,6 +163,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
         wickets: data?.bowlingTeam?.playingXI?.find(
           (p) => p.playerId === data?.currentBowler?.playerId
         )?.wicketsTaken || 0,
+        economyRate: data?.bowlingTeam?.playingXI?.find(
+          (p) => p.playerId === data?.currentBowler?.playerId
+        )?.economyRate || 0.0,
       });
 
       setStriker({
@@ -174,6 +177,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
         ballsFaced: data?.battingTeam?.playingXI?.find(
           (p) => p.playerId === data?.currentStriker?.playerId
         )?.ballsFaced || 0,
+        strikeRate: data?.battingTeam?.playingXI?.find(
+          (p) => p.playerId === data?.currentStriker?.playerId
+        )?.strikeRate || 0.0,
       });
 
       setNonStriker({
@@ -185,6 +191,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
         ballsFaced: data?.battingTeam?.playingXI?.find(
           (p) => p.playerId === data?.currentNonStriker?.playerId
         )?.ballsFaced || 0,
+        strikeRate: data?.battingTeam?.playingXI?.find(
+          (p) => p.playerId === data?.currentNonStriker?.playerId
+        )?.strikeRate || 0.0,
       });
 
       setCompletedOvers(data?.completedOvers || 0);
@@ -238,7 +247,12 @@ const CommentaryScorecard = ({ route, navigation }) => {
     }
   };
 
-  const matchStateUpdateHandler = (data) => {
+  // ----------------------------
+  // 2. Live updates handler
+  // ----------------------------
+  const matchScoreUpdateHandler = (data) => {
+    setBattingTeamName(data?.battingTeam?.name);
+    setBowlingTeamName(data?.bowlingTeam?.name);
     setOverDetails((prev) => prev + " " + (data?.ballString || ""));
     setBowler({
       id: data?.currentBowler?.id,
@@ -246,6 +260,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
       overs: data?.currentBowler?.overs,
       runsConceded: data?.currentBowler?.runsConceded,
       wickets: data?.currentBowler?.wickets,
+      economyRate: data?.currentBowler?.economyRate,
     });
 
     setStriker({
@@ -253,6 +268,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
       name: data?.striker?.name,
       runs: data?.striker?.runs,
       ballsFaced: data?.striker?.ballsFaced,
+      strikeRate: data?.striker?.strikeRate,
     });
 
     setNonStriker({
@@ -260,18 +276,12 @@ const CommentaryScorecard = ({ route, navigation }) => {
       name: data?.nonStriker?.name,
       runs: data?.nonStriker?.runs,
       ballsFaced: data?.nonStriker?.ballsFaced,
+      strikeRate: data?.nonStriker?.strikeRate,
     });
 
     setCompletedOvers(data?.overNumber);
     setScore(data?.totalRuns);
     setWicket(data?.wicketsLost);
-    setBattingTeamName(data?.battingTeam?.name);
-    setBowlingTeamName(data?.bowlingTeam?.name);
-
-    if (Array.isArray(data?.team1BattingOrder)) setTeam1BattingOrder(dedupeByPlayer(data.team1BattingOrder));
-    if (Array.isArray(data?.team2BattingOrder)) setTeam2BattingOrder(dedupeByPlayer(data.team2BattingOrder));
-    if (Array.isArray(data?.team1BowlingOrder)) setTeam1BowlingOrder(dedupeByPlayer(data.team1BowlingOrder));
-    if (Array.isArray(data?.team2BowlingOrder)) setTeam2BowlingOrder(dedupeByPlayer(data.team2BowlingOrder));
 
     if (data?.overComplete === true) {
       setOverDetails("");
@@ -295,6 +305,16 @@ const CommentaryScorecard = ({ route, navigation }) => {
         setLegalDeliveries(updatedLegalDeliveries);
       }
     }
+  };
+
+  // ----------------------------
+  // 3. STOMP connection
+  // ----------------------------
+  const matchScoreCardUpdateHandler = (data) => {
+    if (Array.isArray(data?.team1BattingOrder)) setTeam1BattingOrder(dedupeByPlayer(data.team1BattingOrder));
+    if (Array.isArray(data?.team2BattingOrder)) setTeam2BattingOrder(dedupeByPlayer(data.team2BattingOrder));
+    if (Array.isArray(data?.team1BowlingOrder)) setTeam1BowlingOrder(dedupeByPlayer(data.team1BowlingOrder));
+    if (Array.isArray(data?.team2BowlingOrder)) setTeam2BowlingOrder(dedupeByPlayer(data.team2BowlingOrder));
   };
 
   const useStompConnection = () => {
@@ -333,27 +353,25 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
               switch (eventName) {
                 case 'ball-update':
-                  matchStateUpdateHandler(payload);
+                  matchScoreUpdateHandler(payload);
                   break;
                 case 'match-complete':
                   navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
                   break;
                 case 'innings-complete':
-                  matchStateUpdateHandler(payload);
+                  matchScoreUpdateHandler(payload);
                   break;
                 case 'second-innings-started':
-                  matchStateUpdateHandler(payload);
+                  matchScoreUpdateHandler(payload);
                   break;
                 default:
                   console.warn('Unknown event type:', eventName, payload);
               }
 
               if (eventName === 'live-score-board') {
-                matchStateUpdateHandler(payload);
-              }
-
-              if (eventName === 'ball-update') {
-                matchStateUpdateHandler(payload);
+                matchScoreCardUpdateHandler(payload);
+                console.log("Ball by ball");
+                console.log(payload);
               }
             } catch (error) {
               console.error('Error processing live message:', error, message.body);
@@ -693,9 +711,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: AppColors.background 
+  container: {
+    flex: 1,
+    backgroundColor: AppColors.background
   },
   safeArea: {
     backgroundColor: AppColors.darkBlue,
@@ -727,18 +745,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: AppColors.background,
   },
-  background: { 
-    flex: 1 
+  background: {
+    flex: 1
   },
-  backgroundImage: { 
-    opacity: 0.08, 
-    resizeMode: 'contain' 
+  backgroundImage: {
+    opacity: 0.08,
+    resizeMode: 'contain'
   },
-  contentContainer: { 
-    paddingHorizontal: 12 
+  contentContainer: {
+    paddingHorizontal: 12
   },
-  topSpacer: { 
-    height: 10 
+  topSpacer: {
+    height: 10
   },
   tabContainer: {
     flexDirection: "row",
@@ -757,20 +775,20 @@ const styles = StyleSheet.create({
     zIndex: 10, // Ensure tabs stay above content
   },
   tabButton: {
-    flex: 1, 
-    paddingVertical: 10, 
-    alignItems: 'center', 
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
     borderRadius: 8
   },
   activeTab: {
     backgroundColor: AppColors.blue,
   },
-  tabText: { 
-    color: AppColors.black, 
-    fontWeight: '600' 
+  tabText: {
+    color: AppColors.black,
+    fontWeight: '600'
   },
-  activeTabText: { 
-    color: AppColors.white 
+  activeTabText: {
+    color: AppColors.white
   },
   scorecardContainer: {
     borderRadius: 15,
@@ -782,103 +800,103 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  teamScoreContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between' 
+  teamScoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
-  teamScore: { 
-    flex: 1, 
-    alignItems: 'center' 
+  teamScore: {
+    flex: 1,
+    alignItems: 'center'
   },
-  teamName: { 
-    color: AppColors.white, 
-    fontSize: 14, 
-    fontWeight: '700' 
+  teamName: {
+    color: AppColors.white,
+    fontSize: 14,
+    fontWeight: '700'
   },
-  teamRuns: { 
-    color: AppColors.white, 
-    fontSize: 16, 
-    fontWeight: '800', 
-    marginTop: 4 
+  teamRuns: {
+    color: AppColors.white,
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 4
   },
-  versusContainer: { 
-    width: 50, 
-    alignItems: 'center' 
+  versusContainer: {
+    width: 50,
+    alignItems: 'center'
   },
-  versusText: { 
-    color: AppColors.white, 
-    fontSize: 14, 
-    fontWeight: '700' 
+  versusText: {
+    color: AppColors.white,
+    fontSize: 14,
+    fontWeight: '700'
   },
-  divider: { 
-    height: 1, 
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', 
-    marginVertical: 10 
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginVertical: 10
   },
-  playerContainer: { 
-    marginTop: 6 
+  playerContainer: {
+    marginTop: 6
   },
-  playerRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingVertical: 6 
+  playerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6
   },
-  playerInfo: { 
-    flexDirection: 'row', 
-    alignItems: 'center' 
+  playerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center'
   },
-  playerIcon: { 
-    width: 10, 
-    height: 10, 
-    borderRadius: 5, 
-    marginRight: 8 
+  playerIcon: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8
   },
-  strikerIcon: { 
-    backgroundColor: AppColors.green 
+  strikerIcon: {
+    backgroundColor: AppColors.green
   },
-  nonStrikerIcon: { 
-    backgroundColor: AppColors.lightText 
+  nonStrikerIcon: {
+    backgroundColor: AppColors.lightText
   },
-  bowlerIcon: { 
-    backgroundColor: AppColors.yellow 
+  bowlerIcon: {
+    backgroundColor: AppColors.yellow
   },
-  playerName: { 
-    color: AppColors.white, 
-    fontWeight: '600' 
+  playerName: {
+    color: AppColors.white,
+    fontWeight: '600'
   },
-  playerStats: { 
-    color: AppColors.white, 
-    fontWeight: '600' 
+  playerStats: {
+    color: AppColors.white,
+    fontWeight: '600'
   },
-  playerExtra: { 
-    color: AppColors.white, 
+  playerExtra: {
+    color: AppColors.white,
     fontSize: 12,
     opacity: 0.8
   },
-  matchInfoContainer: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginTop: 8 
+  matchInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8
   },
-  infoItem: { 
-    flex: 1 
+  infoItem: {
+    flex: 1
   },
-  infoLabel: { 
-    color: AppColors.white, 
+  infoLabel: {
+    color: AppColors.white,
     fontSize: 12,
     opacity: 0.8
   },
-  infoValue: { 
-    color: AppColors.white, 
-    fontWeight: '700', 
-    marginTop: 2 
+  infoValue: {
+    color: AppColors.white,
+    fontWeight: '700',
+    marginTop: 2
   },
-  commentaryItem: { 
-    backgroundColor: AppColors.white, 
-    borderRadius: 10, 
-    padding: 15, 
+  commentaryItem: {
+    backgroundColor: AppColors.white,
+    borderRadius: 10,
+    padding: 15,
     marginBottom: 8,
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 2 },
@@ -886,36 +904,36 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  wicketItem: { 
-    borderLeftWidth: 3, 
-    borderLeftColor: AppColors.red 
+  wicketItem: {
+    borderLeftWidth: 3,
+    borderLeftColor: AppColors.red
   },
-  boundaryItem: { 
-    borderLeftWidth: 3, 
-    borderLeftColor: AppColors.yellow 
+  boundaryItem: {
+    borderLeftWidth: 3,
+    borderLeftColor: AppColors.yellow
   },
-  commentaryHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 4 
+  commentaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4
   },
-  overText: { 
-    color: AppColors.blue, 
+  overText: {
+    color: AppColors.blue,
     marginRight: 6,
     fontWeight: '600'
   },
-  commentaryText: { 
-    color: AppColors.black 
+  commentaryText: {
+    color: AppColors.black
   },
-  commentaryList: { 
-    paddingVertical: 12 
+  commentaryList: {
+    paddingVertical: 12
   },
-  emptyContainer: { 
-    padding: 20, 
-    alignItems: 'center' 
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center'
   },
-  emptyText: { 
-    color: AppColors.lightText 
+  emptyText: {
+    color: AppColors.lightText
   },
   scoreTabsRow: {
     flexDirection: 'row',
@@ -937,16 +955,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  scoreTabActive: { 
-    backgroundColor: AppColors.blue 
+  scoreTabActive: {
+    backgroundColor: AppColors.blue
   },
-  scoreTabText: { 
-    color: AppColors.black, 
-    fontWeight: '600', 
-    fontSize: 12 
+  scoreTabText: {
+    color: AppColors.black,
+    fontWeight: '600',
+    fontSize: 12
   },
-  scoreTabTextActive: { 
-    color: AppColors.white 
+  scoreTabTextActive: {
+    color: AppColors.white
   },
   detailedScorecard: {
     backgroundColor: AppColors.white,
@@ -959,13 +977,13 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  tableContainer: { 
-    marginTop: 8 
+  tableContainer: {
+    marginTop: 8
   },
-  tableHeader: { 
-    backgroundColor: AppColors.blue, 
-    borderTopLeftRadius: 10, 
-    borderTopRightRadius: 10 
+  tableHeader: {
+    backgroundColor: AppColors.blue,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10
   },
   tableRow: {
     flexDirection: 'row',
@@ -974,35 +992,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: '#EEE'
   },
-  headerText: { 
-    color: AppColors.white, 
-    fontWeight: '700' 
+  headerText: {
+    color: AppColors.white,
+    fontWeight: '700'
   },
-  cell: { 
-    paddingHorizontal: 8 
+  cell: {
+    paddingHorizontal: 8
   },
-  cellName: { 
-    flex: 1.6 
+  cellName: {
+    flex: 1.6
   },
-  cellNum: { 
-    flex: 0.6, 
-    textAlign: 'right', 
-    color: AppColors.black, 
-    fontWeight: '600' 
+  cellNum: {
+    flex: 0.6,
+    textAlign: 'right',
+    color: AppColors.black,
+    fontWeight: '600'
   },
-  playerCellName: { 
-    color: AppColors.black, 
-    fontWeight: '700' 
+  playerCellName: {
+    color: AppColors.black,
+    fontWeight: '700'
   },
-  dismissalText: { 
-    color: AppColors.lightText, 
-    fontSize: 12, 
-    marginTop: 2 
+  dismissalText: {
+    color: AppColors.lightText,
+    fontSize: 12,
+    marginTop: 2
   },
-  emptyRow: { 
-    color: AppColors.lightText, 
-    padding: 10, 
-    textAlign: 'center' 
+  emptyRow: {
+    color: AppColors.lightText,
+    padding: 10,
+    textAlign: 'center'
   },
 });
 

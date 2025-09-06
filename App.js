@@ -44,6 +44,7 @@ import ConnectLiveStream from './components/LiveStream/ConnectLiveStream';
 import StreamMatch from './components/LiveStream/StreamMatch';
 import AnimatedSplash from './assets/animations/SplashScreen.js';
 import { AppColors } from './assets/constants/colors';
+import TournamentMatchOperatives from './components/Tournaments/TournamentMatchOperatives';
 
 const Stack = createStackNavigator();
 
@@ -104,6 +105,7 @@ const MainScreens = () => {
     "Support",
     "StreamMatch",
     "MatchOperatives",
+    "TournamentMatchOperatives",
   ];
 
   const shouldShowFooter = !hideFooterScreens.includes(currentRoute);
@@ -120,6 +122,7 @@ const MainScreens = () => {
         <Stack.Screen name="Performance" component={Performance} />
         <Stack.Screen name="CreateTeam" component={CreateTeam} />
         <Stack.Screen name="CreateTournaments" component={CreateTournaments} />
+        <Stack.Screen name="TournamentMatchOperatives" component={TournamentMatchOperatives} />
         <Stack.Screen name="ManageTournaments" component={ManageTournaments} />
         <Stack.Screen name="TeamDetailsScreen" component={TeamDetailsScreen} />
         <Stack.Screen name="InstantMatch" component={InstantMatch} />

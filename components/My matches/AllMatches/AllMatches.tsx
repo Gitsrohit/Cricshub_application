@@ -179,7 +179,7 @@ const MatchCard = ({
   };
 
   const matchDate = item?.matchDate ? `${item?.matchDate[2]}-${item?.matchDate[1]}-${item?.matchDate[0]}` : 'N/A';
-  const isCreator = userId && item?.creatorName?.id === userId;
+  const isCreator = userId && item?.matchOps.includes(userId);
 
   const getStatusInfo = () => {
     switch (status) {

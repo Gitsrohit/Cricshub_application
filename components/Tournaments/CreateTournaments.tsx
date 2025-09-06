@@ -193,44 +193,59 @@ const CreateTournament = () => {
     }
 
     try {
-      const formData = new FormData();
-      formData.append("name", tournamentName);
-      formData.append("startDate", startDate.toISOString().split('T')[0]);
-      formData.append("endDate", endDate.toISOString().split('T')[0]);
-      formData.append("format", format);
-      formData.append("type", overs);
-      formData.append("ballType", ballType);
-      formData.append("matchesPerDay", "1");
-      formData.append("matchesPerTeam", "1");
-      formData.append("venues", "Default Venue");
+      // const formData = new FormData();
+      // formData.append("name", tournamentName);
+      // formData.append("startDate", startDate.toISOString().split('T')[0]);
+      // formData.append("endDate", endDate.toISOString().split('T')[0]);
+      // formData.append("format", format);
+      // formData.append("type", overs);
+      // formData.append("ballType", ballType);
+      // formData.append("matchesPerDay", "1");
+      // formData.append("matchesPerTeam", "1");
+      // formData.append("venues", "Default Venue");
 
-      if (banner) {
-        const fileName = banner.split('/').pop();
-        const fileType = fileName.split('.').pop();
-        formData.append("banner", {
-          uri: banner,
-          name: fileName,
-          type: `image/${fileType}`,
-        });
-      }
+      // if (banner) {
+      //   const fileName = banner.split('/').pop();
+      //   const fileType = fileName.split('.').pop();
+      //   formData.append("banner", {
+      //     uri: banner,
+      //     name: fileName,
+      //     type: `image/${fileType}`,
+      //   });
+      // }
 
-      const response = await apiService({
-        endpoint: `tournaments/${userId}`,
-        method: "POST",
-        body: formData,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      // const response = await apiService({
+      //   endpoint: `tournaments/${userId}`,
+      //   method: "POST",
+      //   body: formData,
+      //   headers: {
+      //     "Content-Type": "multipart/form-data",
+      //   },
+      // });
 
-      if (response.success) {
-        showNotification('Tournament created successfully!');
-        setTimeout(() => {
-          navigation.navigate('Tournaments');
-        }, 2000);
-      } else {
-        showNotification(response.error?.message || 'Failed to create tournament', 'error');
-      }
+      // if (response.success) {
+      //   showNotification('Tournament created successfully!');
+      //   setTimeout(() => {
+      //     navigation.navigate('Tournaments');
+      //   }, 2000);
+      // } else {
+      //   showNotification(response.error?.message || 'Failed to create tournament', 'error');
+      // }
+      const tournamentData = {
+        userId,
+        name: tournamentName,
+        startDate: startDate.toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
+        format,
+        type: overs,
+        ballType,
+        matchesPerDay: "1",
+        matchesPerTeam: "1",
+        venues: "Default Venue",
+        banner,
+      };
+
+      navigation.navigate("TournamentMatchOperatives", { tournamentData });
     } catch (error) {
       console.error("Unexpected error:", error);
       showNotification('Something went wrong. Please try again.', 'error');
