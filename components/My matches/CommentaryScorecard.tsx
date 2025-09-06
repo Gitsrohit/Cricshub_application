@@ -1,7 +1,8 @@
 import {
   StyleSheet, Text, View, FlatList,
   ImageBackground, ActivityIndicator, RefreshControl,
-  TouchableOpacity, Animated, ScrollView, Dimensions
+  TouchableOpacity, Animated, ScrollView, Dimensions,
+  SafeAreaView, StatusBar, Platform
 } from 'react-native';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,18 +11,36 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
 import apiService from '../APIservices';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const background = require('../../assets/images/cricsLogo.png');
 
+// Color theme matching the Performance component
+const AppColors = {
+  white: "#FFFFFF",
+  black: "#000000",
+  blue: "#3498DB",
+  background: "#F8F9FA",
+  cardBorder: "rgba(255, 255, 255, 0.2)",
+  error: "#E74C3C",
+  darkBlue: "#1F2A44",
+  lightText: "#AAB0C6",
+  green: "#2ecc71",
+  yellow: "#f39c12",
+  red: "#e74c3c"
+};
+
+const AppGradients = {
+  primaryCard: ["#34B8FF", "#0575E6"],
+  secondaryCard: ["#6C5CE7", "#3498DB"],
+  header: ["#1F2A44", "#162036"],
+  tabActive: ["#3498DB", "#2c3e50"]
+};
+
 const CommentaryScorecard = ({ route, navigation }) => {
-  // const { matchId } = route.params;
-  // const [matchState, setMatchState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  // const [strikerStats, setStrikerStats] = useState(null);
-  // const [nonStrikerStats, setNonStrikerStats] = useState(null);
-  // const [bowlerStats, setBowlerStats] = useState(null);
   const [matchId, setMatchId] = useState(route.params.matchId);
   const [bowler, setBowler] = useState({ id: null, name: null, overs: 0, runsConceded: 0, wickets: 0 });
   const [striker, setStriker] = useState({ id: null, name: null, runs: 0, ballsFaced: 0 });
@@ -64,8 +83,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const dedupeByPlayer = (arr = []) => {
     const map = new Map();
     for (const item of arr) {
-      const key = item?.playerId || item?.id || item?.name; // fallback
-      map.set(key, item); // keep latest
+      const key = item?.playerId || item?.id || item?.name;
+      map.set(key, item);
     }
     return Array.from(map.values());
   };
@@ -117,13 +136,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
     }
   };
 
-  // ----------------------------
-  // 1. Initial match state fetch
-  // ----------------------------
   const getMatchState = async () => {
     try {
       setLoading(true);
-      console.log("initial match state");
       const { success, data, error } = await apiService({
         endpoint: `matches/matchstate/${matchId}`,
         method: 'GET',
@@ -133,9 +148,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
         console.log("Error fetching match state:", error);
         return;
       }
-
-      console.log("Match state data:", data);
-      console.log("Bowling Team:", data?.bowlingTeam?.name || "N/A");
 
       setMatchId(data?.matchId);
 
@@ -214,7 +226,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
         setOverDetails("");
       }
 
-      // NEW: set the orders for scorecards (deduped)
       setTeam1BattingOrder(dedupeByPlayer(data?.team1BattingOrder || []));
       setTeam2BattingOrder(dedupeByPlayer(data?.team2BattingOrder || []));
       setTeam1BowlingOrder(dedupeByPlayer(data?.team1BowlingOrder || []));
@@ -227,9 +238,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
     }
   };
 
-  // ----------------------------
-  // 2. Live updates handler
-  // ----------------------------
   const matchStateUpdateHandler = (data) => {
     setOverDetails((prev) => prev + " " + (data?.ballString || ""));
     setBowler({
@@ -260,7 +268,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
     setBattingTeamName(data?.battingTeam?.name);
     setBowlingTeamName(data?.bowlingTeam?.name);
 
-    // NEW: live arrays if present
     if (Array.isArray(data?.team1BattingOrder)) setTeam1BattingOrder(dedupeByPlayer(data.team1BattingOrder));
     if (Array.isArray(data?.team2BattingOrder)) setTeam2BattingOrder(dedupeByPlayer(data.team2BattingOrder));
     if (Array.isArray(data?.team1BowlingOrder)) setTeam1BowlingOrder(dedupeByPlayer(data.team1BowlingOrder));
@@ -290,9 +297,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
     }
   };
 
-  // ----------------------------
-  // 3. STOMP connection
-  // ----------------------------
   const useStompConnection = () => {
     const [liveConnected, setLiveConnected] = useState(false);
 
@@ -309,8 +313,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
         return;
       }
 
-      console.log("Before connecting");
-
       clientRef.current = new Client();
       clientRef.current.configure({
         webSocketFactory: () => new SockJS('http://34.47.150.57:8081/ws'),
@@ -320,15 +322,12 @@ const CommentaryScorecard = ({ route, navigation }) => {
       });
 
       clientRef.current.onConnect = () => {
-        console.log("Connected");
-
         updateConnectionState('live', true);
 
         if (type === 'live' && matchId) {
           clientRef.current?.subscribe(`/topic/match/${matchId}`, (message: IMessage) => {
             try {
               const parsed = JSON.parse(message.body);
-              console.log("getting data", parsed);
               if (!parsed.eventName || !parsed.payload) return;
               const { eventName, payload } = parsed;
 
@@ -351,14 +350,10 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
               if (eventName === 'live-score-board') {
                 matchStateUpdateHandler(payload);
-                console.log("Ball by ball");
-                console.log(payload);
               }
 
               if (eventName === 'ball-update') {
                 matchStateUpdateHandler(payload);
-                console.log("Ball by ball");
-                console.log(payload);
               }
             } catch (error) {
               console.error('Error processing live message:', error, message.body);
@@ -383,11 +378,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
   const { setupClient } = useStompConnection();
 
-  // ----------------------------
-  // 4. Lifecycle
-  // ----------------------------
   useEffect(() => {
-    getMatchState(); // Fetch initial match state
+    getMatchState();
     setupClient(stompLiveClientRef, 'live', matchId);
 
     return () => {
@@ -409,8 +401,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
       ]}>
         <View style={styles.commentaryHeader}>
           <Text style={styles.overText}>{item.overNumber}.{item.ballNumber}</Text>
-          {isWicket && <MaterialCommunityIcons name="cricket" size={18} color="#e74c3c" />}
-          {isBoundary && <MaterialCommunityIcons name="run-fast" size={18} color="#f39c12" />}
+          {isWicket && <MaterialCommunityIcons name="cricket" size={18} color={AppColors.red} />}
+          {isBoundary && <MaterialCommunityIcons name="run-fast" size={18} color={AppColors.yellow} />}
         </View>
         <Text style={styles.commentaryText}>{cleanedCommentary}</Text>
       </View>
@@ -418,31 +410,22 @@ const CommentaryScorecard = ({ route, navigation }) => {
   };
 
   const getAllCommentary = () => {
-    // if (!matchState) return [];
-    // const overs = matchState.firstInnings
-    //   ? [...(matchState?.currentOver ?? []), ...(matchState?.innings1Overs?.flat() ?? [])]
-    //   : [...(matchState?.currentOver ?? []), ...(matchState?.innings2Overs?.flat() ?? []), ...(matchState?.innings1Overs?.flat() ?? [])];
-    // return overs.reverse();
+    return [];
   };
 
-  const getMatchStatus = () => {
-    // if (!matchState) return 'Live';
-    // if (matchState.status === 'COMPLETED') {
-    //   return `${matchState.winner} won by ${matchState.resultMargin}`;
-    // }
-    // return matchState.status || 'Live';
-  };
-
-  // ----- DO NOT TOUCH: renderScorecard (unchanged) -----
   const renderScorecard = () => (
-    <View style={styles.scorecardContainer}>
+    <LinearGradient
+      colors={AppGradients.primaryCard}
+      style={styles.scorecardContainer}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
       <View style={styles.teamScoreContainer}>
         <View style={styles.teamScore}>
           <Text style={styles.teamName}>{battingTeamName}</Text>
           <Text style={styles.teamRuns}>
             {score}/{wicket} ({completedOvers}.{legalDeliveries} ov)
           </Text>
-          {/* <Text style={styles.runRate}>RR: {matchState?.team1?.runRate || '-'}</Text> */}
         </View>
 
         <View style={styles.versusContainer}>
@@ -454,7 +437,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
           <Text style={styles.teamRuns}>
             {bowlingTeamScore}/{bowlingTeamWickets} ({totalOvers}.0 ov)
           </Text>
-          {/* <Text style={styles.runRate}>RR: {matchState?.team2?.runRate || '-'}</Text> */}
         </View>
       </View>
 
@@ -487,27 +469,18 @@ const CommentaryScorecard = ({ route, navigation }) => {
             <Text style={styles.playerName}>{bowler?.name}</Text>
           </View>
           <Text style={styles.playerStats}>{bowler?.wickets}/{bowler?.runsConceded}</Text>
-          {/* <Text style={styles.playerExtra}>Econ: {bowlerStats?.economy || '-'}</Text> */}
         </View>
       </View>
 
       <View style={styles.matchInfoContainer}>
-        {/* <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Partnership</Text>
-          <Text style={styles.infoValue}>
-            {(strikerStats?.runsInPartnership || 0) + (nonStrikerStats?.runsInPartnership || 0)}
-          </Text>
-        </View> */}
-
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Current Over</Text>
           <Text style={styles.infoValue}>{overDetails || '-'}</Text>
         </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 
-  // --------- NEW: Scorecard tables (batting & bowling) ----------
   const BattingRow = ({ item }) => {
     const name = item?.name || '-';
     const runs = safeNumber(item?.runs, 0);
@@ -624,234 +597,413 @@ const CommentaryScorecard = ({ route, navigation }) => {
     </View>
   );
 
-  // ---------------- UI ----------------
   return (
-    <View style={styles.container}>
-      {
-        loading ?
-          <ActivityIndicator color="blue" size={32} />
-          :
-          <>
-            <Animated.View style={[styles.header, { opacity: headerOpacity, transform: [{ translateY: headerTranslateY }] }]}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#FFF" />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={AppColors.darkBlue} />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={AppColors.blue} />
+        </View>
+      ) : (
+        <>
+          {/* Header matching Performance component style */}
+          <SafeAreaView style={styles.safeArea}>
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Ionicons name="arrow-back" size={24} color={AppColors.darkBlue} />
               </TouchableOpacity>
+              <Text style={styles.headerTitle}>Match Details</Text>
+              <View style={styles.headerRight} />
+            </View>
+          </SafeAreaView>
 
-              <View style={styles.headerContent}>
-                <Text style={styles.matchTitle} numberOfLines={1} ellipsizeMode="tail">
-                  {battingTeamName} vs {bowlingTeamName}
-                </Text>
-                {/* <Text style={styles.matchStatus}>{getMatchStatus()}</Text> */}
-              </View>
-            </Animated.View>
-
-            <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
-              {loading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#2ecc71" />
-                  <Text style={styles.loadingText}>Loading match details...</Text>
-                </View>
-              ) : (
-                <Animated.ScrollView
-                  style={styles.contentContainer}
-                  onScroll={Animated.event(
-                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                    { useNativeDriver: true }
-                  )}
-                  scrollEventThrottle={16}
-                >
-                  <View style={styles.topSpacer} />
-
-                  {renderScorecard()}
-
-                  <View style={styles.tabContainer}>
-                    <TouchableOpacity
-                      style={[styles.tabButton, activeTab === 'commentary' && styles.activeTab]}
-                      onPress={() => setActiveTab('commentary')}
-                    >
-                      <Text style={[styles.tabText, activeTab === 'commentary' && styles.activeTabText]}>
-                        Commentary
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.tabButton, activeTab === 'scorecard' && styles.activeTab]}
-                      onPress={() => setActiveTab('scorecard')}
-                    >
-                      <Text style={[styles.tabText, activeTab === 'scorecard' && styles.activeTabText]}>
-                        Scorecard
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {activeTab === 'commentary' ? (
-                    <></>
-                    // <FlatList
-                    //   data={getAllCommentary()}
-                    //   renderItem={renderCommentary}
-                    //   keyExtractor={(_, index) => index.toString()}
-                    //   scrollEnabled={false}
-                    //   contentContainerStyle={styles.commentaryList}
-                    //   refreshControl={
-                    //     <RefreshControl
-                    //       refreshing={refreshing}
-                    //       tintColor="#2ecc71"
-                    //       onRefresh={getMatchState}
-                    //     />
-                    //   }
-                    //   ListEmptyComponent={
-                    //     <View style={styles.emptyContainer}>
-                    //       <Text style={styles.emptyText}>No commentary available yet</Text>
-                    //     </View>
-                    //   }
-                    // />
-                  ) : (
-                    <View style={styles.detailedScorecard}>
-                      {/* NEW: Inner tabs for batting/bowling of both teams */}
-                      <ScoreTabs />
-
-                      {/* Tables switcher */}
-                      {scoreTab === 'T1B' && <BattingTable data={team1BattingOrder} />}
-                      {scoreTab === 'T1Bo' && <BowlingTable data={team1BowlingOrder} />}
-                      {scoreTab === 'T2B' && <BattingTable data={team2BattingOrder} />}
-                      {scoreTab === 'T2Bo' && <BowlingTable data={team2BowlingOrder} />}
-                    </View>
-                  )}
-                </Animated.ScrollView>
+          <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
+            <Animated.ScrollView
+              style={styles.contentContainer}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                { useNativeDriver: true }
               )}
-            </ImageBackground>
-          </>
-      }
-    </View>
+              scrollEventThrottle={16}
+            >
+              <View style={styles.topSpacer} />
+
+              {renderScorecard()}
+
+              <View style={styles.tabContainer}>
+                <TouchableOpacity
+                  style={[styles.tabButton, activeTab === 'commentary' && styles.activeTab]}
+                  onPress={() => setActiveTab('commentary')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'commentary' && styles.activeTabText]}>
+                    Commentary
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.tabButton, activeTab === 'scorecard' && styles.activeTab]}
+                  onPress={() => setActiveTab('scorecard')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'scorecard' && styles.activeTabText]}>
+                    Scorecard
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {activeTab === 'commentary' ? (
+                <FlatList
+                  data={getAllCommentary()}
+                  renderItem={renderCommentary}
+                  keyExtractor={(_, index) => index.toString()}
+                  scrollEnabled={false}
+                  contentContainerStyle={styles.commentaryList}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      tintColor={AppColors.blue}
+                      onRefresh={getMatchState}
+                    />
+                  }
+                  ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                      <Text style={styles.emptyText}>No commentary available yet</Text>
+                    </View>
+                  }
+                />
+              ) : (
+                <View style={styles.detailedScorecard}>
+                  <ScoreTabs />
+
+                  {scoreTab === 'T1B' && <BattingTable data={team1BattingOrder} />}
+                  {scoreTab === 'T1Bo' && <BowlingTable data={team1BowlingOrder} />}
+                  {scoreTab === 'T2B' && <BattingTable data={team2BattingOrder} />}
+                  {scoreTab === 'T2Bo' && <BowlingTable data={team2BowlingOrder} />}
+                </View>
+              )}
+            </Animated.ScrollView>
+          </ImageBackground>
+        </>
+      )}
+    </SafeAreaView>
   );
 };
 
-// ---------------- STYLES ----------------
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B1220' },
-
-  header: {
-    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-    height: 60, flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 12, backgroundColor: '#1F2A44'
+  container: { 
+    flex: 1, 
+    backgroundColor: AppColors.background 
   },
-  backButton: { padding: 6, marginRight: 8 },
-  headerContent: { flex: 1 },
-  matchTitle: { color: '#FFF', fontSize: 16, fontWeight: '600' },
-
-  background: { flex: 1 },
-  backgroundImage: { opacity: 0.08, resizeMode: 'contain' },
-
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: '#aaa', marginTop: 8 },
-
-  contentContainer: { paddingHorizontal: 12 },
-  topSpacer: { height: 70 },
-
-  // Tabs (commentary / scorecard)
+  safeArea: {
+    backgroundColor: AppColors.darkBlue,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: AppColors.white,
+  },
+  backButton: {
+    padding: 8,
+    // color: AppColors.darkBlue,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: AppColors.darkBlue,
+  },
+  headerRight: {
+    width: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: AppColors.background,
+  },
+  background: { 
+    flex: 1 
+  },
+  backgroundImage: { 
+    opacity: 0.08, 
+    resizeMode: 'contain' 
+  },
+  contentContainer: { 
+    paddingHorizontal: 12 
+  },
+  topSpacer: { 
+    height: 10 
+  },
   tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#162036',
+    flexDirection: "row",
+    backgroundColor: AppColors.white,
     borderRadius: 12,
-    padding: 4,
-    marginTop: 12,
+    padding: 5,
+    marginTop: 15,
+    marginBottom: 10,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  stickyTabsContainer: {
+    zIndex: 10, // Ensure tabs stay above content
   },
   tabButton: {
-    flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10
+    flex: 1, 
+    paddingVertical: 10, 
+    alignItems: 'center', 
+    borderRadius: 8
   },
-  activeTab: { backgroundColor: '#2c3e50' },
-  tabText: { color: '#aab0c6', fontWeight: '600' },
-  activeTabText: { color: '#fff' },
-
-  // Score summary card (existing)
+  activeTab: {
+    backgroundColor: AppColors.blue,
+  },
+  tabText: { 
+    color: AppColors.black, 
+    fontWeight: '600' 
+  },
+  activeTabText: { 
+    color: AppColors.white 
+  },
   scorecardContainer: {
-    backgroundColor: '#14203B',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 15,
+    padding: 15,
     marginTop: 8,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  teamScoreContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  teamScore: { flex: 1, alignItems: 'center' },
-  teamName: { color: '#E8ECF5', fontSize: 14, fontWeight: '700' },
-  teamRuns: { color: '#88E0A0', fontSize: 16, fontWeight: '800', marginTop: 4 },
-
-  versusContainer: { width: 50, alignItems: 'center' },
-  versusText: { color: '#d0d6ea', fontSize: 14, fontWeight: '700' },
-
-  divider: { height: 1, backgroundColor: '#22304f', marginVertical: 10 },
-
-  playerContainer: { marginTop: 6 },
-  playerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
-  playerInfo: { flexDirection: 'row', alignItems: 'center' },
-  playerIcon: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-  strikerIcon: { backgroundColor: '#4CAF50' },
-  nonStrikerIcon: { backgroundColor: '#9E9E9E' },
-  bowlerIcon: { backgroundColor: '#FF7043' },
-  playerName: { color: '#fff', fontWeight: '600' },
-  playerStats: { color: '#fff', fontWeight: '600' },
-  playerExtra: { color: '#9fb2d1', fontSize: 12 },
-
-  matchInfoContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  infoItem: { flex: 1 },
-  infoLabel: { color: '#9fb2d1', fontSize: 12 },
-  infoValue: { color: '#fff', fontWeight: '700', marginTop: 2 },
-
-  // Commentary
-  commentaryItem: { backgroundColor: '#121A2F', borderRadius: 10, padding: 10, marginBottom: 8 },
-  wicketItem: { borderWidth: 1, borderColor: '#e74c3c55' },
-  boundaryItem: { borderWidth: 1, borderColor: '#f39c1255' },
-  commentaryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  overText: { color: '#8aa2c7', marginRight: 6 },
-  commentaryText: { color: '#e1e7f5' },
-  commentaryList: { paddingVertical: 12 },
-  emptyContainer: { padding: 20, alignItems: 'center' },
-  emptyText: { color: '#8aa2c7' },
-
-  // NEW: inner score tabs
+  teamScoreContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between' 
+  },
+  teamScore: { 
+    flex: 1, 
+    alignItems: 'center' 
+  },
+  teamName: { 
+    color: AppColors.white, 
+    fontSize: 14, 
+    fontWeight: '700' 
+  },
+  teamRuns: { 
+    color: AppColors.white, 
+    fontSize: 16, 
+    fontWeight: '800', 
+    marginTop: 4 
+  },
+  versusContainer: { 
+    width: 50, 
+    alignItems: 'center' 
+  },
+  versusText: { 
+    color: AppColors.white, 
+    fontSize: 14, 
+    fontWeight: '700' 
+  },
+  divider: { 
+    height: 1, 
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', 
+    marginVertical: 10 
+  },
+  playerContainer: { 
+    marginTop: 6 
+  },
+  playerRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingVertical: 6 
+  },
+  playerInfo: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  playerIcon: { 
+    width: 10, 
+    height: 10, 
+    borderRadius: 5, 
+    marginRight: 8 
+  },
+  strikerIcon: { 
+    backgroundColor: AppColors.green 
+  },
+  nonStrikerIcon: { 
+    backgroundColor: AppColors.lightText 
+  },
+  bowlerIcon: { 
+    backgroundColor: AppColors.yellow 
+  },
+  playerName: { 
+    color: AppColors.white, 
+    fontWeight: '600' 
+  },
+  playerStats: { 
+    color: AppColors.white, 
+    fontWeight: '600' 
+  },
+  playerExtra: { 
+    color: AppColors.white, 
+    fontSize: 12,
+    opacity: 0.8
+  },
+  matchInfoContainer: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginTop: 8 
+  },
+  infoItem: { 
+    flex: 1 
+  },
+  infoLabel: { 
+    color: AppColors.white, 
+    fontSize: 12,
+    opacity: 0.8
+  },
+  infoValue: { 
+    color: AppColors.white, 
+    fontWeight: '700', 
+    marginTop: 2 
+  },
+  commentaryItem: { 
+    backgroundColor: AppColors.white, 
+    borderRadius: 10, 
+    padding: 15, 
+    marginBottom: 8,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  wicketItem: { 
+    borderLeftWidth: 3, 
+    borderLeftColor: AppColors.red 
+  },
+  boundaryItem: { 
+    borderLeftWidth: 3, 
+    borderLeftColor: AppColors.yellow 
+  },
+  commentaryHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 4 
+  },
+  overText: { 
+    color: AppColors.blue, 
+    marginRight: 6,
+    fontWeight: '600'
+  },
+  commentaryText: { 
+    color: AppColors.black 
+  },
+  commentaryList: { 
+    paddingVertical: 12 
+  },
+  emptyContainer: { 
+    padding: 20, 
+    alignItems: 'center' 
+  },
+  emptyText: { 
+    color: AppColors.lightText 
+  },
   scoreTabsRow: {
     flexDirection: 'row',
-    backgroundColor: '#0F1A2E',
+    backgroundColor: AppColors.white,
     borderRadius: 10,
     padding: 4,
-    marginTop: 12,
-    justifyContent: 'space-between',
+    marginBottom: 12,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   scoreTabBtn: {
     flex: 1,
     paddingVertical: 8,
-    marginHorizontal: 4,
-    backgroundColor: '#15213A',
+    marginHorizontal: 2,
+    backgroundColor: AppColors.background,
     borderRadius: 8,
     alignItems: 'center',
   },
-  scoreTabActive: { backgroundColor: '#263a63' },
-  scoreTabText: { color: '#aab0c6', fontWeight: '600', fontSize: 12 },
-  scoreTabTextActive: { color: '#fff' },
-
-  // NEW: tables
-  detailedScorecard: {
-    backgroundColor: '#111a30',
-    borderRadius: 12,
-    padding: 10,
-    marginTop: 12,
-    marginBottom: 30
+  scoreTabActive: { 
+    backgroundColor: AppColors.blue 
   },
-  tableContainer: { marginTop: 8 },
-  tableHeader: { backgroundColor: '#1a2746', borderTopLeftRadius: 10, borderTopRightRadius: 10 },
+  scoreTabText: { 
+    color: AppColors.black, 
+    fontWeight: '600', 
+    fontSize: 12 
+  },
+  scoreTabTextActive: { 
+    color: AppColors.white 
+  },
+  detailedScorecard: {
+    backgroundColor: AppColors.white,
+    borderRadius: 15,
+    // padding: 15,
+    marginBottom: 20,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  tableContainer: { 
+    marginTop: 8 
+  },
+  tableHeader: { 
+    backgroundColor: AppColors.blue, 
+    borderTopLeftRadius: 10, 
+    borderTopRightRadius: 10 
+  },
   tableRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#2b3a61'
+    borderColor: '#EEE'
   },
-  headerText: { color: '#cfe2ff', fontWeight: '700' },
-  cell: { paddingHorizontal: 8 },
-  cellName: { flex: 1.6 },
-  cellNum: { flex: 0.6, textAlign: 'right', color: '#e9eefb', fontWeight: '600' },
-  playerCellName: { color: '#e9eefb', fontWeight: '700' },
-  dismissalText: { color: '#9bb0d8', fontSize: 12, marginTop: 2 },
-  emptyRow: { color: '#9bb0d8', padding: 10, textAlign: 'center' },
+  headerText: { 
+    color: AppColors.white, 
+    fontWeight: '700' 
+  },
+  cell: { 
+    paddingHorizontal: 8 
+  },
+  cellName: { 
+    flex: 1.6 
+  },
+  cellNum: { 
+    flex: 0.6, 
+    textAlign: 'right', 
+    color: AppColors.black, 
+    fontWeight: '600' 
+  },
+  playerCellName: { 
+    color: AppColors.black, 
+    fontWeight: '700' 
+  },
+  dismissalText: { 
+    color: AppColors.lightText, 
+    fontSize: 12, 
+    marginTop: 2 
+  },
+  emptyRow: { 
+    color: AppColors.lightText, 
+    padding: 10, 
+    textAlign: 'center' 
+  },
 });
 
 export default CommentaryScorecard;
