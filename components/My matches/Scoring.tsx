@@ -31,8 +31,7 @@ const flickImage = require('../../assets/images/FlickShot.png');
 const defensiveImage = require('../../assets/images/Defence.png');
 const loftedImage = require('../../assets/images/LoaftedShot.png');
 
-const ScoringScreen = ({ route }) => {
-  const navigation = useNavigation();
+const ScoringScreen = ({ route, navigation }) => {
   const [matchId, setMatchId] = useState(route.params.matchId);
   const [bowler, setBowler] = useState({ id: route.params.bowler, name: route.params.selectedBowlerName, overs: 0, runsConceded: 0, wickets: 0 });
   const [striker, setStriker] = useState({ id: route.params.strikerId, name: route.params.selectedStrikerName, runs: 0, ballsFaced: 0 });
@@ -73,6 +72,7 @@ const ScoringScreen = ({ route }) => {
   });
   const [bowlingPlayingXI, setBowlingPlayingXI] = useState([]);
   const [battingPlayingXI, setBattingPlayingXI] = useState([]);
+  const [availableBowler, setAvailableBowler] = useState([]);
   const [selectedCatcher, setSelectedCatcher] = useState();
   const [runOutGetterId, setRunOutGetterId] = useState(null);
   const [runOutFielderId, setRunOutFielderId] = useState(null);
@@ -165,7 +165,8 @@ const ScoringScreen = ({ route }) => {
       legalDeliveriesRef.current = 0;
       setLegalDeliveries(0);
       if (data.overNumber !== data.totalOvers) {
-        console.log("next bowler modal open");
+        const filteredBowlers = bowlingPlayingXI.filter(p => p.playerId !== bowler.id);
+        setAvailableBowler(filteredBowlers);
         newBowlerSelectionRef.current = true;
         setModals((prev) => ({ ...prev, nextBowler: true }));
       }
@@ -745,6 +746,19 @@ const ScoringScreen = ({ route }) => {
     await submitScore(data, () => submitConnected); // 🔥 pass state as a function
   };
 
+  const handleWicketTypeSelection = async () => {
+    if (!wicketType) {
+      Alert.alert('Error', 'Please select a wicket type.');
+      return;
+    }
+    setModals({ ...modals, wicket: false, nextBatsman: true });
+    const response = await apiService({
+      endpoint: `matches/${matchId}/batting-available`,
+      method: 'GET',
+    });
+    setAvailableBatsmen(response.data.data);
+  }
+
   return (
     <View style={styles.container}>
       <LinearGradient colors={['#000000', '#0A303B', '#36B0D5']} style={styles.gradient}>
@@ -1021,19 +1035,7 @@ const ScoringScreen = ({ route }) => {
 
             <Pressable
               style={styles.submitButton}
-              onPress={() => {
-                if (!wicketType) {
-                  Alert.alert('Error', 'Please select a wicket type.');
-                  return;
-                }
-
-                setModals({ ...modals, wicket: false, nextBatsman: true });
-                // const available = battingTeamII.filter(
-                //   (player) => player.ballsFaced === 0 && player.playerId !== strikerId && player.playerId !== nonStrikerId
-                // ).map(({ playerId, name }) => ({ playerId, name }));
-
-                setAvailableBatsmen(battingPlayingXI);
-              }}
+              onPress={() => handleWicketTypeSelection()}
             >
               <Text style={styles.submitText}>Submit</Text>
             </Pressable>
@@ -1113,7 +1115,7 @@ const ScoringScreen = ({ route }) => {
               style={styles.picker}
             >
               <Picker.Item label="Select Bowler" value="" />
-              {bowlingPlayingXI?.map((bowler) => (
+              {availableBowler?.map((bowler) => (
                 <Picker.Item key={bowler.playerId} label={bowler?.name} value={bowler?.playerId} />
               ))}
             </Picker>
