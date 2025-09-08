@@ -8,17 +8,80 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Platform,
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import apiService from '../APIservices';
+// Import SafeAreaView and useSafeAreaInsets
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const background = require('../../assets/images/cricsLogo.png');
+
+// Assuming you have AppGradients defined in a separate file or within this one
+const AppGradients = {
+  primaryCard: ['#34B8FF', '#1E88E5'],
+};
+
+// Reusable PlayerRow component for better readability and maintenance
+const PlayerRow = ({ player, index, type, isBatted }) => {
+  const isEvenRow = index % 2 === 0;
+
+  if (type === 'batting') {
+    const isDismissed = isBatted && player?.dismissalInfo;
+    const dismissalText = isBatted ? (player?.dismissalInfo || 'Not out') : 'Yet to bat';
+    const runs = player?.runs || 0;
+    const ballsFaced = player?.ballsFaced || 0;
+    const fours = player?.fours || 0;
+    const sixes = player?.sixes || 0;
+    const strikeRate = player?.strikeRate ? player.strikeRate.toFixed(1) : '0.0';
+
+    return (
+      <View style={[styles.statsRow, isEvenRow && styles.evenRow]}>
+        <View style={styles.nameCol}>
+          <View style={styles.playerInfo}>
+            <Text style={styles.playerName}>{player?.name || 'Unknown Player'}</Text>
+            {isBatted && (
+              <Ionicons
+                name={isDismissed ? 'close-circle' : 'checkmark-circle'}
+                size={14}
+                color={isDismissed ? '#F44336' : '#4CAF50'}
+                style={styles.playerStatusIcon}
+              />
+            )}
+          </View>
+          <Text style={styles.dismissal}>{dismissalText}</Text>
+        </View>
+        <Text style={[styles.statCol, styles.statText]}>{runs}</Text>
+        <Text style={[styles.statCol, styles.statText]}>{ballsFaced}</Text>
+        <Text style={[styles.statCol, styles.statText]}>{fours}</Text>
+        <Text style={[styles.statCol, styles.statText]}>{sixes}</Text>
+        <Text style={[styles.statCol, styles.statText]}>{strikeRate}</Text>
+      </View>
+    );
+  }
+
+  // Bowling
+  const overs = `${Math.floor(player.ballsBowled / 6)}.${player.ballsBowled % 6}`;
+  const runsConceded = player.runsConceded || 0;
+  const wicketsTaken = player.wicketsTaken || 0;
+  const economyRate = player.economyRate ? player.economyRate.toFixed(1) : '0.0';
+
+  return (
+    <View style={[styles.statsRow, isEvenRow && styles.evenRow]}>
+      <Text style={[styles.nameCol, styles.playerName]}>{player.name || 'Unknown Bowler'}</Text>
+      <Text style={[styles.statCol, styles.statText]}>{overs}</Text>
+      <Text style={[styles.statCol, styles.statText]}>{runsConceded}</Text>
+      <Text style={[styles.statCol, styles.statText]}>{wicketsTaken}</Text>
+      <Text style={[styles.statCol, styles.statText]}>{economyRate}</Text>
+    </View>
+  );
+};
 
 const ScoreCard = ({ route, navigation }) => {
   const { matchId } = route.params;
@@ -27,18 +90,23 @@ const ScoreCard = ({ route, navigation }) => {
   const [activeTab, setActiveTab] = useState('batting');
   const [loadingError, setLoadingError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const getMatchState = async () => {
+  // Get the safe area insets
+  const insets = useSafeAreaInsets();
+
+  const getMatchState = useCallback(async (isManualRefresh = false) => {
     try {
-      setIsLoading(true);
-      setRefreshing(true);
+      if (isManualRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
       setLoadingError(null);
+
       const token = await AsyncStorage.getItem('jwtToken');
       if (!token) {
         setLoadingError('Authentication required. Please login again.');
-        setIsLoading(false);
-        setRefreshing(false);
         return;
       }
 
@@ -53,42 +121,68 @@ const ScoreCard = ({ route, navigation }) => {
         setTeam(response.data.team1.name);
       } else {
         setLoadingError('No match data received');
-        setMatchState({ error: true });
+        setMatchState(null);
       }
     } catch (error) {
-      let errorMessage = 'Failed to load match data';
+      console.error('API Error:', error);
+      let errorMessage = 'Failed to load match data. ';
 
       if (error.response) {
-        errorMessage = `Server error: ${error.response.status}`;
+        errorMessage += `Server error: ${error.response.status}`;
       } else if (error.request) {
-        errorMessage = 'No response from server. Check your connection.';
+        errorMessage += 'No response from server. Check your connection.';
       } else {
-        errorMessage = error.message || errorMessage;
+        errorMessage += error.message || '';
       }
-
       setLoadingError(errorMessage);
-      setMatchState({ error: true });
+      setMatchState(null);
     } finally {
       setIsLoading(false);
-      setRefreshing(false);
+      setIsRefreshing(false);
     }
-  };
-
-  const onRefresh = () => {
-    getMatchState();
-  };
+  }, [matchId]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       getMatchState();
     });
-
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, getMatchState]);
+
+  const onRefresh = () => {
+    getMatchState(true);
+  };
+
+  const getMatchStatusText = (status) => {
+    if (!status) {
+      return 'Status Unknown';
+    }
+    const lowerStatus = status.toLowerCase();
+    switch (lowerStatus) {
+      case 'completed':
+        return 'Completed';
+      case 'live':
+        return 'Live';
+      case 'upcoming':
+        return 'Upcoming';
+      case 'abandoned':
+        return 'Abandoned';
+      case 'in_progress':
+        return 'In Progress';
+      default:
+        return 'In Progress';
+    }
+  };
 
   const renderBattingTable = (teamData, battingOrder) => {
-    if (!teamData || !teamData.playingXI) return null;
-    
+    if (!teamData || !teamData.playingXI) {
+      return (
+        <View style={styles.card}>
+          <Text style={styles.noDataText}>No batting data available for this team.</Text>
+        </View>
+      );
+    }
+
     const orderedBatting = [
       ...(battingOrder || []),
       ...teamData.playingXI.filter(
@@ -104,7 +198,6 @@ const ScoreCard = ({ route, navigation }) => {
             <Text style={styles.teamIndicatorText}>{teamData.name}</Text>
           </View>
         </View>
-
         <View style={styles.statsHeader}>
           <Text style={[styles.nameCol, styles.headerText]}>Batsman</Text>
           <Text style={[styles.statCol, styles.headerText]}>R</Text>
@@ -113,42 +206,20 @@ const ScoreCard = ({ route, navigation }) => {
           <Text style={[styles.statCol, styles.headerText]}>6s</Text>
           <Text style={[styles.statCol, styles.headerText]}>SR</Text>
         </View>
-
         {orderedBatting.map((item, index) => {
           const playerStats = teamData.playingXI.find((p) => p.playerId === item.playerId) || {};
           const isBatted = battingOrder?.some((b) => b.playerId === item.playerId);
-
+          const finalPlayer = { ...playerStats, ...item };
+          const playerKey = finalPlayer.playerId || `${finalPlayer.name}-${index}`;
+          
           return (
-            <View
-              key={item.playerId || index}
-              style={[
-                styles.statsRow,
-                index % 2 === 0 && styles.evenRow
-              ]}
-            >
-              <View style={styles.nameCol}>
-                <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>{item.name || 'Unknown Player'}</Text>
-                  {isBatted && (
-                    <Ionicons
-                      name={item.dismissalInfo ? 'close-circle' : 'checkmark-circle'}
-                      size={16}
-                      color={item.dismissalInfo ? '#ff4444' : '#4CAF50'}
-                    />
-                  )}
-                </View>
-                <Text style={styles.dismissal}>
-                  {isBatted ? (item.dismissalInfo || 'Not out') : 'Yet to bat'}
-                </Text>
-              </View>
-              <Text style={[styles.statCol, styles.statText]}>{playerStats.runs || 0}</Text>
-              <Text style={[styles.statCol, styles.statText]}>{playerStats.ballsFaced || 0}</Text>
-              <Text style={[styles.statCol, styles.statText]}>{playerStats.fours || 0}</Text>
-              <Text style={[styles.statCol, styles.statText]}>{playerStats.sixes || 0}</Text>
-              <Text style={[styles.statCol, styles.statText]}>
-                {playerStats.strikeRate ? playerStats.strikeRate.toFixed(1) : '0.0'}
-              </Text>
-            </View>
+            <PlayerRow
+              key={playerKey} 
+              player={finalPlayer}
+              index={index}
+              type="batting"
+              isBatted={isBatted}
+            />
           );
         })}
       </View>
@@ -156,8 +227,14 @@ const ScoreCard = ({ route, navigation }) => {
   };
 
   const renderBowlingTable = (bowlingTeamData) => {
-    if (!bowlingTeamData || !bowlingTeamData.playingXI) return null;
-    
+    if (!bowlingTeamData || !bowlingTeamData.playingXI) {
+      return (
+        <View style={styles.card}>
+          <Text style={styles.noDataText}>No bowling data available for this team.</Text>
+        </View>
+      );
+    }
+
     const bowlers = bowlingTeamData.playingXI.filter(bowler => bowler.ballsBowled > 0);
 
     return (
@@ -168,7 +245,6 @@ const ScoreCard = ({ route, navigation }) => {
             <Text style={styles.teamIndicatorText}>{bowlingTeamData.name}</Text>
           </View>
         </View>
-
         <View style={styles.statsHeader}>
           <Text style={[styles.nameCol, styles.headerText]}>Bowler</Text>
           <Text style={[styles.statCol, styles.headerText]}>O</Text>
@@ -176,85 +252,55 @@ const ScoreCard = ({ route, navigation }) => {
           <Text style={[styles.statCol, styles.headerText]}>W</Text>
           <Text style={[styles.statCol, styles.headerText]}>Econ</Text>
         </View>
-
         {bowlers.length > 0 ? (
           bowlers.map((bowler, index) => (
-            <View
+            <PlayerRow
               key={bowler.playerId || index}
-              style={[
-                styles.statsRow,
-                index % 2 === 0 && styles.evenRow
-              ]}
-            >
-              <Text style={[styles.nameCol, styles.playerName]}>
-                {bowler.name || 'Unknown Bowler'}
-              </Text>
-              <Text style={[styles.statCol, styles.statText]}>
-                {Math.floor(bowler.ballsBowled / 6)}.{bowler.ballsBowled % 6}
-              </Text>
-              <Text style={[styles.statCol, styles.statText]}>{bowler.runsConceded || 0}</Text>
-              <Text style={[styles.statCol, styles.statText]}>{bowler.wicketsTaken || 0}</Text>
-              <Text style={[styles.statCol, styles.statText]}>
-                {bowler.economyRate ? bowler.economyRate.toFixed(1) : '0.0'}
-              </Text>
-            </View>
+              player={bowler}
+              index={index}
+              type="bowling"
+            />
           ))
         ) : (
           <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}>No bowling data available</Text>
+            <Text style={styles.noDataText}>No bowling data available yet.</Text>
           </View>
         )}
       </View>
     );
   };
 
-  if (isLoading || !matchState) {
+  const isInitialLoading = isLoading && !matchState;
+  const isDataError = !matchState && loadingError;
+
+  if (isInitialLoading) {
     return (
       <View style={styles.loadingContainer}>
         <LinearGradient
-          colors={['#0A5A9C', '#1a73e8']}
-          style={styles.loadingGradient}
+          colors={AppGradients.primaryCard}
+          style={styles.fullScreenGradient}
         >
           <MaterialCommunityIcons name="cricket" size={40} color="#fff" />
-          {loadingError ? (
-            <>
-              <Text style={styles.loadingText}>Failed to load match data</Text>
-              <Text style={styles.errorText}>{loadingError}</Text>
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={getMatchState}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.retryButtonText}>Try Again</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Text style={styles.loadingText}>Loading match details...</Text>
-              <ActivityIndicator size="large" color="#fff" style={styles.spinner} />
-            </>
-          )}
+          <Text style={styles.loadingText}>Loading match details...</Text>
+          <ActivityIndicator size="large" color="#fff" style={styles.spinner} />
         </LinearGradient>
       </View>
     );
   }
 
-  if (matchState.error) {
+  if (isDataError) {
     return (
       <View style={styles.errorContainer}>
         <LinearGradient
-          colors={['#ff6b6b', '#ee5a52']}
-          style={styles.errorGradient}
+          colors={['#F44336', '#E53935']}
+          style={styles.fullScreenGradient}
         >
           <MaterialCommunityIcons name="alert-circle" size={40} color="#fff" />
-          <Text style={styles.errorTitle}>Failed to Load Match</Text>
+          <Text style={styles.errorTitle}>Oops! Failed to Load</Text>
           <Text style={styles.errorMessage}>{loadingError}</Text>
           <TouchableOpacity
             style={styles.retryButton}
-            onPress={getMatchState}
+            onPress={() => getMatchState()}
           >
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
@@ -270,147 +316,148 @@ const ScoreCard = ({ route, navigation }) => {
       imageStyle={styles.backgroundImage}
     >
       <StatusBar barStyle="light-content" backgroundColor="#0A5A9C" />
+      {/* Use SafeAreaView to wrap the main content */}
+      <SafeAreaView style={styles.safeArea}>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#0A5A9C']}
-            tintColor="#0A5A9C"
-          />
-        }
-      >
-        {/* Match Header */}
-        <LinearGradient
-          colors={['#0A5A9C', '#1a73e8']}
-          style={styles.matchHeader}
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              colors={['#0A5A9C']}
+              tintColor="#0A5A9C"
+            />
+          }
         >
-          <View style={styles.matchTitleContainer}>
-            <MaterialCommunityIcons name="cricket" size={24} color="#fff" style={styles.cricketIcon} />
-            <Text style={styles.matchTitle}>
-              {matchState.team1?.name || 'Team 1'} vs {matchState.team2?.name || 'Team 2'}
-            </Text>
-          </View>
-          <Text style={styles.matchSubtitle}>{matchState.tournament || 'Cricket Match'}</Text>
-          <View style={styles.matchStatusContainer}>
-            <Ionicons name="time" size={16} color="#fff" />
-            <Text style={styles.matchStatusText}>{matchState.status || 'In Progress'}</Text>
-          </View>
-        </LinearGradient>
+          {/* Match Header with dynamic top padding */}
+          <LinearGradient
+            colors={AppGradients.primaryCard}
+            style={[styles.matchHeader, { paddingTop: insets.top + 20 }]} // Adjust top padding
+          >
+            <View style={styles.matchTitleContainer}>
+              <Text style={styles.matchTitle} numberOfLines={1} ellipsizeMode="tail">
+                {matchState.team1?.name || 'Team 1'} vs {matchState.team2?.name || 'Team 2'}
+              </Text>
+            </View>
+          </LinearGradient>
 
-        {/* Team Scores */}
-        <View style={styles.scoreContainer}>
-          <View style={styles.teamScore}>
-            <Text style={styles.teamName}>{matchState.team1?.name || 'Team 1'}</Text>
-            <Text style={styles.teamRuns}>
-              {matchState.team1?.score || 0}/{matchState.team1?.wickets || 0}
-            </Text>
-            {matchState.team1?.overs && (
-              <Text style={styles.teamOvers}>{matchState.team1.overs} overs</Text>
-            )}
+          {/* Team Scores */}
+          <View style={styles.scoreContainer}>
+            <View style={styles.teamScoreCard}>
+              <Text style={styles.teamName}>{matchState.team1?.name || 'Team 1'}</Text>
+              <Text style={styles.teamRuns}>
+                {matchState.team1?.score || 0}/{matchState.team1?.wickets || 0}
+              </Text>
+              {matchState.team1?.overs && (
+                <Text style={styles.teamOvers}>{matchState.team1.overs} overs</Text>
+              )}
+            </View>
+
+            <View style={styles.vsContainer}>
+              <Text style={styles.vsText}>vs</Text>
+            </View>
+
+            <View style={styles.teamScoreCard}>
+              <Text style={styles.teamName}>{matchState.team2?.name || 'Team 2'}</Text>
+              <Text style={styles.teamRuns}>
+                {matchState.team2?.score || 0}/{matchState.team2?.wickets || 0}
+              </Text>
+              {matchState.team2?.overs && (
+                <Text style={styles.teamOvers}>{matchState.team2.overs} overs</Text>
+              )}
+            </View>
+          </View>
+          <Text style={styles.matchResultText}>{matchState?.result || 'Scoreboard'}</Text>
+
+          {/* Team Selector */}
+          <View style={styles.teamSelector}>
+            {[matchState.team1, matchState.team2].map((t) => (
+              <TouchableOpacity
+                key={t?.name}
+                style={[
+                  styles.teamButton,
+                  team === t?.name && styles.activeButton,
+                ]}
+                onPress={() => setTeam(t?.name)}
+              >
+                <Text style={[
+                  styles.buttonText,
+                  team === t?.name && styles.activeButtonText
+                ]}>
+                  {t?.name || 'Team'}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
-          <View style={styles.vsContainer}>
-            <Text style={styles.vsText}>vs</Text>
-          </View>
-
-          <View style={styles.teamScore}>
-            <Text style={styles.teamName}>{matchState.team2?.name || 'Team 2'}</Text>
-            <Text style={styles.teamRuns}>
-              {matchState.team2?.score || 0}/{matchState.team2?.wickets || 0}
-            </Text>
-            {matchState.team2?.overs && (
-              <Text style={styles.teamOvers}>{matchState.team2.overs} overs</Text>
-            )}
-          </View>
-        </View>
-
-        {/* Team Selector */}
-        <View style={styles.teamSelector}>
-          {[matchState.team1, matchState.team2].map((t) => (
+          {/* Stats Tabs */}
+          <View style={styles.statsTabs}>
             <TouchableOpacity
-              key={t?.name}
               style={[
-                styles.teamButton,
-                team === t?.name && styles.activeButton,
+                styles.statsTab,
+                activeTab === 'batting' && styles.activeStatsTab
               ]}
-              onPress={() => setTeam(t?.name)}
+              onPress={() => setActiveTab('batting')}
             >
-              <Text style={[
-                styles.buttonText,
-                team === t?.name && styles.activeButtonText
-              ]}>
-                {t?.name || 'Team'}
+              <MaterialCommunityIcons
+                name="cricket"
+                size={20}
+                color={activeTab === 'batting' ? '#fff' : '#0A5A9C'}
+              />
+              <Text
+                style={[
+                  styles.statsTabText,
+                  activeTab === 'batting' && styles.activeStatsTabText
+                ]}
+              >
+                Batting
               </Text>
             </TouchableOpacity>
-          ))}
-        </View>
 
-        {/* Stats Tabs */}
-        <View style={styles.statsTabs}>
-          <TouchableOpacity
-            style={[
-              styles.statsTab,
-              activeTab === 'batting' && styles.activeStatsTab
-            ]}
-            onPress={() => setActiveTab('batting')}
-          >
-            <MaterialCommunityIcons
-              name="cricket"
-              size={20}
-              color={activeTab === 'batting' ? '#fff' : '#0A5A9C'}
-            />
-            <Text
+            <TouchableOpacity
               style={[
-                styles.statsTabText,
-                activeTab === 'batting' && styles.activeStatsTabText
+                styles.statsTab,
+                activeTab === 'bowling' && styles.activeStatsTab
               ]}
+              onPress={() => setActiveTab('bowling')}
             >
-              Batting
-            </Text>
-          </TouchableOpacity>
+              <MaterialCommunityIcons
+                name="bowling"
+                size={20}
+                color={activeTab === 'bowling' ? '#fff' : '#0A5A9C'}
+              />
+              <Text
+                style={[
+                  styles.statsTabText,
+                  activeTab === 'bowling' && styles.activeStatsTabText
+                ]}
+              >
+                Bowling
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity
-            style={[
-              styles.statsTab,
-              activeTab === 'bowling' && styles.activeStatsTab
-            ]}
-            onPress={() => setActiveTab('bowling')}
-          >
-            <MaterialCommunityIcons
-              name="bowling"
-              size={20}
-              color={activeTab === 'bowling' ? '#fff' : '#0A5A9C'}
-            />
-            <Text
-              style={[
-                styles.statsTabText,
-                activeTab === 'bowling' && styles.activeStatsTabText
-              ]}
-            >
-              Bowling
-            </Text>
-          </TouchableOpacity>
-        </View>
+          {/* Stats Content */}
+          {activeTab === 'batting' && team === matchState.team1?.name &&
+            renderBattingTable(matchState.team1, matchState.team1BattingOrder)}
+          {activeTab === 'batting' && team === matchState.team2?.name &&
+            renderBattingTable(matchState.team2, matchState.team2BattingOrder)}
 
-        {/* Stats Content */}
-        {activeTab === 'batting' && team === matchState.team1?.name &&
-          renderBattingTable(matchState.team1, matchState.team1BattingOrder)}
-        {activeTab === 'batting' && team === matchState.team2?.name &&
-          renderBattingTable(matchState.team2, matchState.team2BattingOrder)}
-
-        {activeTab === 'bowling' && team === matchState.team1?.name &&
-          renderBowlingTable(matchState.team2)}
-        {activeTab === 'bowling' && team === matchState.team2?.name &&
-          renderBowlingTable(matchState.team1)}
-      </ScrollView>
+          {activeTab === 'bowling' && team === matchState.team1?.name &&
+            renderBowlingTable(matchState.team2)}
+          {activeTab === 'bowling' && team === matchState.team2?.name &&
+            renderBowlingTable(matchState.team1)}
+        </ScrollView>
+      </SafeAreaView>
     </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   background: {
     flex: 1,
     backgroundColor: '#f4f8fc',
@@ -429,14 +476,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingGradient: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorGradient: {
+  fullScreenGradient: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
@@ -459,20 +499,13 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     fontSize: 16,
-    color: '#fff',
+    color: 'rgba(255,255,255,0.9)',
     marginTop: 10,
     textAlign: 'center',
     marginBottom: 20,
   },
   spinner: {
     marginTop: 20,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#ffdddd',
-    marginTop: 10,
-    textAlign: 'center',
-    paddingHorizontal: 20,
   },
   retryButton: {
     marginTop: 20,
@@ -492,15 +525,25 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   matchHeader: {
-    padding: 20,
-    paddingTop: StatusBar.currentHeight + 20 || 60,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   matchTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
   },
   cricketIcon: {
     marginRight: 10,
@@ -510,6 +553,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
+    flexShrink: 1,
+    flexWrap: 'nowrap',
   },
   matchSubtitle: {
     fontSize: 16,
@@ -525,35 +570,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     marginLeft: 5,
+    fontWeight: '500'
   },
   scoreContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginHorizontal: 20,
+    marginHorizontal: 15,
     marginTop: 20,
     marginBottom: 10,
+    alignItems: 'center',
   },
-  teamScore: {
+  teamScoreCard: {
     flex: 1,
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 15,
     padding: 15,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   teamName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
     marginBottom: 5,
+    textAlign: 'center',
   },
   teamRuns: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: '#0A5A9C',
   },
   teamOvers: {
@@ -566,23 +620,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   vsText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
+    color: '#999',
+  },
+  matchResultText: {
+    textAlign: 'center',
+    fontSize: 14,
     color: '#666',
+    marginBottom: 15,
+    marginHorizontal: 15,
   },
   teamSelector: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginHorizontal: 20,
+    marginHorizontal: 15,
     marginBottom: 20,
     borderRadius: 25,
     backgroundColor: '#e3f2fd',
     padding: 5,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   teamButton: {
     flex: 1,
@@ -593,11 +660,17 @@ const styles = StyleSheet.create({
   },
   activeButton: {
     backgroundColor: '#0A5A9C',
-    elevation: 3,
-    shadowColor: '#0A5A9C',
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 2 },
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0A5A9C',
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   buttonText: {
     color: '#0A5A9C',
@@ -609,16 +682,22 @@ const styles = StyleSheet.create({
   },
   statsTabs: {
     flexDirection: 'row',
-    marginHorizontal: 20,
+    marginHorizontal: 15,
     marginBottom: 20,
     borderRadius: 12,
     backgroundColor: '#e3f2fd',
     padding: 5,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   statsTab: {
     flex: 1,
@@ -643,20 +722,26 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 15,
-    marginHorizontal: 20,
+    marginHorizontal: 15,
     marginBottom: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
     overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
+    paddingVertical: 15,
     borderBottomWidth: 1,
     borderColor: '#eee',
     backgroundColor: '#f8fbff',
@@ -712,13 +797,15 @@ const styles = StyleSheet.create({
   playerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 3,
   },
   playerName: {
     fontWeight: '600',
     fontSize: 14,
     color: '#1a1a1a',
     marginRight: 5,
+  },
+  playerStatusIcon: {
+    marginLeft: 5,
   },
   statText: {
     fontSize: 14,
@@ -728,6 +815,7 @@ const styles = StyleSheet.create({
   dismissal: {
     fontSize: 12,
     color: '#777',
+    marginTop: 2,
   },
   noDataContainer: {
     padding: 20,
@@ -738,6 +826,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     fontStyle: 'italic',
+    textAlign: 'center',
   },
 });
 

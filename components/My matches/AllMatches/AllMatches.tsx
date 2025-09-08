@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ImageBackground,
   Image,
   Pressable,
   ActivityIndicator,
@@ -16,7 +15,6 @@ import {
   Platform,
   TextInput
 } from 'react-native';
-import backgroundImage from '../../../assets/images/cricsLogo.png';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -25,7 +23,7 @@ import apiService from '../../APIservices';
 
 const { width } = Dimensions.get('window');
 
-// Import or define colors to match the tournaments screen
+// Define the color palette and gradients for consistency
 const AppColors = {
   primaryBlue: '#34B8FF',
   secondaryBlue: '#1E88E5',
@@ -52,17 +50,8 @@ const AppGradients = {
 
 const AllMatches = () => {
   const [activeTab, setActiveTab] = useState('MY');
-  const [fadeAnim] = useState(new Animated.Value(0));
   const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, []);
 
   const debounce = (func, delay) => {
     let timer;
@@ -75,7 +64,6 @@ const AllMatches = () => {
 
   const onSearchTextChange = (text) => {
     setSearchQuery(text);
-    // You can add search functionality here if needed
   };
 
   const debouncedSearch = useCallback(
@@ -85,7 +73,7 @@ const AllMatches = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header with Search and Tabs */}
       <LinearGradient
         colors={AppGradients.primaryCard}
         style={styles.header}
@@ -114,7 +102,7 @@ const AllMatches = () => {
           </View>
         </View>
 
-        {/* Tabs */}
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -140,7 +128,7 @@ const AllMatches = () => {
         </ScrollView>
       </LinearGradient>
 
-      {/* Content */}
+      {/* Content based on active tab */}
       <View style={styles.content}>
         {activeTab === 'MY' && <MyMatch searchQuery={searchQuery} />}
         {activeTab === 'LIVE' && <LiveMatch searchQuery={searchQuery} />}
@@ -150,7 +138,6 @@ const AllMatches = () => {
     </View>
   );
 };
-
 
 const MatchCard = ({
   item,
@@ -179,7 +166,7 @@ const MatchCard = ({
   };
 
   const matchDate = item?.matchDate ? `${item?.matchDate[2]}-${item?.matchDate[1]}-${item?.matchDate[0]}` : 'N/A';
-  const isCreator = userId && item?.matchOps.includes(userId);
+  const isCreator = userId && item?.matchOps?.includes(userId);
 
   const getStatusInfo = () => {
     switch (status) {
@@ -230,7 +217,7 @@ const MatchCard = ({
                 style={styles.teamLogo}
               />
               <Text style={styles.teamName} numberOfLines={1}>{item?.team1?.name}</Text>
-              {showScores && (
+              {showScores && (item?.team1Score > 0 || item?.team2Score > 0) && (
                 <View style={styles.scoreBadge}>
                   <Text style={styles.teamScore}>{item?.team1Score || '0'}</Text>
                 </View>
@@ -247,7 +234,7 @@ const MatchCard = ({
                 style={styles.teamLogo}
               />
               <Text style={styles.teamName} numberOfLines={1}>{item?.team2?.name}</Text>
-              {showScores && (
+              {showScores && (item?.team1Score > 0 || item?.team2Score > 0) && (
                 <View style={styles.scoreBadge}>
                   <Text style={styles.teamScore}>{item?.team2Score || '0'}</Text>
                 </View>
@@ -256,25 +243,23 @@ const MatchCard = ({
           </View>
 
           {/* Match Details */}
-          <View style={styles.matchDetails}>
-            <View style={styles.detailRow}>
-              <Icon name="calendar-month" size={16} color={AppColors.primaryBlue} />
-              <Text style={styles.detailText}>{matchDate}</Text>
-            </View>
+          <View style={styles.matchDetailsRow}>
+            <Icon name="calendar-month" size={14} color={AppColors.infoGrey} />
+            <Text style={styles.matchDetailText}>{matchDate}</Text>
+            <Text style={styles.dotSeparator}>•</Text>
 
             {item?.matchTime && (
-              <View style={styles.detailRow}>
-                <Icon name="access-time" size={16} color={AppColors.primaryBlue} />
-                <Text style={styles.detailText}>{item.matchTime[0]}:{item.matchTime[1]}</Text>
-              </View>
+              <>
+                <Icon name="access-time" size={14} color={AppColors.infoGrey} />
+                <Text style={styles.matchDetailText}>{item.matchTime[0]}:{item.matchTime[1]}</Text>
+                <Text style={styles.dotSeparator}>•</Text>
+              </>
             )}
 
-            <View style={styles.detailRow}>
-              <Icon name="location-on" size={16} color={AppColors.primaryBlue} />
-              <Text style={styles.detailText} numberOfLines={1}>
-                {item?.venue || 'Venue not specified'}
-              </Text>
-            </View>
+            <Icon name="location-on" size={14} color={AppColors.infoGrey} />
+            <Text style={styles.matchDetailText} numberOfLines={1}>
+              {item?.venue || 'Venue not specified'}
+            </Text>
           </View>
         </View>
 
@@ -292,7 +277,6 @@ const MatchCard = ({
     </Animated.View>
   );
 };
-
 
 const MyMatch = ({ searchQuery }) => {
   const [error, setError] = useState(null);
@@ -316,7 +300,6 @@ const MyMatch = ({ searchQuery }) => {
       });
 
       if (response.success) {
-        // Filter matches based on search query
         const filteredMatches = response.data.data.filter(match =>
           match.tournamentResponse?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
           match.team1?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
@@ -441,7 +424,6 @@ const LiveMatch = ({ searchQuery }) => {
       });
 
       if (response.success) {
-        // Filter matches based on search query
         const filteredMatches = response.data.data.filter(match =>
           match.tournamentResponse?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
           match.team1?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
@@ -473,7 +455,6 @@ const LiveMatch = ({ searchQuery }) => {
 
   const liveMatchClickHandler = async (match) => {
     try {
-      const token = await AsyncStorage.getItem('jwtToken');
       const isUserInMatchOps = match.matchOps?.includes(userId);
 
       if (isUserInMatchOps) {
@@ -567,7 +548,6 @@ const UpcomingMatch = ({ searchQuery }) => {
       });
 
       if (response.success) {
-        // Filter matches based on search query
         const filteredMatches = response.data.data.filter(match =>
           match.tournamentResponse?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
           match.team1?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
@@ -599,7 +579,6 @@ const UpcomingMatch = ({ searchQuery }) => {
 
   const upcomingMatchClickHandler = async (match) => {
     try {
-      const token = await AsyncStorage.getItem('jwtToken');
       const creatorId = match.creatorName.id;
 
       if (userId === creatorId) {
@@ -681,15 +660,13 @@ const PastMatch = ({ searchQuery }) => {
       if (!token) throw new Error('Please Login Again');
 
       setLoading(true);
-
       const response = await apiService({
         endpoint: 'matches/status',
         method: 'GET',
-        params: { status: 'Past' },
+        params: { status: 'Completed' },
       });
 
       if (response.success) {
-        // Filter matches based on search query
         const filteredMatches = response.data.data.filter(match =>
           match.tournamentResponse?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
           match.team1?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
@@ -866,24 +843,24 @@ const styles = StyleSheet.create({
   },
   matchCard: {
     backgroundColor: AppColors.white,
-    borderRadius: 20,
-    marginBottom: 18,
+    borderRadius: 15,
+    marginBottom: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowRadius: 6,
+    elevation: 4,
   },
   statusBadge: {
     position: 'absolute',
-    top: 15,
-    right: 15,
+    top: 10,
+    right: 10,
     zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 15,
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -892,97 +869,95 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: AppColors.white,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     marginLeft: 4,
   },
   matchCardHeader: {
-    padding: 15,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
     alignItems: 'center',
   },
   tournamentName: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: AppColors.secondaryBlue,
     textAlign: 'center',
   },
   matchCardContent: {
-    padding: 20,
+    padding: 15,
+    alignItems: 'center',
   },
   teamRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
+    justifyContent: 'center',
+    marginBottom: 10,
+    width: '100%',
   },
   teamContainer: {
     alignItems: 'center',
     flex: 1,
+    justifyContent: 'center',
   },
   teamLogo: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    marginBottom: 6,
-    borderWidth: 2,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 4,
+    borderWidth: 1.5,
     borderColor: AppColors.primaryBlue,
     backgroundColor: AppColors.lightBackground,
   },
   teamName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: AppColors.darkText,
     textAlign: 'center',
-    marginBottom: 5,
+    marginBottom: 3,
   },
   teamScore: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: AppColors.primaryBlue,
   },
   vsContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
   vsText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: AppColors.mediumText,
-    marginBottom: 5,
+    marginBottom: 3,
   },
-  matchStatus: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  matchStatusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  matchDetails: {
-    borderTopWidth: 1,
-    borderTopColor: AppColors.cardBorder,
-    paddingTop: 15,
-  },
-  detailRow: {
+  matchDetailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderTopColor: AppColors.cardBorder,
+    paddingTop: 12,
+    width: '100%',
   },
-  detailText: {
-    marginLeft: 10,
-    fontSize: 14,
+  matchDetailText: {
+    marginLeft: 4,
+    fontSize: 12,
     color: AppColors.mediumText,
-    flex: 1,
+  },
+  dotSeparator: {
+    fontSize: 12,
+    color: AppColors.infoGrey,
+    marginHorizontal: 6,
   },
   matchCardFooter: {
-    padding: 15,
+    padding: 12,
     backgroundColor: AppColors.lightBackground,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
     alignItems: 'center',
   },
   winnerText: {
@@ -994,7 +969,13 @@ const styles = StyleSheet.create({
     color: AppColors.mediumText,
     fontSize: 14,
   },
-  // Empty State Styles
+  scoreBadge: {
+    backgroundColor: AppColors.lightBackground,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 2,
+  },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
@@ -1013,13 +994,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     paddingVertical: 12,
     borderRadius: 25,
-  },
-  scoreBadge: {
-    backgroundColor: AppColors.lightBackground,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 4,
   },
   refreshButtonText: {
     color: AppColors.white,
