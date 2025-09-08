@@ -98,9 +98,7 @@ const Notification = ({ message, type, visible, onHide }) => {
   );
 };
 
-const CreateTournament = () => {
-  const navigation = useNavigation();
-
+const CreateTournament = ({ navigation }) => {
   // Tournament state
   const [tournamentName, setTournamentName] = useState('');
   const [startDate, setStartDate] = useState(new Date());
@@ -113,8 +111,9 @@ const CreateTournament = () => {
   const [banner, setBanner] = useState(null);
   const [loading, setLoading] = useState(false);
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
-  const [showFormatDropdown, setShowFormatDropdown] = useState(false);
-  const [showBallTypeDropdown, setShowBallTypeDropdown] = useState(false);
+  // MODIFICATION: Removed state for showing/hiding dropdowns
+  // const [showFormatDropdown, setShowFormatDropdown] = useState(false);
+  // const [showBallTypeDropdown, setShowBallTypeDropdown] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [notification, setNotification] = useState({
     visible: false,
@@ -158,15 +157,6 @@ const CreateTournament = () => {
     })();
   }, [requestPermission]);
 
-  const getToken = useCallback(async () => {
-    try {
-      return await AsyncStorage.getItem('jwtToken');
-    } catch (error) {
-      console.error('Error retrieving token:', error);
-      return null;
-    }
-  }, []);
-
   const getUserUUID = useCallback(async () => {
     try {
       return await AsyncStorage.getItem('userUUID');
@@ -193,44 +183,6 @@ const CreateTournament = () => {
     }
 
     try {
-      // const formData = new FormData();
-      // formData.append("name", tournamentName);
-      // formData.append("startDate", startDate.toISOString().split('T')[0]);
-      // formData.append("endDate", endDate.toISOString().split('T')[0]);
-      // formData.append("format", format);
-      // formData.append("type", overs);
-      // formData.append("ballType", ballType);
-      // formData.append("matchesPerDay", "1");
-      // formData.append("matchesPerTeam", "1");
-      // formData.append("venues", "Default Venue");
-
-      // if (banner) {
-      //   const fileName = banner.split('/').pop();
-      //   const fileType = fileName.split('.').pop();
-      //   formData.append("banner", {
-      //     uri: banner,
-      //     name: fileName,
-      //     type: `image/${fileType}`,
-      //   });
-      // }
-
-      // const response = await apiService({
-      //   endpoint: `tournaments/${userId}`,
-      //   method: "POST",
-      //   body: formData,
-      //   headers: {
-      //     "Content-Type": "multipart/form-data",
-      //   },
-      // });
-
-      // if (response.success) {
-      //   showNotification('Tournament created successfully!');
-      //   setTimeout(() => {
-      //     navigation.navigate('Tournaments');
-      //   }, 2000);
-      // } else {
-      //   showNotification(response.error?.message || 'Failed to create tournament', 'error');
-      // }
       const tournamentData = {
         userId,
         name: tournamentName,
@@ -410,67 +362,63 @@ const CreateTournament = () => {
                 }}
               />
             )}
+            {/* MODIFICATION: Replaced dropdown logic with an overlay pattern */}
             <Text style={styles.label}>Tournament Format *</Text>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => setShowFormatDropdown(!showFormatDropdown)}
-            >
-              <Text style={[styles.dropdownButtonText, !format && styles.placeholderText]}>
-                {getFormatLabel(format)}
-              </Text>
-              <Ionicons
-                name={showFormatDropdown ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={AppColors.primary}
-              />
-            </TouchableOpacity>
-
-            {showFormatDropdown && (
-              <View style={styles.dropdownContainer}>
-                <Picker
-                  selectedValue={format}
-                  onValueChange={(itemValue) => {
-                    setFormat(itemValue);
-                    setShowFormatDropdown(false);
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Double Round Robin" value="DOUBLE_ROUND_ROBIN" />
-                  <Picker.Item label="Single Round Robin" value="SINGLE_ROUND_ROBIN" />
-                  <Picker.Item label="Knockout" value="KNOCKOUT" />
-                </Picker>
+            <View style={styles.dropdownPickerContainer}>
+              {/* This View is now just for display */}
+              <View style={styles.dropdownButton}>
+                <Text style={[styles.dropdownButtonText, !format && styles.placeholderText]}>
+                  {getFormatLabel(format)}
+                </Text>
+                <Ionicons
+                  name={"chevron-down"}
+                  size={20}
+                  color={AppColors.primary}
+                />
               </View>
-            )}
+              {/* This invisible Picker sits on top and handles the press */}
+              <Picker
+                selectedValue={format}
+                onValueChange={(itemValue) => {
+                  if (itemValue) setFormat(itemValue);
+                }}
+                style={styles.pickerOverlay}
+              >
+                <Picker.Item label="Select a format..." value={null} style={styles.pickerText} />
+                <Picker.Item label="Double Round Robin" value="DOUBLE_ROUND_ROBIN" />
+                <Picker.Item label="Single Round Robin" value="SINGLE_ROUND_ROBIN" />
+                <Picker.Item label="Knockout" value="KNOCKOUT" />
+              </Picker>
+            </View>
+
+            {/* MODIFICATION: Applied the same overlay pattern to the second dropdown */}
             <Text style={styles.label}>Ball Type *</Text>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => setShowBallTypeDropdown(!showBallTypeDropdown)}
-            >
-              <Text style={[styles.dropdownButtonText, !ballType && styles.placeholderText]}>
-                {getBallTypeLabel(ballType)}
-              </Text>
-              <Ionicons
-                name={showBallTypeDropdown ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={AppColors.primary}
-              />
-            </TouchableOpacity>
-
-            {showBallTypeDropdown && (
-              <View style={styles.dropdownContainer}>
-                <Picker
-                  selectedValue={ballType}
-                  onValueChange={(itemValue) => {
-                    setBallType(itemValue);
-                    setShowBallTypeDropdown(false);
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Tennis Ball" value="TENNIS" />
-                  <Picker.Item label="Leather Ball" value="LEATHER" />
-                </Picker>
+            <View style={styles.dropdownPickerContainer}>
+              {/* This View is now just for display */}
+              <View style={styles.dropdownButton}>
+                <Text style={[styles.dropdownButtonText, !ballType && styles.placeholderText]}>
+                  {getBallTypeLabel(ballType)}
+                </Text>
+                <Ionicons
+                  name={"chevron-down"}
+                  size={20}
+                  color={AppColors.primary}
+                />
               </View>
-            )}
+              {/* This invisible Picker sits on top and handles the press */}
+              <Picker
+                selectedValue={ballType}
+                onValueChange={(itemValue) => {
+                  if (itemValue) setBallType(itemValue);
+                }}
+                style={styles.pickerOverlay}
+              >
+                <Picker.Item label="Select a ball type..." value={null} />
+                <Picker.Item label="Tennis Ball" value="TENNIS" />
+                <Picker.Item label="Leather Ball" value="LEATHER" />
+              </Picker>
+            </View>
+
             <Text style={styles.label}>Number of Overs</Text>
             <TextInput
               style={styles.input}
@@ -639,24 +587,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     borderRadius: 12,
-    marginBottom: 16,
     backgroundColor: AppColors.background,
+    height: '100%',
   },
   dropdownButtonText: {
     fontSize: 16,
     color: AppColors.darkText,
-  },
-  dropdownContainer: {
-    borderColor: '#E0E0E0',
-    borderWidth: 1,
-    borderRadius: 12,
-    marginBottom: 16,
-    backgroundColor: AppColors.background,
-    overflow: 'hidden',
-  },
-  picker: {
-    color: AppColors.darkText,
-    height: 180,
   },
   floatingButtonContainer: {
     position: 'absolute',
@@ -693,7 +629,6 @@ const styles = StyleSheet.create({
   placeholderText: {
     color: AppColors.lightText,
   },
-  // Notification styles
   notificationContainer: {
     position: "absolute",
     top: 70,
@@ -725,6 +660,24 @@ const styles = StyleSheet.create({
   notificationClose: {
     padding: 4,
   },
+  dropdownPickerContainer: {
+    position: 'relative',
+    height: 55,
+    marginBottom: 16,
+  },
+  pickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0,
+    borderRadius: 10,
+
+  },
+  pickerText: {
+
+  }
 });
 
 export default CreateTournament;

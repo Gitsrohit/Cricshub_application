@@ -385,45 +385,63 @@ export const Matches = ({ id, isCreator }) => {
               ))}
             </ScrollView>
           ) : (
-            <View style={styles.emptyContainer}>
-              {isCreator && (
-                <>
-                  <Text style={styles.emptyText}>No matches scheduled yet.</Text>
-                  <Text style={styles.emptySubText}>How would you like to schedule the matches?</Text>
-                  <View style={styles.scheduleOptions}>
-                    <TouchableOpacity
-                      style={[styles.scheduleButton, styles.manualButton]}
-                      onPress={() => setIsManualModalOpen(true)}
-                    >
-                      <LinearGradient
-                        colors={[AppColors.primary, '#0056b3']}
-                        style={styles.buttonGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+            <>
+              <View style={styles.emptyContainer}>
+                {isCreator && (
+                  <>
+                    <Text style={styles.emptyText}>No matches scheduled yet.</Text>
+                    <Text style={styles.emptySubText}>How would you like to schedule the matches?</Text>
+                    <View style={styles.scheduleOptions}>
+                      <TouchableOpacity
+                        style={[styles.scheduleButton, styles.manualButton]}
+                        onPress={() => setIsManualModalOpen(true)}
                       >
-                        <Icon name="person" size={40} color="#fff" />
-                        <Text style={styles.scheduleButtonText}>Manually</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
+                        <LinearGradient
+                          colors={[AppColors.primary, '#0056b3']}
+                          style={styles.buttonGradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        >
+                          <Icon name="person" size={40} color="#fff" />
+                          <Text style={styles.scheduleButtonText}>Manually</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={[styles.scheduleButton, styles.aiButton]}
-                      onPress={aiMatchScheduleHandler}
-                    >
-                      <LinearGradient
-                        colors={['#6c5ce7', '#a29bfe']}
-                        style={styles.buttonGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                      <TouchableOpacity
+                        style={[styles.scheduleButton, styles.aiButton]}
+                        onPress={aiMatchScheduleHandler}
                       >
-                        <Icon name="smart-toy" size={40} color="#fff" />
-                        <Text style={styles.scheduleButtonText}>Using AI</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </View>
-                </>
+                        <LinearGradient
+                          colors={['#6c5ce7', '#a29bfe']}
+                          style={styles.buttonGradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        >
+                          <Icon name="smart-toy" size={40} color="#fff" />
+                          <Text style={styles.scheduleButtonText}>Using AI</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </View>
+              {matchDetails.length > 0 && (
+                <TouchableOpacity
+                  style={[styles.bottomButton, styles.scheduleMoreButton]}
+                  onPress={() => setIsManualModalOpen(true)}
+                >
+                  <LinearGradient
+                    colors={[AppColors.primary, '#0056b3']}
+                    style={styles.buttonGradientFull}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    <Icon name="add" size={20} color="#fff" />
+                    <Text style={styles.bottomButtonText}>Schedule More Matches</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               )}
-            </View>
+            </>
           )}
         </>
       )}
@@ -446,22 +464,7 @@ export const Matches = ({ id, isCreator }) => {
             </LinearGradient>
           </TouchableOpacity>
 
-          {matchDetails.length > 0 && (
-            <TouchableOpacity
-              style={[styles.bottomButton, styles.scheduleMoreButton]}
-              onPress={() => setIsManualModalOpen(true)}
-            >
-              <LinearGradient
-                colors={[AppColors.primary, '#0056b3']}
-                style={styles.buttonGradientFull}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Icon name="add" size={20} color="#fff" />
-                <Text style={styles.bottomButtonText}>Schedule More Matches</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+
         </>
       )}
 

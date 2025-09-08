@@ -467,7 +467,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
             <Text style={styles.playerName}>{striker?.name}*</Text>
           </View>
           <Text style={styles.playerStats}>{striker?.runs} ({striker?.ballsFaced})</Text>
-          <Text style={styles.playerExtra}>SR: {striker.ballsFaced != 0 ? (striker?.runs * 100) / striker.ballsFaced : 0.0}</Text>
+          <Text style={styles.playerExtra}>SR: {(striker.ballsFaced != 0 ? (striker?.runs * 100) / striker.ballsFaced : 0.0).toFixed(2)}</Text>
         </View>
 
         <View style={styles.playerRow}>
@@ -476,7 +476,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
             <Text style={styles.playerName}>{nonStriker?.name}</Text>
           </View>
           <Text style={styles.playerStats}>{nonStriker?.runs} ({nonStriker?.ballsFaced})</Text>
-          <Text style={styles.playerExtra}>SR: {nonStriker.ballsFaced != 0 ? (nonStriker?.runs * 100) / nonStriker.ballsFaced : 0.0}</Text>
+          <Text style={styles.playerExtra}>SR: {(nonStriker.ballsFaced != 0 ? (nonStriker?.runs * 100) / nonStriker.ballsFaced : 0.0).toFixed(2)}</Text>
         </View>
 
         <View style={styles.divider} />
