@@ -2,74 +2,173 @@ import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Animated, Easing } from "react-native";
 
 export default function AnimatedSplash({ onFinish }) {
-  const fadeAnim1 = useRef(new Animated.Value(0)).current;
-  const fadeAnim2 = useRef(new Animated.Value(0)).current; 
-  const slideAnim = useRef(new Animated.Value(20)).current; 
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  // Animation values for Native Driver
+  const iconScaleAnim = useRef(new Animated.Value(0)).current; 
+  const iconOpacityAnim = useRef(new Animated.Value(0)).current;
+  const textLogoTranslateY = useRef(new Animated.Value(50)).current;
+  const textLogoOpacity = useRef(new Animated.Value(0)).current;
+  const taglineTranslateY = useRef(new Animated.Value(50)).current;
+  const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const screenOpacity = useRef(new Animated.Value(1)).current;
+
+  // Animation values for JS Driver
+  const progressBarWidth = useRef(new Animated.Value(0)).current;
+  const backgroundAnim = useRef(new Animated.Value(0)).current;
+  const progressBarOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.timing(fadeAnim1, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim2, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      Animated.timing(progressAnim, {
+    // 1. Splash screen entrance animations (all sequential)
+    const entranceSequence = Animated.sequence([
+      // Animate background color change (JS driver)
+      Animated.timing(backgroundAnim, {
         toValue: 1,
         duration: 1500,
+        easing: Easing.ease,
         useNativeDriver: false,
-      }).start(() => {
-        setTimeout(() => {
-          onFinish();
-        }, 800);
-      });
+      }),
+      Animated.delay(200),
+      // Icon logo entrance (Native driver)
+      Animated.parallel([
+        Animated.timing(iconScaleAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.elastic(1.5),
+          useNativeDriver: true,
+        }),
+        Animated.timing(iconOpacityAnim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.delay(200),
+      // Text logo entrance (Native driver)
+      Animated.parallel([
+        Animated.timing(textLogoOpacity, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.spring(textLogoTranslateY, {
+          toValue: 0,
+          friction: 7,
+          tension: 100,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.delay(300),
+      // Tagline entrance (Native driver)
+      Animated.parallel([
+        Animated.timing(taglineOpacity, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.spring(taglineTranslateY, {
+          toValue: 0,
+          friction: 6,
+          tension: 90,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.delay(500),
+      // Progress bar container fade-in (JS driver)
+      Animated.timing(progressBarOpacity, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.linear,
+        useNativeDriver: false,
+      }),
+    ]);
+
+    // 2. Progress bar fill animation (after entrance sequence)
+    const progressBarFill = Animated.timing(progressBarWidth, {
+      toValue: 1,
+      duration: 1500,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    });
+    
+    // 3. Final screen fade-out animation
+    const screenExit = Animated.timing(screenOpacity, {
+      toValue: 0,
+      duration: 800,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    });
+
+    // Orchestrate the final sequence
+    Animated.sequence([
+      entranceSequence, // All elements appear in sequence
+      progressBarFill,  // Progress bar fills up
+      Animated.delay(500), // Short pause
+      screenExit        // Entire screen fades out
+    ]).start(() => {
+      onFinish();
     });
   }, []);
 
-  const progressWidth = progressAnim.interpolate({
+  const finalProgressBarWidth = progressBarWidth.interpolate({
     inputRange: [0, 1],
     outputRange: ["0%", "100%"],
   });
+  
+  const backgroundColor = backgroundAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#f0f0f0", "#ffffff"],
+  });
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { backgroundColor, opacity: screenOpacity }]}>
       <Animated.Image
         source={require("../images/iconLogo.png")}
-        style={[styles.logo, { opacity: fadeAnim1 }]}
+        style={[
+          styles.logo,
+          {
+            opacity: iconOpacityAnim,
+            transform: [{ scale: iconScaleAnim }],
+          },
+        ]}
       />
       <Animated.Image
         source={require("../images/textLogo.png")}
-        style={[styles.logo, { opacity: fadeAnim2 }]}
+        style={[
+          styles.logo,
+          {
+            width: 200,
+            height: 80,
+            resizeMode: "contain",
+            opacity: textLogoOpacity,
+            transform: [{ translateY: textLogoTranslateY }],
+            marginTop: -20,
+          },
+        ]}
       />
-      <View style={styles.progressBarContainer}>
-        <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
-      </View>
+      
+      <Animated.View
+        style={[
+          styles.progressBarContainer,
+          { opacity: progressBarOpacity },
+        ]}
+      >
+        <Animated.View style={[styles.progressBar, { width: finalProgressBarWidth }]} />
+      </Animated.View>
 
       <Animated.Text
         style={[
           styles.text,
           {
-            opacity: fadeAnim2,
-            transform: [{ translateY: slideAnim }],
+            opacity: taglineOpacity,
+            transform: [{ translateY: taglineTranslateY }],
           },
         ]}
       >
         All in one powerful app.
       </Animated.Text>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -78,7 +177,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
   },
   logo: {
     width: 150,
@@ -90,7 +188,7 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: "#eee",
     borderRadius: 3,
-    marginTop: 12,
+    marginTop: 25,
     overflow: "hidden",
   },
   progressBar: {
@@ -100,10 +198,11 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 22,
-    marginTop: 18,
-    fontWeight: "500",
-    letterSpacing: 1,
-    color: "#222",
+    marginTop: 20,
+    fontWeight: "600",
+    letterSpacing: 1.2,
+    color: "#333",
     textAlign: "center",
+    paddingHorizontal: 20,
   },
 });

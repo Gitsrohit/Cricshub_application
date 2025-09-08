@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal, Pressable, ScrollView, Alert, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,6 +9,26 @@ import { useNavigation } from '@react-navigation/native';
 import apiService from '../../APIservices';
 import { AppColors } from '../../../assets/constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
+
+// Define the color palette and gradients for consistency from AllMatches component
+const AppColorsFromAllMatches = {
+  primaryBlue: '#34B8FF',
+  secondaryBlue: '#1E88E5',
+  white: '#FFFFFF',
+  black: '#000000',
+  darkText: '#333333',
+  mediumText: '#555555',
+  lightText: '#888888',
+  lightBackground: '#F8F9FA',
+  cardBackground: '#FFFFFF',
+  errorRed: '#FF4757',
+  successGreen: '#2ED573',
+  liveGreen: '#2ED573',
+  upcomingOrange: '#FF9F43',
+  pastGray: '#747D8C',
+  infoGrey: '#A4B0BE',
+  cardBorder: '#E0E0E0',
+};
 
 export const Matches = ({ id, isCreator }) => {
   const [matchDetails, setMatchDetails] = useState([]);
@@ -24,17 +43,14 @@ export const Matches = ({ id, isCreator }) => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [venue, setVenue] = useState('');
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [manualTeamA, setManualTeamA] = useState('');
-  const [manualTeamB, setManualTeamB] = useState('');
-  const [manualMatchDate, setManualMatchDate] = useState(new Date());
-  const [manualMatchTime, setManualMatchTime] = useState(new Date());
-  const [manualVenue, setManualVenue] = useState('');
-  const [tournamentData, setTournamentData] = useState(null);
   const [manualMatchTeamA, setManualMatchTeamA] = useState(null);
   const [manualMatchTeamB, setManualMatchTeamB] = useState(null);
+  const [manualMatchDate, setManualMatchDate] = useState(new Date());
+  const [manualMatchTime, setManualMatchTime] = useState(new Date());
   const [manualMatchShowDatePicker, setManualMatchShowDatePicker] = useState(false);
   const [manualMatchShowTimePicker, setManualMatchShowTimePicker] = useState(false);
   const [manualMatchVenue, setManualMatchVenue] = useState('');
+  const [tournamentData, setTournamentData] = useState(null);
   const [showPlayOffMatchScheduler, setShowPlayOffMatchScheduler] = useState(false);
   const [canSchedulePlayoff, setCanSchedulePlayoff] = useState(false);
   const navigation = useNavigation();
@@ -60,9 +76,6 @@ export const Matches = ({ id, isCreator }) => {
           (match) => match.status === 'Completed'
         );
         setCanSchedulePlayoff(allCompleted);
-        console.log(allCompleted);
-        console.log(matchDetails.length);
-
       } else {
         setError('Failed to fetch matches');
         console.error('Error fetching matches:', response.error);
@@ -135,15 +148,6 @@ export const Matches = ({ id, isCreator }) => {
     fetchTournamentDetails(id);
   }, [id]);
 
-  const getInitials = (name) => {
-    if (!name) return '';
-    const words = name.trim().split(/\s+/);
-    if (words.length === 1) {
-      return words[0].substring(0, 3).toUpperCase();
-    }
-    return words.map(word => word.charAt(0).toUpperCase()).join('').substring(0, 3);
-  };
-
   const handleScheduleSubmit = async () => {
     if (!selectedMatch) return;
 
@@ -175,8 +179,6 @@ export const Matches = ({ id, isCreator }) => {
   };
 
   const manualMatchScheduleHandler = async () => {
-    console.log(`${manualMatchTeamB}, ${manualMatchTeamA}, ${manualMatchDate}, ${manualMatchTime}, ${manualMatchVenue}`);
-
     if (!manualMatchTeamA || !manualMatchTeamB || !manualMatchDate || !manualMatchTime || !manualMatchVenue) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
@@ -236,8 +238,6 @@ export const Matches = ({ id, isCreator }) => {
   }
 
   const playoffMatchScheduleHandler = async () => {
-    console.log(`${manualMatchTeamB}, ${manualMatchTeamA}, ${manualMatchDate}, ${manualMatchTime}, ${manualMatchVenue}`);
-
     if (!manualMatchTeamA || !manualMatchTeamB || !manualMatchDate || !manualMatchTime || !manualMatchVenue) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
@@ -279,24 +279,152 @@ export const Matches = ({ id, isCreator }) => {
     }
   }
 
-  const getMatchStatusColor = (match) => {
-    if (match.winner) return '#4CAF50'; // Green for completed matches
-    if (match.matchDate) {
-      const matchDateTime = moment(`${match.matchDate[0]}-${match.matchDate[1]}-${match.matchDate[2]}`);
-      if (moment().isAfter(matchDateTime)) return '#FF9800'; // Orange for ongoing matches
-      return '#2196F3'; // Blue for upcoming matches
-    }
-    return '#9E9E9E'; // Gray for unscheduled matches
+  const getStatusInfo = (match) => {
+    if (match.status === 'Completed') return { text: 'Completed', color: AppColorsFromAllMatches.pastGray, icon: 'check-circle' };
+    if (match.status === 'Live') return { text: 'LIVE', color: AppColorsFromAllMatches.liveGreen, icon: 'live-tv' };
+    if (match.status === 'Upcoming') return { text: 'UPCOMING', color: AppColorsFromAllMatches.upcomingOrange, icon: 'schedule' };
+    return { text: 'Unscheduled', color: AppColors.infoGrey, icon: 'info' };
   };
 
-  const getMatchStatusText = (match) => {
-    if (match.winner) return 'Completed';
-    if (match.matchDate) {
-      const matchDateTime = moment(`${match.matchDate[0]}-${match.matchDate[1]}-${match.matchDate[2]}`);
-      if (moment().isAfter(matchDateTime)) return 'Live';
-      return 'Upcoming';
-    }
-    return 'Unscheduled';
+  const MatchCard = ({ match, onPress, isCreator, tournamentData }) => {
+    const [scaleValue] = useState(new Animated.Value(1));
+
+    const handlePressIn = () => {
+      Animated.spring(scaleValue, {
+        toValue: 0.97,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const handlePressOut = () => {
+      Animated.spring(scaleValue, {
+        toValue: 1,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const statusInfo = getStatusInfo(match);
+
+    const matchDateFormatted = match?.matchDate ? `${match.matchDate[2]}-${match.matchDate[1]}-${match.matchDate[0]}` : 'N/A';
+    const matchTimeFormatted = match?.matchTime ? `${match.matchTime[0]}:${match.matchTime[1]}` : 'N/A';
+    const showScores = match.status === 'Completed' || match.status === 'Live';
+    const showWinner = match.status === 'Completed' && match.winner;
+
+    return (
+      <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+        <Pressable
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          style={styles.matchCard}
+        >
+          {/* Status Badge */}
+          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+            <Icon name={statusInfo.icon} size={16} color={AppColorsFromAllMatches.white} />
+            <Text style={styles.statusText}>{statusInfo.text}</Text>
+          </View>
+          
+          {/* Edit Icon for creator */}
+          {isCreator && (
+            <Pressable
+              onPress={() => {
+                setSelectedMatch(match);
+                if(match.matchDate) {
+                  setMatchDate(new Date(match.matchDate[0], match.matchDate[1] - 1, match.matchDate[2]));
+                } else {
+                  setMatchDate(new Date());
+                }
+                setMatchTime(new Date());
+                setVenue(match.venue || '');
+                setModalVisible(true);
+              }}
+              style={styles.editIconContainer}
+            >
+              <Icon name="edit" size={20} color={AppColorsFromAllMatches.primaryBlue} />
+            </Pressable>
+          )}
+
+          {/* Tournament Header */}
+          <LinearGradient
+            colors={['#e3f2fd', '#ffffff']}
+            style={styles.matchCardHeader}
+          >
+            <Text style={styles.tournamentName} numberOfLines={1}>
+              {tournamentData?.name || 'Individual Match'}
+            </Text>
+          </LinearGradient>
+
+          {/* Match Content */}
+          <View style={styles.matchCardContent}>
+            {/* Teams */}
+            <View style={styles.teamRow}>
+              <View style={styles.teamContainer}>
+                <Image
+                  source={{ uri: match?.team1?.logoPath }}
+                  style={styles.teamLogo}
+                />
+                <Text style={styles.teamName} numberOfLines={1}>{match?.team1?.name}</Text>
+                {showScores && (match?.team1Score || match?.team2Score) && (
+                  <View style={styles.scoreBadge}>
+                    <Text style={styles.teamScore}>{match?.team1Score || '0'}</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.vsContainer}>
+                <Text style={styles.vsText}>VS</Text>
+              </View>
+
+              <View style={styles.teamContainer}>
+                <Image
+                  source={{ uri: match?.team2?.logoPath }}
+                  style={styles.teamLogo}
+                />
+                <Text style={styles.teamName} numberOfLines={1}>{match?.team2?.name}</Text>
+                {showScores && (match?.team1Score || match?.team2Score) && (
+                  <View style={styles.scoreBadge}>
+                    <Text style={styles.teamScore}>{match?.team2Score || '0'}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Match Details */}
+            <View style={styles.matchDetailsRow}>
+              <Icon name="calendar-month" size={14} color={AppColorsFromAllMatches.infoGrey} />
+              <Text style={styles.matchDetailText}>{matchDateFormatted}</Text>
+              <Text style={styles.dotSeparator}>•</Text>
+
+              {match?.matchTime && (
+                <>
+                  <Icon name="access-time" size={14} color={AppColorsFromAllMatches.infoGrey} />
+                  <Text style={styles.matchDetailText}>{matchTimeFormatted}</Text>
+                  <Text style={styles.dotSeparator}>•</Text>
+                </>
+              )}
+
+              <Icon name="location-on" size={14} color={AppColorsFromAllMatches.infoGrey} />
+              <Text style={styles.matchDetailText} numberOfLines={1}>
+                {match?.venue || 'Venue not specified'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Footer */}
+          <View style={styles.matchCardFooter}>
+            {showWinner ? (
+              <Text style={styles.winnerText}>🏆 {match.winner} won the match!</Text>
+            ) : (
+              <Text style={styles.footerText}>
+                {isCreator ? (match.status === 'Live' ? 'Tap to Score Match' : 'Tap to Setup Match') : 'Tap to View Match'}
+              </Text>
+            )}
+          </View>
+        </Pressable>
+      </Animated.View>
+    );
   };
 
   return (
@@ -307,83 +435,13 @@ export const Matches = ({ id, isCreator }) => {
           {matchDetails.length > 0 ? (
             <ScrollView style={styles.matchesContainer}>
               {matchDetails.map((match, index) => (
-                <Pressable
-                  key={index}
-                  onPress={() => matchPressHandler(match)}
-                  style={({ pressed }) => [
-                    styles.matchCard,
-                    pressed && styles.pressedEffect
-                  ]}
-                >
-                  <LinearGradient
-                    colors={['#ffffff', '#f8f9fa']}
-                    style={styles.cardGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <View style={styles.cardHeader}>
-                      <View style={styles.teamContainer}>
-                        <Image source={{ uri: match.team1.logoPath }} style={styles.logo} />
-                        <Text style={styles.matchTeamName}>
-                          {getInitials(match.team1?.name)}
-                        </Text>
-                      </View>
-
-                      <View style={styles.vsContainer}>
-                        <Text style={styles.vs}>VS</Text>
-                        <View style={[styles.statusBadge, { backgroundColor: getMatchStatusColor(match) }]}>
-                          <Text style={styles.statusText}>{getMatchStatusText(match)}</Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.teamContainer}>
-                        <Text style={styles.matchTeamName}>
-                          {getInitials(match.team2?.name)}
-                        </Text>
-                        <Image source={{ uri: match.team2.logoPath }} style={styles.logo} />
-                      </View>
-
-                      {isCreator && (
-                        <Icon
-                          name="edit"
-                          size={20}
-                          color={AppColors.primary}
-                          onPress={() => {
-                            setSelectedMatch(match);
-                            setMatchDate(new Date(match.matchDate[0], match.matchDate[1] - 1, match.matchDate[2]));
-                            setMatchTime(new Date());
-                            setVenue(match.venue || '');
-                            setModalVisible(true);
-                          }}
-                          style={styles.editIcon}
-                        />
-                      )}
-                    </View>
-
-                    <View style={styles.cardBody}>
-                      <Text style={styles.matchStage}>{match.stage}</Text>
-
-                      <View style={styles.detailRow}>
-                        <Icon name="location-on" color={AppColors.primary} size={18} />
-                        <Text style={styles.matchText}>Venue: {match.venue || 'TBD'}</Text>
-                      </View>
-
-                      <View style={styles.detailRow}>
-                        <Icon name="calendar-today" color={AppColors.primary} size={18} />
-                        <Text style={styles.matchText}>
-                          Date: {match.matchDate ? `${match.matchDate[2]}-${match.matchDate[1]}-${match.matchDate[0]}` : 'TBD'}
-                        </Text>
-                      </View>
-
-                      {match.winner && (
-                        <View style={styles.detailRow}>
-                          <Icon name="emoji-events" color="#FFD700" size={18} />
-                          <Text style={styles.winnerText}>Winner: {match.winner}</Text>
-                        </View>
-                      )}
-                    </View>
-                  </LinearGradient>
-                </Pressable>
+                <MatchCard 
+                  key={index} 
+                  match={match} 
+                  onPress={() => matchPressHandler(match)} 
+                  isCreator={isCreator} 
+                  tournamentData={tournamentData} 
+                />
               ))}
             </ScrollView>
           ) : (
@@ -430,42 +488,6 @@ export const Matches = ({ id, isCreator }) => {
         </>
       )}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-      {canSchedulePlayoff && isCreator && (
-        <>
-          <TouchableOpacity
-            onPress={() => setShowPlayOffMatchScheduler(true)}
-            style={[styles.bottomButton, styles.playoffButton]}
-          >
-            <LinearGradient
-              colors={['#ff7e5f', '#feb47b']}
-              style={styles.buttonGradientFull}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Icon name="play-arrow" size={20} color="#fff" />
-              <Text style={styles.bottomButtonText}>Schedule Playoffs</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {matchDetails.length > 0 && (
-            <TouchableOpacity
-              style={[styles.bottomButton, styles.scheduleMoreButton]}
-              onPress={() => setIsManualModalOpen(true)}
-            >
-              <LinearGradient
-                colors={[AppColors.primary, '#0056b3']}
-                style={styles.buttonGradientFull}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Icon name="add" size={20} color="#fff" />
-                <Text style={styles.bottomButtonText}>Schedule More Matches</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </>
-      )}
 
       {isCreator && matchDetails.length > 0 && (
         <TouchableOpacity
@@ -857,110 +879,152 @@ const styles = StyleSheet.create({
   matchesContainer: {
     padding: 16,
   },
+  
+  // New Styles from AllMatches component
   matchCard: {
-    borderRadius: 16,
-    marginBottom: 16,
+    backgroundColor: AppColorsFromAllMatches.white,
+    borderRadius: 15,
+    marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    overflow: 'hidden',
+    shadowRadius: 6,
+    elevation: 4,
   },
-  cardGradient: {
-    padding: 16,
-  },
-  pressedEffect: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
-  },
-  cardHeader: {
+  statusBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 2,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 12,
-    marginBottom: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 15,
+    shadowColor: AppColorsFromAllMatches.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statusText: {
+    color: AppColorsFromAllMatches.white,
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  editIconContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    zIndex: 2,
+    padding: 5,
+  },
+  matchCardHeader: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    alignItems: 'center',
+  },
+  tournamentName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: AppColorsFromAllMatches.secondaryBlue,
+    textAlign: 'center',
+  },
+  matchCardContent: {
+    padding: 15,
+    alignItems: 'center',
+  },
+  teamRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    width: '100%',
   },
   teamContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    justifyContent: 'center',
   },
-  logo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginHorizontal: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  teamLogo: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 4,
+    borderWidth: 1.5,
+    borderColor: AppColorsFromAllMatches.primaryBlue,
+    backgroundColor: AppColorsFromAllMatches.lightBackground,
   },
-  matchTeamName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: AppColors.darkText,
-    minWidth: 40,
+  teamName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: AppColorsFromAllMatches.darkText,
     textAlign: 'center',
+    marginBottom: 3,
+  },
+  teamScore: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: AppColorsFromAllMatches.primaryBlue,
   },
   vsContainer: {
     alignItems: 'center',
-    marginHorizontal: 8,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
   },
-  vs: {
+  vsText: {
     fontSize: 14,
-    color: AppColors.secondary,
     fontWeight: 'bold',
+    color: AppColorsFromAllMatches.mediumText,
+    marginBottom: 3,
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 4,
-  },
-  statusText: {
-    fontSize: 10,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  editIcon: {
-    padding: 5,
-    marginLeft: 8,
-  },
-  cardBody: {
-    paddingTop: 8,
-  },
-  matchStage: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: AppColors.primary,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  detailRow: {
+  matchDetailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderTopColor: AppColorsFromAllMatches.cardBorder,
+    paddingTop: 12,
+    width: '100%',
   },
-  matchText: {
-    fontSize: 14,
-    color: AppColors.text,
-    marginLeft: 8,
+  matchDetailText: {
+    marginLeft: 4,
+    fontSize: 12,
+    color: AppColorsFromAllMatches.mediumText,
+  },
+  dotSeparator: {
+    fontSize: 12,
+    color: AppColorsFromAllMatches.infoGrey,
+    marginHorizontal: 6,
+  },
+  matchCardFooter: {
+    padding: 12,
+    backgroundColor: AppColorsFromAllMatches.lightBackground,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    alignItems: 'center',
   },
   winnerText: {
-    fontSize: 14,
-    color: '#FFD700',
-    marginLeft: 8,
+    color: AppColorsFromAllMatches.successGreen,
+    fontSize: 16,
     fontWeight: '600',
   },
-  errorText: {
-    color: AppColors.error,
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 20,
+  footerText: {
+    color: AppColorsFromAllMatches.mediumText,
+    fontSize: 14,
+  },
+  scoreBadge: {
+    backgroundColor: AppColorsFromAllMatches.lightBackground,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 2,
   },
 
-  // Empty State and Scheduling Options
+  // Existing styles that were not changed
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -970,14 +1034,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 20,
-    color: AppColors.darkText,
+    color: AppColorsFromAllMatches.darkText,
     textAlign: 'center',
     marginBottom: 8,
     fontWeight: 'bold',
   },
   emptySubText: {
     fontSize: 16,
-    color: AppColors.text,
+    color: AppColorsFromAllMatches.mediumText,
     textAlign: 'center',
     marginBottom: 30,
   },
@@ -994,7 +1058,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   manualButton: {
-    shadowColor: AppColors.primary,
+    shadowColor: AppColorsFromAllMatches.primaryBlue,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1019,8 +1083,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: 12,
   },
-
-  // Modals
+  errorText: {
+    color: AppColorsFromAllMatches.errorRed,
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -1061,7 +1129,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: AppColors.darkText,
+    color: AppColorsFromAllMatches.darkText,
     marginBottom: 8,
     fontWeight: '600',
     marginTop: 10,
@@ -1071,7 +1139,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
-
     borderRadius: 10,
     padding: 12,
     marginBottom: 15,
@@ -1082,11 +1149,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: AppColors.darkText,
+    color: AppColorsFromAllMatches.darkText,
   },
   dateTimeText: {
     fontSize: 16,
-    color: AppColors.darkText,
+    color: AppColorsFromAllMatches.darkText,
   },
   pickerContainer: {
     flexDirection: 'row',
@@ -1111,7 +1178,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   primaryBtn: {
-    backgroundColor: AppColors.primaryBlue,
+    backgroundColor: AppColorsFromAllMatches.primaryBlue,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 10,
@@ -1124,7 +1191,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cancelBtn: {
-    backgroundColor: AppColors.errorRed,
+    backgroundColor: AppColorsFromAllMatches.errorRed,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 10,

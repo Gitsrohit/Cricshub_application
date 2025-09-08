@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Animated,
   FlatList,
@@ -256,7 +255,7 @@ const Home = () => {
   );
 
   return (
-    <SafeAreaView style={styles.appContainer}>
+    <View style={styles.appContainer}>
       <StatusBar
         barStyle="dark-content"
         backgroundColor={AppColors.white}
@@ -419,12 +418,17 @@ const Home = () => {
           </View>
         </View>
       </View >
-    </SafeAreaView >
+    </View >
   );
 };
 
 export const styles = StyleSheet.create({
-  appContainer: { flex: 1, backgroundColor: AppColors.white },
+  appContainer: {
+    flex: 1,
+    backgroundColor: AppColors.white,
+    // Add conditional padding for Android
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   safeArea: { flex: 1, backgroundColor: "transparent" },
   topBarWrapper: {
     backgroundColor: AppColors.white,
@@ -439,8 +443,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     minHeight: 56,
-    // For older Android versions or more explicit control
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   menuButton: {
     paddingRight: 15,
@@ -474,7 +476,11 @@ export const styles = StyleSheet.create({
     elevation: 10,
   },
   sidebarBackground: { flex: 1, backgroundColor: AppColors.white },
-  sidebarHeader: { marginTop: 80, marginBottom: 20, alignItems: "center" },
+  sidebarHeader: {
+    marginTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight + 20, // Adjust sidebar header for Android
+    marginBottom: 20,
+    alignItems: "center",
+  },
   sidebarTitle: {
     fontSize: 20,
     fontWeight: "700",
@@ -520,7 +526,7 @@ export const styles = StyleSheet.create({
   },
   closeSidebarButton: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 50 : 50,
+    top: Platform.OS === "ios" ? 50 : StatusBar.currentHeight + 10, // Adjust close button for Android
     right: 12,
     width: 36,
     height: 36,
@@ -667,8 +673,8 @@ export const styles = StyleSheet.create({
     color: AppColors.white,
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 20,
     lineHeight: 22,
+    marginBottom: 20,
   },
   featureList: {
     marginBottom: 25,

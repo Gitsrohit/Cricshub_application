@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -88,7 +90,12 @@ const Toss = ({ route }) => {
   const isSubmitDisabled = !tossWinner || !choice || isLoading;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.appContainer}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={AppColors.BgColor}
+        translucent={true}
+      />
       <View style={styles.mainContentArea}>
         <Text style={styles.heading}>Toss Decision</Text>
 
@@ -131,7 +138,7 @@ const Toss = ({ route }) => {
                 <Text style={styles.optionText}>{matchDetails?.team1Name}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.optionItem, styles.lastOptionItem]} // Fixed: Moved comment outside style array
+                style={[styles.optionItem, styles.lastOptionItem]}
                 onPress={() => handleSelectTossWinner(matchDetails?.team2Name)}
               >
                 <MaterialIcons name="groups" size={20} color={AppColors.lightText} style={styles.optionIcon} />
@@ -178,7 +185,7 @@ const Toss = ({ route }) => {
                 <Text style={styles.optionText}>Bat</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.optionItem, styles.lastOptionItem]} // Fixed: Moved comment outside style array
+                style={[styles.optionItem, styles.lastOptionItem]}
                 onPress={() => handleSelectChoice('bowl')}
               >
                 <MaterialIcons name="sports-baseball" size={20} color={AppColors.lightText} style={styles.optionIcon} />
@@ -187,35 +194,30 @@ const Toss = ({ route }) => {
             </View>
           )}
         </View>
-
-        {/* Submit Button with LinearGradient */}
-        <Pressable
-          onPress={handleTossSubmit}
-          disabled={isSubmitDisabled}
-          style={styles.submitButtonWrapper} // This Pressable acts as a wrapper for shadow and layout
-        >
-          <LinearGradient
-            // Dynamically set colors: gray if disabled, otherwise primaryButton gradient
-            colors={isSubmitDisabled ? [AppColors.gray, AppColors.gray] : AppGradients.primaryButton}
-            style={[
-              styles.submitButtonGradient,
-              // Optional: Add a subtle press effect within the gradient if desired
-              // Example: pressed && { opacity: 0.8 }
-            ]}
-            start={{ x: 0, y: 0 }} // Gradient starts from top-left
-            end={{ x: 1, y: 1 }}   // Gradient ends at bottom-right
-          >
-            {isLoading ? (
-              <ActivityIndicator color={AppColors.white} />
-            ) : (
-              <>
-                <Ionicons name="checkmark-done" size={24} color={AppColors.white} style={styles.buttonIcon} />
-                <Text style={styles.submitButtonText}>Submit Toss</Text>
-              </>
-            )}
-          </LinearGradient>
-        </Pressable>
       </View>
+      
+      {/* Submit Button with fixed bottom position */}
+      <Pressable
+        onPress={handleTossSubmit}
+        disabled={isSubmitDisabled}
+        style={styles.submitButtonWrapper} 
+      >
+        <LinearGradient
+          colors={isSubmitDisabled ? [AppColors.infoGrey, AppColors.infoGrey] : AppGradients.primaryButton}
+          style={styles.submitButtonGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          {isLoading ? (
+            <ActivityIndicator color={AppColors.white} />
+          ) : (
+            <>
+              <Ionicons name="checkmark-done" size={24} color={AppColors.white} style={styles.buttonIcon} />
+              <Text style={styles.submitButtonText}>Submit Toss</Text>
+            </>
+          )}
+        </LinearGradient>
+      </Pressable>
     </View>
   );
 };
@@ -223,25 +225,28 @@ const Toss = ({ route }) => {
 export default Toss;
 
 const styles = StyleSheet.create({
-  container: {
+  appContainer: {
     flex: 1,
-    backgroundColor: AppColors.BgColor, // Main background color from constants
+    backgroundColor: AppColors.BgColor,
+    // Fix for Android status bar issue
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   mainContentArea: {
     flex: 1,
-    paddingHorizontal: 30, // Horizontal padding for the content area
-    paddingTop: 120,       // Top padding to push content down
-    // No background color here if you want it to be transparent over container's BgColor
+    paddingHorizontal: 20,
+    backgroundColor: AppColors.BgColor,
   },
   heading: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: AppColors.darkText,
-    marginBottom: 30,
+    marginBottom: 8,
     textAlign: 'center',
+    paddingTop: 20, // Add padding top to push heading down below status bar on iOS
   },
   inputSection: {
-    marginBottom: 25, // Space between each input/dropdown section
+    marginBottom: 20,
+    marginTop: 20,
   },
   label: {
     fontSize: 17,
@@ -250,9 +255,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dropdownButton: {
-    backgroundColor: AppColors.white, // White background for the dropdown button
+    backgroundColor: AppColors.white,
     borderRadius: 10,
-    paddingVertical: 15,
+    paddingVertical: 14,
     paddingHorizontal: 15,
     borderWidth: 1,
     borderColor: AppColors.inputBorder,
@@ -266,15 +271,15 @@ const styles = StyleSheet.create({
   },
   dropdownButtonText: {
     fontSize: 16,
-    color: AppColors.mediumText,
+    color: AppColors.darkText,
     flex: 1,
     marginLeft: 10,
   },
   dropdownIcon: {
-    marginRight: 10,
+    marginRight: 5,
   },
   optionsContainer: {
-    backgroundColor: AppColors.white, // White background for the options list
+    backgroundColor: AppColors.white,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.inputBorder,
@@ -284,7 +289,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
-    overflow: 'hidden', // Ensures inner content respects borderRadius
+    overflow: 'hidden',
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   optionItem: {
     flexDirection: 'row',
@@ -292,9 +302,8 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: AppColors.lightBackground, // Light separator for options
+    borderBottomColor: AppColors.lightBackground,
   },
-  // Style for the very last option item to remove its bottom border
   lastOptionItem: {
     borderBottomWidth: 0,
   },
@@ -307,8 +316,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   submitButtonWrapper: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
     borderRadius: 10, 
-    marginTop: 30,
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,

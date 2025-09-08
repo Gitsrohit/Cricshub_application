@@ -1,4 +1,4 @@
-import { FlatList, Pressable, StyleSheet, Text, View, Animated, Image, ActivityIndicator, Vibration, Platform, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View, Animated, Image, ActivityIndicator, Vibration, Platform, TextInput, TouchableOpacity, StatusBar } from 'react-native';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,6 +7,9 @@ import apiService from '../APIservices';
 import { AppGradients, AppColors } from '../../assets/constants/colors.js';
 import LottieView from 'lottie-react-native';
 import CustomAlertDialog from '../Customs/CustomDialog.js';
+// We don't need SafeAreaView from react-native-safe-area-context for this solution
+// but if you have it installed for other components, it's fine to keep the import
+// import { SafeAreaView } from 'react-native-safe-area-context'; 
 const MIN_LOAD_TIME = 3000;
 
 const SelectRoles = ({ route, navigation }) => {
@@ -105,7 +108,6 @@ const SelectRoles = ({ route, navigation }) => {
     fetchPlayingXI();
   }, []);
 
-
   const shakeScreen = () => {
     shakeAnimation.setValue(0);
     Animated.sequence([
@@ -115,7 +117,6 @@ const SelectRoles = ({ route, navigation }) => {
       Animated.timing(shakeAnimation, { toValue: 0, duration: 50, useNativeDriver: true })
     ]).start();
   };
-
 
   const handleSelectBatsman = ({ playerId, name }) => {
     if (strikerId === playerId) {
@@ -355,7 +356,8 @@ const SelectRoles = ({ route, navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.appContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor={AppColors.BgColor} translucent={true} />
       <Animated.View
         style={[
           styles.mainScreenContent,
@@ -447,11 +449,16 @@ const SelectRoles = ({ route, navigation }) => {
         type={alertDialogType}
         buttons={alertDialogButtons}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  appContainer: {
+    flex: 1,
+    backgroundColor: AppColors.BgColor,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   container: {
     flex: 1,
     backgroundColor: AppColors.BgColor,
