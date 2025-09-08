@@ -202,7 +202,7 @@ const TournamentMatchOperatives = ({ route, navigation }) => {
       <View style={styles.container}>
         <Text style={styles.title}>Select Tournament Match Operatives</Text>
         <Text style={styles.subTitle}>
-          Match operatives will manage scoring and streaming
+          Tournament operatives will manage scoring and streaming
         </Text>
 
         <View style={styles.selectedList}>

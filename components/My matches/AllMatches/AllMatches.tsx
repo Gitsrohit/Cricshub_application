@@ -175,7 +175,7 @@ const MatchCard = ({
       case 'UPCOMING':
         return { text: 'UPCOMING', color: AppColors.upcomingOrange, icon: 'schedule' };
       case 'PAST':
-        return { text: 'COMPLETED', color: AppColors.pastGray, icon: 'check-circle' };
+        return { text: 'Completed', color: AppColors.pastGray, icon: 'check-circle' };
       default:
         return { text: status, color: AppColors.primaryBlue, icon: 'info' };
     }

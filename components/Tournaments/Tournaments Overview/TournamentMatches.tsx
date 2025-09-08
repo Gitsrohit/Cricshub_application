@@ -61,6 +61,8 @@ export const Matches = ({ id, isCreator }) => {
         );
         setCanSchedulePlayoff(allCompleted);
         console.log(allCompleted);
+        console.log(matchDetails.length);
+
       } else {
         setError('Failed to fetch matches');
         console.error('Error fetching matches:', response.error);
@@ -463,6 +465,23 @@ export const Matches = ({ id, isCreator }) => {
             </TouchableOpacity>
           )}
         </>
+      )}
+
+      {isCreator && matchDetails.length > 0 && (
+        <TouchableOpacity
+          style={[styles.bottomButton, styles.scheduleMoreButton]}
+          onPress={() => setIsManualModalOpen(true)}
+        >
+          <LinearGradient
+            colors={[AppColors.primary, '#0056b3']}
+            style={styles.buttonGradientFull}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Icon name="add" size={20} color="#fff" />
+            <Text style={styles.bottomButtonText}>Schedule More Matches</Text>
+          </LinearGradient>
+        </TouchableOpacity>
       )}
 
       {/* Edit Match Modal */}
@@ -1087,12 +1106,12 @@ const styles = StyleSheet.create({
   },
   modalButtonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    gap: 4,
     marginTop: 20,
     marginBottom: 10,
   },
   primaryBtn: {
-    backgroundColor: AppColors.primary,
+    backgroundColor: AppColors.primaryBlue,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 10,
@@ -1105,7 +1124,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cancelBtn: {
-    backgroundColor: AppColors.error,
+    backgroundColor: AppColors.errorRed,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 10,
