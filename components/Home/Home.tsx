@@ -249,16 +249,6 @@ const Home = () => {
                 <Text style={styles.countdownText}>We're 75% complete with development</Text>
               </View>
             </View>
-
-            {/* <TouchableOpacity 
-              style={styles.notifyButton}
-              onPress={() => {
-                setShowFantasyPopup(false);
-                Alert.alert("Awesome!", "We'll notify you when Fantasy Cricket launches!");
-              }}
-            >
-              <Text style={styles.notifyButtonText}>Notify Me When It's Live!</Text>
-            </TouchableOpacity> */}
           </LinearGradient>
         </View>
       </View>
@@ -269,12 +259,11 @@ const Home = () => {
     <SafeAreaView style={styles.appContainer}>
       <StatusBar
         barStyle="dark-content"
-        backgroundColor={AppColors.background}
-        translucent={false}
+        backgroundColor={AppColors.white}
+        translucent={true}
       />
       <FantasyPopup />
       <View style={styles.safeArea}>
-        {/* Top bar */}
         <View style={styles.topBarWrapper}>
           <View style={styles.topBar}>
             <TouchableOpacity onPress={toggleSidebar} style={styles.menuButton}>
@@ -299,7 +288,6 @@ const Home = () => {
           )}
         </View>
 
-        {/* Sidebar */}
         <Animated.View
           style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}
         >
@@ -311,7 +299,6 @@ const Home = () => {
               <Ionicons name="close" color={AppColors.black} size={28} />
             </TouchableOpacity>
 
-            {/* Sidebar Header */}
             <View style={styles.sidebarHeader}>
               <View style={styles.userImageWrapper}>
                 <Image
@@ -322,7 +309,6 @@ const Home = () => {
               <Text style={styles.sidebarTitle}>{userName || "Guest User"}</Text>
             </View>
 
-            {/* Sidebar Options */}
             <View style={styles.sidebarOptionsWrapper}>
               {[
                 { icon: "person-outline", text: "Profile", screen: "Profile" },
@@ -345,7 +331,6 @@ const Home = () => {
                 </TouchableOpacity>
               ))}
 
-              {/* Logout Button */}
               <TouchableOpacity style={[styles.sidebarItemPatch, styles.logoutPatch]} onPress={LogOutHandler}>
                 <Ionicons name="log-out-outline" size={22} color={AppColors.error} />
                 <Text style={[styles.sidebarItemTextDark, { color: AppColors.error }]}>Logout</Text>
@@ -354,13 +339,11 @@ const Home = () => {
 
           </View>
 
-          {/* Footer */}
           <View style={styles.sidebarFooter}>
             <Text style={styles.footerTextDark}>cricshub ©2025</Text>
           </View>
         </Animated.View>
 
-        {/* Main content */}
         <View style={styles.mainContent}>
           <View style={styles.content}>
             <FlatList
@@ -445,7 +428,6 @@ export const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "transparent" },
   topBarWrapper: {
     backgroundColor: AppColors.white,
-    paddingTop: Platform.OS === "android" ? StatusBar?.currentHeight : 0,
     shadowColor: AppColors.black,
     elevation: 3,
     zIndex: 10,
@@ -457,6 +439,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     minHeight: 56,
+    // For older Android versions or more explicit control
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   menuButton: {
     paddingRight: 15,
@@ -532,6 +516,7 @@ export const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 90,
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   closeSidebarButton: {
     position: "absolute",

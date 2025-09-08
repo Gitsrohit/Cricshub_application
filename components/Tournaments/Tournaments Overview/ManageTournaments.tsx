@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.5)',
-    minWidth: 100, // Fixed width for better alignment
+    minWidth: 100, // Fixed width for better alignment  
     height: 40, // Fixed height for consistent sizing
   },
 

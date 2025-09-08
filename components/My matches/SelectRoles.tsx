@@ -1,4 +1,4 @@
-import { FlatList, Pressable, StyleSheet, Text, View, Animated, Image, ActivityIndicator, Vibration, Platform, TextInput, TouchableOpacity } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View, Animated, Image, ActivityIndicator, Vibration, Platform, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -355,7 +355,7 @@ const SelectRoles = ({ route, navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Animated.View
         style={[
           styles.mainScreenContent,
@@ -447,7 +447,7 @@ const SelectRoles = ({ route, navigation }) => {
         type={alertDialogType}
         buttons={alertDialogButtons}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -459,7 +459,6 @@ const styles = StyleSheet.create({
   mainScreenContent: {
     flex: 1,
     paddingHorizontal: 20,
-    // paddingTop: 20,
     backgroundColor: AppColors.BgColor,
   },
   loadingContainer: {
