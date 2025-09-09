@@ -31,9 +31,13 @@ const AppColors = {
 const appLogo = require('../../assets/images/iconLogo.png');
 const downLogo = require('../../assets/images/textLogo.png');
 
-const Login = ({ navigation }) => {
-  const [phoneNumber, setPhoneNumber] = useState('');
+const Otp = ({ route, navigation }) => {
+  const { phoneNumber } = route.params;
+
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
+
+  const otpInputs = useRef([]);
 
   const logoAnim = useRef(new Animated.Value(0)).current;
   const contentAnim = useRef(new Animated.Value(height * 0.1)).current;
@@ -55,31 +59,87 @@ const Login = ({ navigation }) => {
     ]).start();
   }, []);
 
-  const handleGetStarted = async () => {
-    if (!phoneNumber) {
-      Alert.alert('Validation Error', 'Please enter your phone number.');
+  const saveToken = async (token) => {
+    try {
+      if (token === undefined || token === null) {
+        throw new Error('Token is undefined or null. Cannot save.');
+      }
+      const tokenString = typeof token === 'string' ? token : JSON.stringify(token);
+      await AsyncStorage.setItem('jwtToken', tokenString);
+    } catch (error) {
+      console.error('Error saving token securely:', error);
+    }
+  };
+
+  const handleOtpChange = (text, index) => {
+    if (text.length > 1) {
+      text = text.charAt(0);
+    }
+    
+    const newOtp = [...otp];
+    newOtp[index] = text;
+    setOtp(newOtp);
+
+    if (text !== '' && index < 5) {
+      otpInputs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleBackspace = (text, index) => {
+    if (text === '' && index > 0) {
+      otpInputs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    const fullOtp = otp.join('');
+    if (fullOtp.length < 6) {
+      Alert.alert('Validation Error', 'Please enter the complete 6-digit code.');
       return;
     }
 
     setLoading(true);
 
     try {
-      // API call to send OTP to the mobile number
       const response = await apiService({
-        endpoint: `auth/send`,
+        endpoint: `auth/verify`,
         method: 'POST',
-        params: { phone: phoneNumber },
+        body: {
+          phone: phoneNumber,
+          otp: fullOtp,
+        },
       });
 
       if (response.success) {
-        Alert.alert('Success', 'OTP has been sent to your phone number.');
-        // Navigate to the OTP verification page, passing the phone number
-        navigation.navigate('OTP', { phoneNumber });
+        Alert.alert('Success', 'OTP verified successfully!');
+        
+        const token = response.data?.token;
+        const userId = response.data?.user?.id;
+        const name = response.data?.user?.name;
+
+        if (!token || !userId) {
+          throw new Error('Token or User ID is missing in the API response.');
+        }
+
+        await saveToken(token);
+        await AsyncStorage.setItem('userUUID', userId);
+        await AsyncStorage.setItem('userName', name);
+        
+        navigation.replace('Main');
+
       } else {
-        Alert.alert(
-          'Error',
-          `Error ${response.status}: ${response.error.message || 'Failed to send OTP.'}`
-        );
+        // More specific error handling
+        if (response.status === 400) {
+          Alert.alert(
+            'Invalid OTP',
+            response.error.message || 'The entered OTP is incorrect or has expired. Please try again.'
+          );
+        } else {
+          Alert.alert(
+            'Error',
+            `Error ${response.status}: ${response.error.message || 'Failed to verify OTP.'}`
+          );
+        }
       }
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please check your network connection.');
@@ -117,6 +177,7 @@ const Login = ({ navigation }) => {
               style={styles.downLogoImage}
             />
           </Animated.View>
+
           <Animated.View
             style={[
               styles.formContainer,
@@ -125,27 +186,37 @@ const Login = ({ navigation }) => {
               }
             ]}
           >
-            <Text style={styles.welcomeText}>Welcome Aboard!</Text>
+            <Text style={styles.welcomeText}>OTP Verification</Text>
             <Text style={styles.tagline}>
-              Transform your cricket experience with the ultimate platform for live scoring, YouTube streaming, tournament management, and fantasy cricket - all in one powerful app.
+              Please enter the 6-digit code sent to your phone number **{phoneNumber}**.
             </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="PHONE NUMBER"
-              placeholderTextColor={AppColors.placeholder}
-              keyboardType="phone-pad"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              editable={!loading}
-            />
+
+            <View style={styles.otpContainer}>
+              {otp.map((digit, index) => (
+                <TextInput
+                  key={index}
+                  style={styles.otpInput}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  value={digit}
+                  onChangeText={(text) => handleOtpChange(text, index)}
+                  onKeyPress={({ nativeEvent }) => {
+                    if (nativeEvent.key === 'Backspace') {
+                      handleBackspace(digit, index);
+                    }
+                  }}
+                  ref={el => otpInputs.current[index] = el}
+                />
+              ))}
+            </View>
             <TouchableOpacity
               style={styles.button}
-              onPress={handleGetStarted}
+              onPress={handleVerifyOtp}
               disabled={loading}
               activeOpacity={0.8}
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Processing...' : 'Get Started'}
+                {loading ? 'Verifying...' : 'Verify OTP'}
               </Text>
             </TouchableOpacity>
           </Animated.View>
@@ -202,17 +273,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  input: {
+  otpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     width: '100%',
+    marginBottom: 20,
+  },
+  otpInput: {
+    width: '15%',
     height: 50,
     backgroundColor: AppColors.white,
     borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 20,
-    color: AppColors.text,
-    fontSize: 16,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+    textAlign: 'center',
+    fontSize: 20,
+    color: AppColors.text,
     shadowColor: AppColors.text,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -231,7 +307,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 8,
-    // Removed absolute positioning
   },
   buttonText: {
     color: AppColors.white,
@@ -240,4 +315,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Login;
+export default Otp;

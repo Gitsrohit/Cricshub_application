@@ -3,10 +3,10 @@ import { StyleSheet, View } from 'react-native';
 import { NavigationContainer, useNavigationState } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Login from './components/Authentication/Login';
-import Registration from './components/Authentication/Registration';
 import Tournaments from './components/Tournaments/Tournaments';
 import Home from './components/Home/Home';
 import Teams from './components/Teams/Teams';
+import OTP from './components/Authentication/Otp'
 import Profile from './components/Settings/Profile';
 import Support from './components/Settings/Support';
 import TossFlip from './components/Settings/TossFlip';
@@ -64,7 +64,7 @@ const App = () => {
           screenOptions={{ headerShown: false }}
         >
           <Stack.Screen name="Login" component={Login} />
-          <Stack.Screen name="Registration" component={Registration} />
+          <Stack.Screen name="OTP" component={OTP} />
           <Stack.Screen name="Main" component={MainScreens} />
         </Stack.Navigator>
       </InternetConnectivityCheck>
