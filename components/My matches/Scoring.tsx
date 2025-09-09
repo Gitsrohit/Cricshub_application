@@ -152,15 +152,30 @@ const ScoringScreen = ({ route, navigation }) => {
 
   const matchStateUpdateHandler = (data) => {
     setOverDetails((prev) => prev + " " + data?.ballString);
-    setBowler({ id: data.currentBowler?.id, name: data.currentBowler?.name, overs: data.currentBowler?.overs, runsConceded: data.currentBowler?.runsConceded, wickets: data.currentBowler?.wickets });
-    setStriker({ id: data.striker?.id, name: data.striker?.name, runs: data.striker?.runs, ballsFaced: data.striker?.ballsFaced });
-    setNonStriker({ id: data.nonStriker?.id, name: data.nonStriker?.name, runs: data.nonStriker?.runs, ballsFaced: data.nonStriker?.ballsFaced });
+    setBowler({
+      id: data.currentBowler?.id,
+      name: data.currentBowler?.name,
+      overs: data.currentBowler?.overs,
+      runsConceded: data.currentBowler?.runsConceded,
+      wickets: data.currentBowler?.wickets
+    });
+    setStriker({
+      id: data.striker?.id,
+      name: data.striker?.name,
+      runs: data.striker?.runs,
+      ballsFaced: data.striker?.ballsFaced
+    });
+    setNonStriker({
+      id: data.nonStriker?.id,
+      name: data.nonStriker?.name,
+      runs: data.nonStriker?.runs,
+      ballsFaced: data.nonStriker?.ballsFaced
+    });
     setCompletedOvers(data?.overNumber);
     setScore(data?.totalRuns);
     setWicket(data?.wicketsLost);
 
     if (data.overComplete === true) {
-      const newOver = true;
       setOverDetails("");
       legalDeliveriesRef.current = 0;
       setLegalDeliveries(0);
@@ -410,7 +425,7 @@ const ScoringScreen = ({ route, navigation }) => {
           return event.trim();
         }) || [];
 
-      setOverDetails(formattedOverDetails.join(" ")); // remove commas
+      setOverDetails(formattedOverDetails.join(" "));
 
       const deliveryCount =
         data.currentOver?.reduce((count, ball) => {
@@ -458,7 +473,7 @@ const ScoringScreen = ({ route, navigation }) => {
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
   useEffect(() => {
     getMatchState();
@@ -468,30 +483,12 @@ const ScoringScreen = ({ route, navigation }) => {
   const scoringOptions = ['0', '1', '2', '3', '4', '6'];
 
   const extrasOptions = [
-    {
-      key: 'Wd',
-      value: 'Wide',
-    },
-    {
-      key: 'B',
-      value: 'Bye',
-    },
-    {
-      key: 'LB',
-      value: 'Leg Bye',
-    },
-    {
-      key: 'NB',
-      value: 'No Ball',
-    },
-    {
-      key: 'W',
-      value: 'Wicket',
-    },
-    {
-      key: 'Undo',
-      value: 'Undo',
-    }
+    { key: 'Wd', value: 'Wide' },
+    { key: 'B', value: 'Bye' },
+    { key: 'LB', value: 'Leg Bye' },
+    { key: 'NB', value: 'No Ball' },
+    { key: 'W', value: 'Wicket' },
+    { key: 'Undo', value: 'Undo' }
   ];
 
   const undoHandler = async () => {
@@ -517,17 +514,16 @@ const ScoringScreen = ({ route, navigation }) => {
   const handleExtrasWicketSelection = (value) => {
     if (value === 'Wide') {
       setModals({ ...modals, wide: true });
-    } else if (value === 'Bye' || value === 'Leg Bye') {
+    } else if (value === 'Bye') {
       setModals({ ...modals, bye: true });
-    } else if (value === 'No Ball' || value === 'No Ball') {
+    } else if (value === 'Leg Bye') {
+      handleSubmit({ runs: parseInt(byeExtra || '0'), legBye: true });
+    } else if (value === 'No Ball') {
       setModals({ ...modals, noBall: true });
     } else if (value === 'Wicket') {
       setModals({ ...modals, wicket: true });
     } else if (value === 'Undo') {
       undoHandler();
-    } else {
-      setSelectedRun(value);
-      handleSubmit({ runs: parseInt(value), wide: false, noBall: false, bye: false, legBye: false, wicket: false });
     }
   };
 
@@ -622,19 +618,6 @@ const ScoringScreen = ({ route, navigation }) => {
     }, 10000);
   };
 
-  const waitForStomp = (client, timeout = 3000) =>
-    new Promise((resolve, reject) => {
-      const interval = 100;
-      let waited = 0;
-      const check = () => {
-        if (client.connected) return resolve(true);
-        waited += interval;
-        if (waited >= timeout) return reject('STOMP connection timeout');
-        setTimeout(check, interval);
-      };
-      check();
-    });
-
   const waitForSubmitConnection = async (checkConnectedState, timeout = 5000) => {
     const interval = 100;
     let waited = 0;
@@ -690,9 +673,7 @@ const ScoringScreen = ({ route, navigation }) => {
         headers: { 'content-type': 'application/json', 'userId': userId || '' },
       });
 
-      setTimeout(() => {
-        console.log('[Submit] Score published successfully');
-      }, 100);
+      console.log('[Submit] Score published successfully');
 
       return true;
     } catch (error) {
@@ -700,26 +681,6 @@ const ScoringScreen = ({ route, navigation }) => {
       Alert.alert('Submission Error', 'Failed to submit score. Please wait for connection.');
       return false;
     }
-  };
-
-  const checkConnectionHealth = async (client, type) => {
-    console.log(`[${type}] Checking connection health...`);
-
-    // If client thinks it's connected but WebSocket isn't ready
-    if (client.connected && (!client.webSocket || client.webSocket.readyState !== WebSocket.OPEN)) {
-      console.warn(`[${type}] Connection state mismatch - forcing reconnect`);
-      try {
-        await client.deactivate();
-        await new Promise(resolve => setTimeout(resolve, 500));
-        client.activate();
-        return false;
-      } catch (err) {
-        console.error(`[${type}] Reconnect failed:`, err);
-        return false;
-      }
-    }
-
-    return client.connected;
   };
 
   const handleStartSecondInnings = async () => {
@@ -811,15 +772,8 @@ const ScoringScreen = ({ route, navigation }) => {
       <Modal visible={shotModalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setShotModalVisible(false)}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setShotModalVisible(false)}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text style={styles.modalTitle}>Select Shot Type</Text>
             <FlatList

@@ -2,7 +2,6 @@ import { Alert, FlatList, ImageBackground, Pressable, StyleSheet, Text, View } f
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import stadiumBG from '../../assets/images/stadiumBG.jpg';
 import { BlurView } from 'expo-blur';
 import { useNavigation } from '@react-navigation/native';
 import apiService from '../APIservices';

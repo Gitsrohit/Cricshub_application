@@ -445,7 +445,7 @@ export const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "transparent" },
   topBarWrapper: {
     backgroundColor: AppColors.white,
-    paddingTop: Platform.OS === "android" ? StatusBar?.currentHeight : 0,
+    paddingTop: Platform.OS === "android" ? StatusBar?.currentHeight : 50,
     shadowColor: AppColors.black,
     elevation: 3,
     zIndex: 10,

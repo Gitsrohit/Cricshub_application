@@ -3,7 +3,9 @@ import { StyleSheet, View } from 'react-native';
 import { NavigationContainer, useNavigationState } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Login from './components/Authentication/Login';
-import Registration from './components/Authentication/Registration';
+import OTP from './components/Authentication/Otp';
+import RegisterForm from './components/Authentication/RegistrationForm';
+// import Registration from './components/Authentication/Registration';
 import Tournaments from './components/Tournaments/Tournaments';
 import Home from './components/Home/Home';
 import Teams from './components/Teams/Teams';
@@ -63,7 +65,9 @@ const App = () => {
           screenOptions={{ headerShown: false }}
         >
           <Stack.Screen name="Login" component={Login} />
-          <Stack.Screen name="Registration" component={Registration} />
+          <Stack.Screen name="RegisterForm" component={RegisterForm} />
+          {/* <Stack.Screen name="Registration" component={Registration} /> */}
+          <Stack.Screen name="OTP" component={OTP} />
           <Stack.Screen name="Main" component={MainScreens} />
         </Stack.Navigator>
       </InternetConnectivityCheck>
@@ -106,6 +110,8 @@ const MainScreens = () => {
     "StreamMatch",
     "MatchOperatives",
     "TournamentMatchOperatives",
+    "RegisterForm",
+    "Otp",
   ];
 
   const shouldShowFooter = !hideFooterScreens.includes(currentRoute);

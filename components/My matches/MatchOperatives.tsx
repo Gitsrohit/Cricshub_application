@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   Image,
   FlatList,
+  Platform,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -266,7 +267,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#fff"
+    backgroundColor: "#fff",
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 50,
   },
   title: {
     fontSize: 20,

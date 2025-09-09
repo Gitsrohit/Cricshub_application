@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,14 +24,14 @@ const Toss = ({ route }) => {
   const [showTossWinnerOptions, setShowTossWinnerOptions] = useState(false);
   const [showChoiceOptions, setShowChoiceOptions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState({ text: '', type: '' }); 
+  const [message, setMessage] = useState({ text: '', type: '' });
 
   const { matchId } = route.params;
   const navigation = useNavigation();
 
   useEffect(() => {
     setMatchDetails(route.params.matchDetails);
-  }, [route.params.matchDetails]); 
+  }, [route.params.matchDetails]);
 
   const displayMessage = (text, type) => {
     setMessage({ text, type });
@@ -225,7 +227,8 @@ export default Toss;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: AppColors.BgColor, // Main background color from constants
+    backgroundColor: AppColors.BgColor,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 50,
   },
   mainContentArea: {
     flex: 1,
@@ -307,7 +310,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   submitButtonWrapper: {
-    borderRadius: 10, 
+    borderRadius: 10,
     marginTop: 30,
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 4 },
@@ -322,10 +325,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    width: '100%', 
+    width: '100%',
   },
   submitButtonText: {
-    color: AppColors.white, 
+    color: AppColors.white,
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 10,
