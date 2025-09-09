@@ -58,9 +58,11 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [legalDeliveries, setLegalDeliveries] = useState(0);
   const [battingFirst, setBattingFirst] = useState(null);
   const [battingSecond, setBattingSecond] = useState(null);
+  const [bowlingFirst, setBowlingFirst] = useState(null);
+  const [bowlingSecond, setBowlingSecond] = useState(null);
   const [innings, setInnings] = useState("1st");
   const [subTab, setSubTab] = useState("Batting");
-  const [activeTab, setActiveTab] = useState('commentary');
+  const [activeTab, setActiveTab] = useState('scorecard');
   const [scoreTab, setScoreTab] = useState('T1B');
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -141,16 +143,16 @@ const CommentaryScorecard = ({ route, navigation }) => {
     if (!dismissalType) return 'not out';
     switch ((dismissalType || '').toLowerCase()) {
       case 'bowled':
-        return 'b';
+        return `b ${bowlerId.name}`;
       case 'caught':
-        return catcherId ? `c ${catcherId} b` : 'c & b';
+        return `c ${catcherId.name} b ${bowlerId.name}`;
       case 'lbw':
-        return 'lbw';
+        return `LBW b ${bowlerId.name}`;
       case 'stumped':
-        return 'st';
+        return `st b ${bowlerId.name}`;
       case 'run out':
       case 'runout':
-        return `run out`;
+        return `Run Out ${runOutMakerId.name}`;
       case 'hit wicket':
         return 'hit wicket';
       default:
@@ -257,8 +259,10 @@ const CommentaryScorecard = ({ route, navigation }) => {
         setOverDetails("");
       }
 
-      setBattingFirst(data?.battingFirst);
-      setBattingSecond(data?.battingSecond);
+      setBattingFirst(data?.team1BattingOrder);
+      setBattingSecond(data?.team2BattingOrder);
+      setBowlingFirst(data?.team1BowlingOrder);
+      setBowlingSecond(data?.team2BowlingOrder);
 
       // const t1bo = mergeBattingData(data?.team1BattingOrder, data?.team1?.playingXI);
       // const t2bo = mergeBattingData(data?.team2BattingOrder, data?.team2?.playingXI);
@@ -342,8 +346,10 @@ const CommentaryScorecard = ({ route, navigation }) => {
     // setTeam2BattingOrder(mergeBattingData(data?.team2BattingOrder, data?.team2?.playingXI));
     // if (Array.isArray(data?.team1BowlingOrder)) setTeam1BowlingOrder(dedupeByPlayer(data.team1BowlingOrder));
     // if (Array.isArray(data?.team2BowlingOrder)) setTeam2BowlingOrder(dedupeByPlayer(data.team2BowlingOrder));
-    setBattingFirst(data?.battingFirst);
-    setBattingSecond(data?.battingSecond);
+    setBattingFirst(data?.team1BattingOrder);
+    setBattingSecond(data?.team2BattingOrder);
+    setBowlingFirst(data?.team1BowlingOrder);
+    setBowlingSecond(data?.team2BowlingOrder);
   };
 
   const useStompConnection = () => {
@@ -461,84 +467,113 @@ const CommentaryScorecard = ({ route, navigation }) => {
     return [];
   };
 
-  const renderScorecard = () => (
-    <LinearGradient
-      colors={AppGradients.primaryCard}
-      style={styles.scorecardContainer}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <View style={styles.teamScoreContainer}>
-        <View style={styles.teamScore}>
-          <Text style={styles.teamName}>{battingTeamName}</Text>
-          <Text style={styles.teamRuns}>
-            {score}/{wicket} ({completedOvers}.{legalDeliveries} ov)
-          </Text>
-        </View>
+  const renderScorecard = () => {
+    console.log("📊 Scorecard Data:", {
+      battingTeamName,
+      score,
+      wicket,
+      completedOvers,
+      legalDeliveries,
+      bowlingTeamName,
+      bowlingTeamScore,
+      bowlingTeamWickets,
+      totalOvers,
+      striker,
+      nonStriker,
+      bowler,
+      overDetails,
+    });
 
-        <View style={styles.versusContainer}>
-          <Text style={styles.versusText}>vs</Text>
-        </View>
-
-        <View style={styles.teamScore}>
-          <Text style={styles.teamName}>{bowlingTeamName}</Text>
-          <Text style={styles.teamRuns}>
-            {bowlingTeamScore}/{bowlingTeamWickets} ({totalOvers}.0 ov)
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.divider} />
-
-      <View style={styles.playerContainer}>
-        <View style={styles.playerRow}>
-          <View style={styles.playerInfo}>
-            <View style={[styles.playerIcon, styles.strikerIcon]} />
-            <Text style={styles.playerName}>{striker?.name}*</Text>
+    return (
+      <LinearGradient
+        colors={AppGradients.primaryCard}
+        style={styles.scorecardContainer}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.teamScoreContainer}>
+          <View style={styles.teamScore}>
+            <Text style={styles.teamName}>{battingTeamName}</Text>
+            <Text style={styles.teamRuns}>
+              {/* {score}/{wicket} ({completedOvers}.{legalDeliveries} ov) */}
+              {score}/{wicket}
+            </Text>
           </View>
-          <Text style={styles.playerStats}>{striker?.runs} ({striker?.ballsFaced})</Text>
-          <Text style={styles.playerExtra}>SR: {striker.ballsFaced != 0 ? (striker?.runs * 100) / striker.ballsFaced : 0.0}</Text>
-        </View>
 
-        <View style={styles.playerRow}>
-          <View style={styles.playerInfo}>
-            <View style={[styles.playerIcon, styles.nonStrikerIcon]} />
-            <Text style={styles.playerName}>{nonStriker?.name}</Text>
+          <View style={styles.versusContainer}>
+            <Text style={styles.versusText}>vs</Text>
           </View>
-          <Text style={styles.playerStats}>{nonStriker?.runs} ({nonStriker?.ballsFaced})</Text>
-          <Text style={styles.playerExtra}>SR: {nonStriker.ballsFaced != 0 ? (nonStriker?.runs * 100) / nonStriker.ballsFaced : 0.0}</Text>
+
+          <View style={styles.teamScore}>
+            <Text style={styles.teamName}>{bowlingTeamName}</Text>
+            <Text style={styles.teamRuns}>
+              {/* {bowlingTeamScore}/{bowlingTeamWickets} ({totalOvers}.0 ov) */}
+              {bowlingTeamScore}/{bowlingTeamWickets}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.divider} />
 
-        <View style={styles.playerRow}>
-          <View style={styles.playerInfo}>
-            <View style={[styles.playerIcon, styles.bowlerIcon]} />
-            <Text style={styles.playerName}>{bowler?.name}</Text>
+        <View style={styles.playerContainer}>
+          <View style={styles.playerRow}>
+            <View style={styles.playerInfo}>
+              <View style={[styles.playerIcon, styles.strikerIcon]} />
+              <Text style={styles.playerName}>{striker?.name}*</Text>
+            </View>
+            <Text style={styles.playerStats}>
+              {striker?.runs} ({striker?.ballsFaced})
+            </Text>
+            <Text style={styles.playerExtra}>
+              SR: {striker?.ballsFaced != 0 ? (striker?.runs * 100) / striker?.ballsFaced : 0.0}
+            </Text>
           </View>
-          <Text style={styles.playerStats}>{bowler?.wickets}/{bowler?.runsConceded}</Text>
-        </View>
-      </View>
 
-      <View style={styles.matchInfoContainer}>
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Current Over</Text>
-          <Text style={styles.infoValue}>{overDetails || '-'}</Text>
+          <View style={styles.playerRow}>
+            <View style={styles.playerInfo}>
+              <View style={[styles.playerIcon, styles.nonStrikerIcon]} />
+              <Text style={styles.playerName}>{nonStriker?.name}</Text>
+            </View>
+            <Text style={styles.playerStats}>
+              {nonStriker?.runs} ({nonStriker?.ballsFaced})
+            </Text>
+            <Text style={styles.playerExtra}>
+              SR: {nonStriker?.ballsFaced != 0 ? (nonStriker?.runs * 100) / nonStriker?.ballsFaced : 0.0}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.playerRow}>
+            <View style={styles.playerInfo}>
+              <View style={[styles.playerIcon, styles.bowlerIcon]} />
+              <Text style={styles.playerName}>{bowler?.name}</Text>
+            </View>
+            <Text style={styles.playerStats}>
+              {bowler?.wickets}/{bowler?.runsConceded}
+            </Text>
+          </View>
         </View>
-      </View>
-    </LinearGradient>
-  );
+
+        <View style={styles.matchInfoContainer}>
+          <View style={styles.infoItem}>
+            <Text style={styles.infoLabel}>Current Over</Text>
+            <Text style={styles.infoValue}>{overDetails || "-"}</Text>
+          </View>
+        </View>
+      </LinearGradient>
+    );
+  };
 
   const BattingRow = ({ item }) => {
-    const name = item?.name || '-';
+    console.log("🏏 BattingRow Data:", item);
+
+    const name = item?.name || "-";
     const runs = safeNumber(item?.runs, 0);
     const balls = safeNumber(item?.ballsFaced, 0);
     const fours = safeNumber(item?.fours, 0);
     const sixes = safeNumber(item?.sixes, 0);
     const sr = strikeRateCalc(runs, balls);
-    console.log(item);
-    console.log(item?.wicketDetails);
-
     const outText = dismissalText(item?.wicketDetails);
 
     return (
@@ -557,7 +592,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
   };
 
   const BowlingRow = ({ item }) => {
-    const name = item?.name || '-';
+    console.log("🎯 BowlingRow Data:", item);
+
+    const name = item?.name || "-";
     const balls = safeNumber(item?.ballsBowled, 0);
     const oversDisp = ballsToOvers(balls);
     const maidens = safeNumber(item?.maidens, 0);
@@ -579,74 +616,53 @@ const CommentaryScorecard = ({ route, navigation }) => {
     );
   };
 
-  const BattingTable = ({ data }) => (
-    <View style={styles.tableContainer}>
-      <View style={[styles.tableRow, styles.tableHeader]}>
-        <Text style={[styles.cell, styles.cellName, styles.headerText]}>Batsman</Text>
-        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>R</Text>
-        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>B</Text>
-        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>4s</Text>
-        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>6s</Text>
-        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>SR</Text>
-      </View>
-      <FlatList
-        data={data}
-        keyExtractor={(item, idx) => (item?.playerId || item?.id || item?.name || '') + '_' + idx}
-        renderItem={({ item }) => <BattingRow item={item} />}
-        scrollEnabled={false}
-        ListEmptyComponent={<Text style={styles.emptyRow}>No batting data</Text>}
-      />
-    </View>
-  );
+  const BattingTable = ({ data }) => {
+    console.log("📋 BattingTable Data:", data);
 
-  const BowlingTable = ({ data }) => (
-    <View style={styles.tableContainer}>
-      <View style={[styles.tableRow, styles.tableHeader]}>
-        <Text style={[styles.cell, styles.cellName, styles.headerText]}>Bowler</Text>
-        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>O</Text>
-        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>M</Text>
-        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>R</Text>
-        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>W</Text>
-        <Text style={[styles.cell, styles.cellNum, styles.headerText]}>Econ</Text>
+    return (
+      <View style={styles.tableContainer}>
+        <View style={[styles.tableRow, styles.tableHeader]}>
+          <Text style={[styles.cell, styles.cellName, styles.headerText]}>Batsman</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>R</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>B</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>4s</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>6s</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>SR</Text>
+        </View>
+        <FlatList
+          data={data}
+          keyExtractor={(item, idx) => (item?.playerId || item?.id || item?.name || "") + "_" + idx}
+          renderItem={({ item }) => <BattingRow item={item} />}
+          scrollEnabled={false}
+          ListEmptyComponent={<Text style={styles.emptyRow}>No batting data</Text>}
+        />
       </View>
-      <FlatList
-        data={data}
-        keyExtractor={(item, idx) => (item?.playerId || item?.id || item?.name || '') + '_' + idx}
-        renderItem={({ item }) => <BowlingRow item={item} />}
-        scrollEnabled={false}
-        ListEmptyComponent={<Text style={styles.emptyRow}>No bowling data</Text>}
-      />
-    </View>
-  );
+    );
+  };
 
-  const ScoreTabs = () => (
-    <View style={styles.scoreTabsRow}>
-      <TouchableOpacity
-        style={[styles.scoreTabBtn, scoreTab === 'T1B' && styles.scoreTabActive]}
-        onPress={() => setScoreTab('T1B')}
-      >
-        <Text style={[styles.scoreTabText, scoreTab === 'T1B' && styles.scoreTabTextActive]}>Batting T1</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.scoreTabBtn, scoreTab === 'T1Bo' && styles.scoreTabActive]}
-        onPress={() => setScoreTab('T1Bo')}
-      >
-        <Text style={[styles.scoreTabText, scoreTab === 'T1Bo' && styles.scoreTabTextActive]}>Bowling T1</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.scoreTabBtn, scoreTab === 'T2B' && styles.scoreTabActive]}
-        onPress={() => setScoreTab('T2B')}
-      >
-        <Text style={[styles.scoreTabText, scoreTab === 'T2B' && styles.scoreTabTextActive]}>Batting T2</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.scoreTabBtn, scoreTab === 'T2Bo' && styles.scoreTabActive]}
-        onPress={() => setScoreTab('T2Bo')}
-      >
-        <Text style={[styles.scoreTabText, scoreTab === 'T2Bo' && styles.scoreTabTextActive]}>Bowling T2</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const BowlingTable = ({ data }) => {
+    console.log("📋 BowlingTable Data:", data);
+
+    return (
+      <View style={styles.tableContainer}>
+        <View style={[styles.tableRow, styles.tableHeader]}>
+          <Text style={[styles.cell, styles.cellName, styles.headerText]}>Bowler</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>O</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>M</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>R</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>W</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>Econ</Text>
+        </View>
+        <FlatList
+          data={data}
+          keyExtractor={(item, idx) => (item?.playerId || item?.id || item?.name || "") + "_" + idx}
+          renderItem={({ item }) => <BowlingRow item={item} />}
+          scrollEnabled={false}
+          ListEmptyComponent={<Text style={styles.emptyRow}>No bowling data</Text>}
+        />
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -684,7 +700,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
               {renderScorecard()}
 
-              <View style={styles.tabContainer}>
+              {/* <View style={styles.tabContainer}>
                 <TouchableOpacity
                   style={[styles.tabButton, activeTab === 'commentary' && styles.activeTab]}
                   onPress={() => setActiveTab('commentary')}
@@ -702,7 +718,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
                     Scorecard
                   </Text>
                 </TouchableOpacity>
-              </View>
+              </View> */}
 
               {activeTab === 'commentary' ? (
                 <FlatList
@@ -726,7 +742,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
                 />
               ) : (
                 <View style={styles.detailedScorecard}>
-                  <ScoreTabs />
+                  {/* <ScoreTabs /> */}
 
                   {/* {scoreTab === 'T1B' && <BattingTable data={team1BattingOrder} />}
                   {scoreTab === 'T1Bo' && <BowlingTable data={team1BowlingOrder} />}
@@ -768,13 +784,13 @@ const CommentaryScorecard = ({ route, navigation }) => {
                     <BattingTable data={battingFirst} />
                   )}
                   {innings === "1st" && subTab === "Bowling" && (
-                    <BowlingTable data={battingSecond} />
+                    <BowlingTable data={bowlingFirst} />
                   )}
                   {innings === "2nd" && subTab === "Batting" && (
                     <BattingTable data={battingSecond} />
                   )}
                   {innings === "2nd" && subTab === "Bowling" && (
-                    <BowlingTable data={battingFirst} />
+                    <BowlingTable data={bowlingSecond} />
                   )}
                 </View>
               )}

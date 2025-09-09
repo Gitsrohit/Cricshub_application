@@ -34,7 +34,8 @@ const PointsTable = ({ id }) => {
       });
 
       if (success) {
-        setPointsData(Array.isArray(data) ? data : []);
+        console.log(data.data);
+        setPointsData(Array.isArray(data.data) ? data.data : []);
       } else {
         console.error('Failed to fetch points table:', apiError);
         setError(apiError || 'Failed to fetch points table');
@@ -65,13 +66,13 @@ const PointsTable = ({ id }) => {
 
   const renderItem = ({ item, index }) => (
     <View style={[
-      styles.row, 
+      styles.row,
       index % 2 === 0 ? styles.evenRow : styles.oddRow,
       index === 0 && styles.firstRow
     ]}>
-      <Text 
+      <Text
         style={[
-          styles.cell, 
+          styles.cell,
           { width: columnStyles.name },
           index === 0 && styles.firstPlaceText
         ]}
@@ -86,7 +87,7 @@ const PointsTable = ({ id }) => {
       <Text style={[styles.cell, { width: columnStyles.others }]}>{item.matchesDrawn || 0}</Text>
       <Text style={[styles.cell, { width: columnStyles.others }]}>{item.points || 0}</Text>
       <Text style={[
-        styles.cell, 
+        styles.cell,
         { width: columnStyles.others },
         (item.netRunRate || 0) > 0 ? styles.positiveNRR : styles.negativeNRR
       ]}>
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
   },
   emptyContainer: {
-    marginTop:10,
+    marginTop: 10,
     flex: 1,
     justifyContent: 'center',
     borderRadius: 12,
@@ -276,7 +277,8 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#616161',
+    color: 'white',
+    textAlign: 'center',
   },
 });
 
