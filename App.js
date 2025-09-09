@@ -46,6 +46,7 @@ import ConnectLiveStream from './components/LiveStream/ConnectLiveStream';
 import StreamMatch from './components/LiveStream/StreamMatch';
 import AnimatedSplash from './assets/animations/SplashScreen.js';
 import { AppColors } from './assets/constants/colors';
+import StreamInfoModal from './components/LiveStream/StreamInfoModel';
 import TournamentMatchOperatives from './components/Tournaments/TournamentMatchOperatives';
 
 const Stack = createStackNavigator();
@@ -157,6 +158,7 @@ const MainScreens = () => {
         <Stack.Screen name="Support" component={Support} />
         <Stack.Screen name="TossFlip" component={TossFlip} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+        <Stack.Screen name="StreamInfoModel" component={StreamInfoModal} />
       </Stack.Navigator>
 
       {shouldShowFooter && <Footer style={styles.footer} />}
