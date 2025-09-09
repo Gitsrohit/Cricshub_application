@@ -26,6 +26,19 @@ import apiService from '../../APIservices';
 
 const { width, height } = Dimensions.get('window');
 
+// A common color palette for the app
+const colors = {
+  background: '#F0F2F5',
+  surface: '#FFFFFF',
+  text: '#1A237E',
+  textSecondary: '#6A7382',
+  accent: '#007AFF', // A vibrant blue
+  accentLight: '#E8F5FF',
+  danger: '#FF3B30',
+  border: '#E0E0E0',
+  placeholder: '#9E9E9E',
+};
+
 function debounce(func, delay) {
   let timer;
   return function (...args) {
@@ -47,7 +60,7 @@ const Teams = ({ id, isCreator }) => {
   const [isAddingTeam, setIsAddingTeam] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const slideAnim = useRef(new Animated.Value(500)).current;
+  const slideAnim = useRef(new Animated.Value(height)).current; // Adjusted initial value
 
   const fetchTeams = async (id) => {
     try {
@@ -109,7 +122,7 @@ const Teams = ({ id, isCreator }) => {
     }
   };
 
-  const addNewTeam = async (teamid, teamname) => {
+  const addNewTeam = async (teamid) => {
     try {
       setIsAddingTeam(true);
       setLoading({ key: 'Add', value: true });
@@ -137,7 +150,7 @@ const Teams = ({ id, isCreator }) => {
 
   const deleteTeamHandler = async (teamId) => {
     try {
-      setLoading({ key: 'Delete', value: true });
+      setLoading({ key: `Delete-${teamId}`, value: true }); // Unique key for deletion
       const response = await apiService({
         endpoint: `tournaments/${id}/remove-teams`,
         method: 'POST',
@@ -150,7 +163,7 @@ const Teams = ({ id, isCreator }) => {
       setError("Couldn't delete team");
     } finally {
       await fetchTeams(id);
-      setLoading({ key: 'Delete', value: false });
+      setLoading({ key: '', value: false }); // Reset loading
     }
   };
 
@@ -164,7 +177,7 @@ const Teams = ({ id, isCreator }) => {
 
   const closeModal = () => {
     Animated.timing(slideAnim, {
-      toValue: 500,
+      toValue: height,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
@@ -186,30 +199,28 @@ const Teams = ({ id, isCreator }) => {
 
   const renderTeamItem = ({ item }) => (
     <View style={styles.teamCard}>
-      <View style={styles.teamHeader}>
-        <View style={styles.teamInfo}>
-          <Image
-            source={{ uri: item.logoPath || 'https://via.placeholder.com/50' }}
-            style={styles.teamImage}
-          />
-          <View style={styles.teamTextContainer}>
-            <Text style={styles.teamName} numberOfLines={1}>{item.name}</Text>
-            <Text style={styles.teamCaptain} numberOfLines={1}>
-              {item.captain?.name || 'No captain assigned'}
-            </Text>
-          </View>
+      <View style={styles.teamInfo}>
+        <Image
+          source={{ uri: item.logoPath || 'https://via.placeholder.com/50' }}
+          style={styles.teamImage}
+        />
+        <View style={styles.teamTextContainer}>
+          <Text style={styles.teamName} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.teamCaptain} numberOfLines={1}>
+            {item.captain?.name || 'No captain assigned'}
+          </Text>
         </View>
       </View>
       {isCreator && (
         <Pressable
           onPress={() => deleteTeamHandler(item.id)}
           style={styles.deleteButton}
-          disabled={loading.key === 'Delete' && loading.value}
+          disabled={loading.key === `Delete-${item.id}` && loading.value}
         >
-          {loading.key === 'Delete' && loading.value ? (
-            <ActivityIndicator size="small" color="#FF5252" />
+          {loading.key === `Delete-${item.id}` && loading.value ? (
+            <ActivityIndicator size="small" color={colors.danger} />
           ) : (
-            <Icon name="delete" size={24} color="#FF5252" />
+            <Icon name="delete" size={24} color={colors.danger} />
           )}
         </Pressable>
       )}
@@ -222,7 +233,7 @@ const Teams = ({ id, isCreator }) => {
       onPress={() => {
         setEnteredTeamName(item.name);
         setTeamId(item.id);
-        addNewTeam(item.id, item.name);
+        addNewTeam(item.id);
       }}
       disabled={isAddingTeam}
     >
@@ -238,9 +249,9 @@ const Teams = ({ id, isCreator }) => {
           </Text>
         </View>
         {isAddingTeam && teamId === item.id ? (
-          <ActivityIndicator size="small" color="#34B8FF" style={styles.addingIndicator} />
+          <ActivityIndicator size="small" color={colors.accent} style={styles.addingIndicator} />
         ) : (
-          <Icon name="add" size={24} color="#34B8FF" />
+          <Icon name="add-circle-outline" size={24} color={colors.accent} />
         )}
       </View>
     </Pressable>
@@ -251,21 +262,21 @@ const Teams = ({ id, isCreator }) => {
       <MaterialCommunityIcons
         name="account-group"
         size={60}
-        color="#34B8FF"
+        color={colors.accentLight}
         style={styles.emptyIcon}
       />
-      <Text style={styles.emptyTitle}>No Teams Added Yet</Text>
+      <Text style={styles.emptyTitle}>No Teams Yet</Text>
       <Text style={styles.emptyText}>
         {isCreator
-          ? "Get started by adding teams to your tournament"
-          : "The tournament organizer hasn't added any teams yet"}
+          ? "Get started by adding teams to your tournament."
+          : "The tournament organizer hasn't added any teams yet."}
       </Text>
       {isCreator && (
         <TouchableOpacity
-          style={styles.addButton}
+          style={styles.emptyStateAddButton}
           onPress={openModal}
         >
-          <Text style={styles.addButtonText}>Add Teams</Text>
+          <Text style={styles.emptyStateAddButtonText}>Add Teams</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -276,17 +287,15 @@ const Teams = ({ id, isCreator }) => {
       <View style={styles.container}>
         {loading.value && loading.key === 'All' ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#34B8FF" />
-            {/* <Text style={styles.loadingText}>Loading teams...</Text> */}
+            <ActivityIndicator size="large" color={colors.accent} />
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons
               name="alert-circle-outline"
               size={50}
-              color="#FF5252"
+              color={colors.danger}
             />
-            {/* <Text style={styles.errorTitle}>Error Loading Teams</Text> */}
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
               style={styles.retryButton}
@@ -307,11 +316,10 @@ const Teams = ({ id, isCreator }) => {
                   <RefreshControl
                     refreshing={refreshing}
                     onRefresh={onRefresh}
-                    colors={['#34B8FF']}
-                    tintColor={'#34B8FF'}
+                    colors={[colors.accent]}
+                    tintColor={colors.accent}
                   />
                 }
-                ListFooterComponent={<View style={styles.listFooter} />}
               />
             ) : (
               renderEmptyState()
@@ -327,77 +335,75 @@ const Teams = ({ id, isCreator }) => {
             disabled={loading.value && loading.key === 'All'}
           >
             <LinearGradient
-              colors={['#34B8FF', '#0071BC']}
+              colors={['#007AFF', '#0047AB']} // A deeper blue for gradient
               style={styles.gradientButton}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
             >
               <Icon name="add" size={28} color="#FFF" />
             </LinearGradient>
           </TouchableOpacity>
         )}
 
-        <Modal visible={modalVisible} transparent animationType="none">
+        <Modal visible={modalVisible} transparent animationType="none" onRequestClose={closeModal}>
           <TouchableWithoutFeedback onPress={closeModal}>
-            <View style={styles.modalOverlay} pointerEvents="box-none">
-              <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1, justifyContent: 'flex-end' }}
-              >
-                <Animated.View style={[styles.modalContent, { transform: [{ translateY: slideAnim }] }]}>
-                  <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Add Teams to Tournament</Text>
-                    <TouchableOpacity onPress={closeModal}>
-                      <Icon name="close" size={24} color="#666" />
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.searchContainer}>
-                    <AntDesign
-                      name="search1"
-                      size={20}
-                      color="#888"
-                      style={styles.searchIcon}
-                    />
-                    <TextInput
-                      style={styles.searchInput}
-                      placeholder="Search team by name..."
-                      placeholderTextColor="#888"
-                      value={enteredTeamName}
-                      onChangeText={handleInputChange}
-                      autoFocus={true}
-                      returnKeyType="search"
-                    />
-                  </View>
-                  <View style={styles.dropdownContainer}>
-                    {loading.value && loading.key === 'Search' ? (
-                      <View style={styles.modalLoader}>
-                        <ActivityIndicator size="large" color="#34B8FF" />
-                      </View>
-                    ) : dropdownOptions.length > 0 ? (
-                      <FlatList
-                        data={dropdownOptions}
-                        renderItem={renderSearchItem}
-                        keyExtractor={(item) => item.id ? item.id.toString() : Math.random().toString()}
-                        contentContainerStyle={styles.dropdownContent}
-                        keyboardShouldPersistTaps="handled"
-                      />
-                    ) : enteredTeamName.length > 2 ? (
-                      <View style={styles.noResults}>
-                        <Text style={styles.noResultsText}>No teams found for "{enteredTeamName}"</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.noResults}>
-                        <Text style={styles.noResultsText}>
-                          Search for teams to add
-                        </Text>
-                        <Text style={styles.searchHintText}>Type at least 3 characters to search</Text>
-                      </View>
-                    )}
-                  </View>
-                </Animated.View>
-              </KeyboardAvoidingView>
-            </View>
+            <View style={styles.modalOverlay} />
           </TouchableWithoutFeedback>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ position: 'absolute', bottom: 0, width: '100%' }}
+          >
+            <Animated.View style={[styles.modalContent, { transform: [{ translateY: slideAnim }] }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add Teams</Text>
+                <TouchableOpacity onPress={closeModal}>
+                  <Icon name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.searchContainer}>
+                <AntDesign
+                  name="search1"
+                  size={20}
+                  color={colors.placeholder}
+                  style={styles.searchIcon}
+                />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search team by name..."
+                  placeholderTextColor={colors.placeholder}
+                  value={enteredTeamName}
+                  onChangeText={handleInputChange}
+                  autoFocus={true}
+                  returnKeyType="search"
+                />
+              </View>
+              <View style={styles.dropdownContainer}>
+                {loading.value && loading.key === 'Search' ? (
+                  <View style={styles.modalLoader}>
+                    <ActivityIndicator size="large" color={colors.accent} />
+                  </View>
+                ) : dropdownOptions.length > 0 ? (
+                  <FlatList
+                    data={dropdownOptions}
+                    renderItem={renderSearchItem}
+                    keyExtractor={(item) => item.id ? item.id.toString() : Math.random().toString()}
+                    contentContainerStyle={styles.dropdownContent}
+                    keyboardShouldPersistTaps="handled"
+                  />
+                ) : enteredTeamName.length > 2 ? (
+                  <View style={styles.noResults}>
+                    <Text style={styles.noResultsText}>No teams found for "{enteredTeamName}"</Text>
+                  </View>
+                ) : (
+                  <View style={styles.noResults}>
+                    <Text style={styles.noResultsText}>
+                      Search for teams to add.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
         </Modal>
       </View>
     </SafeAreaView>
@@ -406,57 +412,42 @@ const Teams = ({ id, isCreator }) => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    marginTop:10,
+    marginTop: 10,
     flex: 1,
-    backgroundColor: '#F5F7FA',
-    borderRadius:10,
+    backgroundColor: colors.background,
+    borderRadius: 10,
     paddingVertical: 10,
   },
   container: {
     flex: 1,
     position: 'relative',
-    borderRadius:10,
+    borderRadius: 10,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F7FA',
-    borderRadius:10,
-  },
-  loadingText: {
-    marginTop: 16,
-    color: '#666',
-    fontSize: 16,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#F5F7FA',
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
   },
   errorText: {
-    color: '#666',
+    color: colors.textSecondary,
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: '#34B8FF',
+    backgroundColor: colors.accent,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#FFF',
+    color: colors.surface,
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -465,113 +456,109 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#FFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
     margin: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 2,
   },
   emptyIcon: {
-    marginBottom: 16,
+    marginBottom: 20,
+    opacity: 0.2,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   emptyText: {
-    color: '#666',
-    fontSize: 16,
+    color: colors.textSecondary,
+    fontSize: 15,
     textAlign: 'center',
+    lineHeight: 22,
     marginBottom: 24,
-    lineHeight: 24,
   },
-  addButton: {
-    backgroundColor: '#34B8FF',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginTop: 16,
+  emptyStateAddButton: {
+    backgroundColor: colors.accent,
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    borderRadius: 10,
   },
-  addButtonText: {
-    color: '#FFF',
+  emptyStateAddButtonText: {
+    color: colors.surface,
     fontWeight: 'bold',
     fontSize: 16,
   },
   listContent: {
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingBottom: 80,
-  },
-  listFooter: {
-    height: 80,
+    paddingHorizontal: 16,
   },
   teamCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
-    marginHorizontal: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.border,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  teamHeader: {
-    flex: 1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   teamInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   teamTextContainer: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 16,
   },
   teamImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#EEE',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.border,
   },
   teamName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
   },
   teamCaptain: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   deleteButton: {
-    padding: 8,
-    marginLeft: 8,
+    padding: 10,
+    marginLeft: 10,
   },
   floatingAddButton: {
     position: 'absolute',
     bottom: 30,
-    right: 25,
+    right: 20,
     width: 60,
     height: 60,
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 6,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
     zIndex: 10,
-    overflow: 'hidden',
   },
   gradientButton: {
     width: '100%',
@@ -582,56 +569,60 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   modalContent: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: height * 0.7,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 15,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
+    color: colors.text,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F7FA",
+    backgroundColor: colors.background,
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: "#003b5c",
+    color: colors.text,
     marginLeft: 8,
   },
   searchIcon: {
     marginRight: 8,
   },
   modalLoader: {
-    flex: 1,
+    minHeight: 120,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 100,
   },
   dropdownContainer: {
-    maxHeight: height * 0.5,
+    maxHeight: height * 0.4,
   },
   dropdownContent: {
-    paddingHorizontal: 0,
+    paddingVertical: 8,
   },
   teamOptionItem: {
     marginBottom: 8,
@@ -639,48 +630,45 @@ const styles = StyleSheet.create({
   teamOptionContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F5F7FA',
-    borderRadius: 8,
+    padding: 14,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   teamOptionImage: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#EEE',
+    backgroundColor: colors.border,
   },
   teamOptionText: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 16,
   },
   teamOptionName: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
   },
   teamOptionCaptain: {
     fontSize: 13,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   addingIndicator: {
     marginLeft: 8,
   },
   noResults: {
-    padding: 24,
+    paddingVertical: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
   noResultsText: {
-    color: '#666',
+    color: colors.textSecondary,
     fontSize: 16,
     textAlign: 'center',
-  },
-  searchHintText: {
-    color: '#999',
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
+    lineHeight: 22,
   },
 });
 

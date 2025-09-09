@@ -180,7 +180,7 @@ const MatchOperatives = ({ route, navigation }) => {
   );
 
   const renderSelectedOperatives = ({ item }) => (
-    <View style={styles.selectedItem} key={item.id}>
+    <View style={styles.selectedItem}>
       <View style={styles.profileIconContainer}>
         <Image
           source={
@@ -201,24 +201,14 @@ const MatchOperatives = ({ route, navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar />
-      <View style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={AppColors.white} translucent={true} />
+      <View style={styles.contentWrapper}>
         <Text style={styles.title}>Select Match Operatives</Text>
         <Text style={styles.subTitle}>Match operatives score and stream match</Text>
 
-        {/* Selected Operatives */}
-        <View style={styles.selectedList}>
-          <FlatList
-            data={selectedOperatives}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderSelectedOperatives}
-            contentContainerStyle={{ gap: 10 }}
-          />
-        </View>
-
         {/* Search Section */}
-        <View style={{ position: "relative", marginBottom: 10 }}>
+        <View style={styles.searchSection}>
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color="#4A90E2" />
             <TextInput
@@ -234,7 +224,6 @@ const MatchOperatives = ({ route, navigation }) => {
             )}
           </View>
 
-          {/* Floating Search Results */}
           {loading ? (
             <View style={styles.dropdownContainer}>
               <ActivityIndicator size="small" color="#4A90E2" style={{ margin: 8 }} />
@@ -242,22 +231,32 @@ const MatchOperatives = ({ route, navigation }) => {
           ) : (
             filteredPlayers.length > 0 && (
               <View style={styles.dropdownContainer}>
-                <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-                  {filteredPlayers.map((player) => (
-                    <View key={player.id}>{renderPlayerItem({ item: player })}</View>
-                  ))}
-                </ScrollView>
+                <FlatList
+                  data={filteredPlayers}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={renderPlayerItem}
+                  keyboardShouldPersistTaps="handled"
+                />
               </View>
             )
           )}
         </View>
 
-        {/* Submit Button */}
+        <View style={styles.selectedListContainer}>
+          <FlatList
+            data={selectedOperatives}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderSelectedOperatives}
+            contentContainerStyle={{ gap: 10 }}
+          />
+        </View>
+      </View>
+      <View style={styles.submitButtonContainer}>
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
           <Text style={styles.submitButtonText}>Schedule Match</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -266,19 +265,27 @@ export default MatchOperatives;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: "#fff",
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 50,
   },
+  contentWrapper: {
+    flex: 1,
+    padding: 16,
+  },
   title: {
     fontSize: 20,
-    fontWeight: "bold"
+    fontWeight: "bold",
   },
   subTitle: {
     fontSize: 14,
     fontWeight: "semibold",
     marginBottom: 10,
-    color: AppColors.infoGrey
+    color: AppColors.infoGrey,
+  },
+  searchSection: {
+    position: "relative",
+    marginBottom: 10,
+    zIndex: 1,
   },
   searchContainer: {
     flexDirection: "row",
@@ -292,11 +299,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     marginLeft: 8,
-    paddingVertical: 12
+    paddingVertical: 12,
   },
   dropdownContainer: {
     position: "absolute",
-    top: 50,
+    top: "100%", // Position below the search bar
     left: 0,
     right: 0,
     backgroundColor: "#fff",
@@ -314,9 +321,12 @@ const styles = StyleSheet.create({
   playerItem: {
     padding: 10,
     borderBottomWidth: 1,
-    borderColor: "#eee"
+    borderColor: "#eee",
   },
-  selectedList: { marginVertical: 20 },
+  selectedListContainer: {
+    flex: 1,
+    marginVertical: 10,
+  },
   selectedItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -324,6 +334,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     borderRadius: 6,
     gap: 10,
+  },
+  submitButtonContainer: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
   },
   submitButton: {
     backgroundColor: "#4A90E2",
@@ -334,7 +349,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold"
+    fontWeight: "bold",
   },
   playerInfoContainer: {
     flexDirection: "row",
@@ -365,10 +380,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "600",
     color: AppColors.darkText,
-  },
-  playerRole: {
-    fontSize: 14,
-    color: AppColors.lightText,
-    fontWeight: "400",
   },
 });

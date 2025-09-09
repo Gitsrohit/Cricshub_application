@@ -1,4 +1,4 @@
-import { FlatList, Pressable, StyleSheet, Text, View, Animated, Image, ActivityIndicator, Vibration, Platform, TextInput, TouchableOpacity } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View, Animated, Image, ActivityIndicator, Vibration, Platform, TextInput, TouchableOpacity, StatusBar } from 'react-native';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -105,7 +105,6 @@ const SelectRoles = ({ route, navigation }) => {
     fetchPlayingXI();
   }, []);
 
-
   const shakeScreen = () => {
     shakeAnimation.setValue(0);
     Animated.sequence([
@@ -115,7 +114,6 @@ const SelectRoles = ({ route, navigation }) => {
       Animated.timing(shakeAnimation, { toValue: 0, duration: 50, useNativeDriver: true })
     ]).start();
   };
-
 
   const handleSelectBatsman = ({ playerId, name }) => {
     if (strikerId === playerId) {
@@ -355,7 +353,8 @@ const SelectRoles = ({ route, navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.appContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor={AppColors.BgColor} translucent={true} />
       <Animated.View
         style={[
           styles.mainScreenContent,
@@ -452,6 +451,11 @@ const SelectRoles = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  appContainer: {
+    flex: 1,
+    backgroundColor: AppColors.BgColor,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 50,
+  },
   container: {
     flex: 1,
     backgroundColor: AppColors.BgColor,
@@ -459,7 +463,6 @@ const styles = StyleSheet.create({
   mainScreenContent: {
     flex: 1,
     paddingHorizontal: 20,
-    // paddingTop: 20,
     backgroundColor: AppColors.BgColor,
   },
   loadingContainer: {

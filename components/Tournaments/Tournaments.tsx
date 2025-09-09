@@ -10,7 +10,7 @@ import {
   TextInput,
   Pressable,
   Platform,
-  StatusBar,
+  StatusBar as RNStatusBar,
   Dimensions,
   Animated,
   SafeAreaView,
@@ -22,12 +22,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import LottieView from 'lottie-react-native';
 
 // These are correctly imported from colors.js, so they should NOT be re-declared here.
-import { AppGradients, AppButtons, AppColors } from '../../assets/constants/colors.js';
+import { AppGradients, AppColors } from '../../assets/constants/colors.js';
 import apiService from '../APIservices';
 
 const { width } = Dimensions.get('window');
-const CARD_PADDING = 16;
-const CARD_WIDTH = width - (CARD_PADDING * 2);
 
 const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
   const navigation = useNavigation();
@@ -44,7 +42,7 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
         useNativeDriver: true,
       })
     ]).start();
-  }, []);
+  }, [index, opacityValue]);
 
   const handlePressIn = () => {
     Animated.spring(scaleValue, {
@@ -78,7 +76,7 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
     navigation.navigate('ManageTournaments', { id: tournamentData.id, isCreator, tab });
   }, [checkIsCreator, navigation]);
 
-  const sanitizedBannerUrl = tournament.banner.replace(
+  const sanitizedBannerUrl = tournament.banner?.replace(
     'https://score360-7.onrender.com/api/v1/files/http:/',
     'https://'
   );
@@ -100,96 +98,66 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
   const statusInfo = getStatusInfo();
 
   return (
-    <SafeAreaView>
-      <Animated.View
-        style={[
-          styles.cardContainerWrapper,
-          {
-            opacity: opacityValue,
-            transform: [{ scale: scaleValue }]
-          }
-        ]}
+    <Animated.View
+      style={[
+        styles.cardContainer,
+        {
+          opacity: opacityValue,
+          transform: [{ scale: scaleValue }],
+        },
+      ]}
+    >
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={() => handleNavigation(tournament, 'INFO')}
+        style={styles.cardPressable}
       >
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          onPress={() => handleNavigation(tournament, 'INFO')}
-        >
-          <View style={styles.cardElevation}>
-            {/* Status Badge */}
-            <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
-              <Icon name={statusInfo.icon} size={14} color={AppColors.white} />
-              <Text style={styles.statusText}>{statusInfo.text}</Text>
-            </View>
+        <View style={styles.cardHeader}>
+          <Text style={styles.tournamentName} numberOfLines={1}>
+            {tournament.name}
+          </Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+            <Icon name={statusInfo.icon} size={14} color={AppColors.white} />
+            <Text style={styles.statusText}>{statusInfo.text}</Text>
+          </View>
+        </View>
 
-            {/* Tournament Image */}
+        <View style={styles.cardContent}>
+          <View style={styles.tournamentImageContainer}>
             <Image
               source={{ uri: sanitizedBannerUrl }}
-              style={styles.cardImage}
+              style={styles.tournamentImage}
               resizeMode='cover'
             />
-
-            {/* Gradient Overlay on Image */}
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.7)']}
-              style={styles.imageOverlay}
-            />
-
-            {/* Card Content */}
-            <View style={styles.cardContent}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.tournamentNameCard} numberOfLines={1}>{tournament.name}</Text>
-                <Text style={styles.tournamentOversText}>{tournament.type} Overs</Text>
-              </View>
-
-              <View style={styles.cardDetails}>
-                <View style={styles.detailItem}>
-                  <Icon name="sports-baseball" color={AppColors.primaryBlue} size={16} />
-                  <Text style={styles.detailText} numberOfLines={1}>{tournament.ballType}</Text>
-                </View>
-
-                <View style={styles.detailItem}>
-                  <Icon name="location-on" color={AppColors.primaryBlue} size={16} />
-                  <Text style={styles.detailText} numberOfLines={1}>{tournament.location || 'Location not specified'}</Text>
-                </View>
-
-                <View style={styles.detailItem}>
-                  <Icon name="calendar-today" color={AppColors.primaryBlue} size={16} />
-                  <Text style={styles.detailText} numberOfLines={2}>
-                    {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]} - ${tournament.endDate[2]}/${tournament.endDate[1]}/${tournament.endDate[0]}`}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.cardActions}>
-                {(tournamentTimeStatus === 'LIVE' || tournamentTimeStatus === 'UPCOMING') && (
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.scheduleButton]}
-                    activeOpacity={0.8}
-                    onPress={() => handleNavigation(tournament, 'MATCHES')}
-                  >
-                    <Icon name="event" size={18} color={AppColors.white} />
-                    <Text style={styles.actionButtonText}>Schedule</Text>
-                  </TouchableOpacity>
-                )}
-
-                {(tournamentTimeStatus === 'LIVE' || tournamentTimeStatus === 'PAST') && (
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.pointsButton]}
-                    activeOpacity={0.8}
-                    onPress={() => handleNavigation(tournament, 'POINTS TABLE')}
-                  >
-                    <Icon name="leaderboard" size={18} color={AppColors.white} />
-                    <Text style={styles.actionButtonText}>Standings</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+          </View>
+          <View style={styles.detailsContainer}>
+            <View style={styles.detailItem}>
+              <Icon name="calendar-today" size={14} color={AppColors.primaryBlue} />
+              <Text style={styles.detailText} numberOfLines={1}>
+                {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]} - ${tournament.endDate[2]}/${tournament.endDate[1]}/${tournament.endDate[0]}`}
+              </Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Icon name="sports-cricket" size={14} color={AppColors.primaryBlue} />
+              <Text style={styles.detailText} numberOfLines={1}>
+                {tournament.type} overs • {tournament.ballType}
+              </Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Icon name="location-on" size={14} color={AppColors.primaryBlue} />
+              <Text style={styles.detailText} numberOfLines={1}>
+                {tournament.location || 'Location not specified'}
+              </Text>
             </View>
           </View>
-        </TouchableOpacity>
-      </Animated.View>
-    </SafeAreaView>
+        </View>
+
+        <View style={styles.cardFooter}>
+          <Text style={styles.footerText}>Tap to View Tournament</Text>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 };
 
@@ -208,7 +176,7 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
         useNativeDriver: true,
       })
     ]).start();
-  }, []);
+  }, [index, opacityValue]);
 
   const handlePressIn = () => {
     Animated.spring(scaleValue, {
@@ -281,7 +249,7 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
     );
   }, [onTournamentDeleted]);
 
-  const sanitizedBannerUrl = tournament.banner.replace(
+  const sanitizedBannerUrl = tournament.banner?.replace(
     'https://score360-7.onrender.com/api/v1/files/http:/',
     'https://'
   );
@@ -289,83 +257,65 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
   return (
     <Animated.View
       style={[
-        styles.myCardContainer,
+        styles.cardContainer,
         {
           opacity: opacityValue,
-          transform: [{ scale: scaleValue }]
-        }
+          transform: [{ scale: scaleValue }],
+        },
       ]}
     >
       <Pressable
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={() => manageTournamentHandler(tournament.id, tournament)}
-        style={styles.myCardPressable}
+        style={styles.cardPressable}
       >
-        <View style={styles.myCardElevation}>
-          <Image
-            source={{ uri: sanitizedBannerUrl }}
-            style={styles.myTournamentImage}
-            resizeMode='cover'
-          />
+        <View style={styles.cardHeader}>
+          <Text style={styles.tournamentName} numberOfLines={1}>{tournament.name}</Text>
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              deleteTournamentHandler(tournament.id);
+            }}
+            style={styles.deleteButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="delete-outline" size={24} color={AppColors.errorRed} />
+          </TouchableOpacity>
+        </View>
 
-          {/* Gradient Overlay on Image */}
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
-            style={styles.myImageOverlay}
-          />
-
-          <View style={styles.myCardContent}>
-            <View style={styles.myCardHeader}>
-              <Text style={styles.myTournamentName} numberOfLines={2}>{tournament.name}</Text>
-              <TouchableOpacity
-                onPress={() => deleteTournamentHandler(tournament.id)}
-                style={styles.deleteButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Icon name="delete-outline" size={24} color={AppColors.errorRed} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.myCardDetails}>
-              <View style={styles.myDetailItem}>
-                <Icon name="calendar-today" size={14} color={AppColors.primaryBlue} />
-                <Text style={styles.myDetailText} numberOfLines={1}>
-                  {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]} - ${tournament.endDate[2]}/${tournament.endDate[1]}/${tournament.endDate[0]}`}
-                </Text>
-              </View>
-
-              <View style={styles.myDetailItem}>
-                <Icon name="sports-cricket" size={14} color={AppColors.primaryBlue} />
-                <Text style={styles.myDetailText} numberOfLines={1}>
-                  {tournament.type} overs • {tournament.ballType}
-                </Text>
-              </View>
-
-              <View style={styles.myDetailItem}>
-                <Icon name="location-on" size={14} color={AppColors.primaryBlue} />
-                <Text style={styles.myDetailText} numberOfLines={1}>
-                  {tournament.venues?.join(', ') || 'Location not specified'}
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.manageButton}
-              onPress={() => manageTournamentHandler(tournament.id, tournament)}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={AppGradients.primaryButton}
-                style={styles.manageButtonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Icon name="settings" size={18} color={AppColors.white} style={styles.manageIcon} />
-                <Text style={styles.manageButtonText}>MANAGE TOURNAMENT</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+        <View style={styles.cardContent}>
+          <View style={styles.tournamentImageContainer}>
+            <Image
+              source={{ uri: sanitizedBannerUrl }}
+              style={styles.tournamentImage}
+              resizeMode='cover'
+            />
           </View>
+          <View style={styles.detailsContainer}>
+            <View style={styles.detailItem}>
+              <Icon name="calendar-today" size={14} color={AppColors.primaryBlue} />
+              <Text style={styles.detailText} numberOfLines={1}>
+                {`${tournament.startDate[2]}/${tournament.startDate[1]}/${tournament.startDate[0]} - ${tournament.endDate[2]}/${tournament.endDate[1]}/${tournament.endDate[0]}`}
+              </Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Icon name="sports-cricket" size={14} color={AppColors.primaryBlue} />
+              <Text style={styles.detailText} numberOfLines={1}>
+                {tournament.type} overs • {tournament.ballType}
+              </Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Icon name="location-on" size={14} color={AppColors.primaryBlue} />
+              <Text style={styles.detailText} numberOfLines={1}>
+                {tournament.venues?.join(', ') || 'Location not specified'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.cardFooter}>
+          <Text style={styles.footerText}>Tap to Manage Tournament</Text>
         </View>
       </Pressable>
     </Animated.View>
@@ -378,17 +328,21 @@ const Tournaments = () => {
   const [error, setError] = useState(null);
   const [tournaments, setTournaments] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [allTournaments, setAllTournaments] = useState([]); // 👈 New state for unfiltered list
   const navigation = useNavigation();
-  const debounce = (func, delay) => {
-    let timer;
-    return function (...args) {
-      const context = this;
-      clearTimeout(timer);
-      timer = setTimeout(() => func.apply(context, args), delay);
-    };
+
+  const filterTournaments = (query) => {
+    if (query) {
+      const filtered = allTournaments.filter(t =>
+        t.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setTournaments(filtered);
+    } else {
+      setTournaments(allTournaments);
+    }
   };
 
-  const fetchTournaments = useCallback(async (status, query = '') => {
+  const fetchTournaments = useCallback(async (status) => {
     setLoading(true);
     setError(null);
     try {
@@ -402,10 +356,7 @@ const Tournaments = () => {
           ? `tournaments/tournaments-play`
           : `tournaments/status`;
 
-      const params = {
-        ...(status !== 'MY' && { status }),
-        ...(query && { name: query }),
-      };
+      const params = (status !== 'MY') ? { status } : {};
 
       const response = await apiService({
         endpoint,
@@ -415,115 +366,140 @@ const Tournaments = () => {
       });
 
       if (response.success) {
+        setAllTournaments(response.data.data || []);
         setTournaments(response.data.data || []);
+        setError(null);
       } else {
         console.error('Fetch tournaments API error:', response.error);
         setError(response.error?.message || 'Failed to load tournaments.');
+        setAllTournaments([]);
         setTournaments([]);
       }
     } catch (err) {
       console.error('Fetch tournaments unexpected error:', err);
       setError(err.message || 'An unexpected error occurred while loading tournaments.');
-      setTournaments([]);
+      setAllTournaments([]);
+        setTournaments([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const debouncedFetchTournaments = useCallback(
-    debounce((status, query) => fetchTournaments(status, query), 500),
-    [fetchTournaments]
-  );
-
   useFocusEffect(
     useCallback(() => {
-      fetchTournaments(activeTab.toUpperCase(), searchQuery);
-    }, [activeTab, searchQuery, fetchTournaments])
+      setSearchQuery('');
+      fetchTournaments(activeTab.toUpperCase());
+    }, [activeTab, fetchTournaments])
   );
 
   const handleMyTournamentDeleted = useCallback(() => {
-    fetchTournaments('MY', searchQuery);
-  }, [fetchTournaments, searchQuery]);
+    fetchTournaments('MY');
+  }, [fetchTournaments]);
 
   const onSearchTextChange = (text) => {
     setSearchQuery(text);
-    debouncedFetchTournaments(activeTab.toUpperCase(), text);
+    filterTournaments(text);
+  };
+  
+  // Re-declare AppColors and AppGradients here as a temporary fix
+  const AppColors = {
+    primaryBlue: '#34B8FF',
+    secondaryBlue: '#1E88E5',
+    white: '#FFFFFF',
+    black: '#000000',
+    darkText: '#333333',
+    mediumText: '#555555',
+    lightText: '#888888',
+    lightBackground: '#F8F9FA',
+    cardBackground: '#FFFFFF',
+    errorRed: '#FF4757',
+    successGreen: '#2ED573',
+    liveGreen: '#2ED573',
+    upcomingOrange: '#FF9F43',
+    pastGray: '#747D8C',
+    infoGrey: '#A4B0BE',
+    cardBorder: '#E0E0E0',
+    gray: '#A4B0BE',
+  };
+
+  const AppGradients = {
+    primaryCard: ['#34B8FF', '#1E88E5'],
+    primaryButton: ['#34B8FF', '#1E88E5'],
   };
 
   useEffect(() => {
-    StatusBar.setBackgroundColor(AppGradients.primaryCard[0], true);
-    StatusBar.setBarStyle('light-content', true); // Use 'light-content' for dark backgrounds
+    // Correctly handle the status bar behavior on both platforms
+    RNStatusBar.setBarStyle('light-content');
     if (Platform.OS === 'android') {
-      StatusBar.setTranslucent(false); // Ensure it's not translucent for solid color
+      RNStatusBar.setTranslucent(true);
+      RNStatusBar.setBackgroundColor('transparent');
     }
   }, []);
 
   return (
     <SafeAreaView style={styles.container}>
-    {/* Header - Modified to extend into status bar */}
-    <LinearGradient
-      colors={AppGradients.primaryCard}
-      style={styles.header}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <View style={styles.headerContentRow}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Icon name="arrow-back" size={28} color={AppColors.white} />
-        </TouchableOpacity>
-
-        <View style={styles.searchBarContainer}>
-          <Icon name="search" size={20} color={AppColors.white} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search tournaments..."
-            placeholderTextColor="rgba(255,255,255,0.8)"
-            onChangeText={onSearchTextChange}
-            value={searchQuery}
-            returnKeyType="search"
-          />
-        </View>
-      </View>
-
-      {/* Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabContainer}
+      <LinearGradient
+        colors={AppGradients.primaryCard}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        {['MY', 'LIVE', 'UPCOMING', 'PAST'].map((tab) => (
+        <View style={styles.headerContentRow}>
           <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tabButton,
-              activeTab === tab && styles.activeTabButton,
-            ]}
-            onPress={() => {
-              setActiveTab(tab);
-              setSearchQuery(''); // Clear search on tab change
-              fetchTournaments(tab.toUpperCase(), ''); // Refetch for new tab
-            }}
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
           >
-            <Text style={[
-              styles.tabText,
-              activeTab === tab && styles.activeTabText,
-            ]}>
-              {tab}
-            </Text>
+            <Icon name="arrow-back" size={28} color={AppColors.white} />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </LinearGradient>
-      {/* Content */}
+
+          <View style={styles.searchBarContainer}>
+            <Icon name="search" size={20} color={AppColors.white} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search tournaments..."
+              placeholderTextColor="rgba(255,255,255,0.8)"
+              onChangeText={onSearchTextChange}
+              value={searchQuery}
+              returnKeyType="search"
+            />
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabContainer}
+        >
+          {['MY', 'LIVE', 'UPCOMING', 'PAST'].map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                styles.tabButton,
+                activeTab === tab && styles.activeTabButton,
+              ]}
+              onPress={() => {
+                setActiveTab(tab);
+                setSearchQuery('');
+                fetchTournaments(tab.toUpperCase());
+              }}
+            >
+              <Text style={[
+                styles.tabText,
+                activeTab === tab && styles.activeTabText,
+              ]}>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </LinearGradient>
+      
       <View style={styles.content}>
         {loading ? (
           <View style={styles.loaderContainer}>
             <LottieView
-              source={require('../../assets/animations/loader.gif')}
+              source={require('../../assets/animations/loader.json')}
               autoPlay
               loop
               style={styles.lottieLoader}
@@ -582,17 +558,15 @@ const Tournaments = () => {
   );
 };
 
-export default Tournaments;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: AppColors.lightBackground,
   },
-
   header: {
     paddingBottom: 20,
-    paddingTop: Platform.OS === 'ios' ? 40 : 40,
+    // FIX: Reduced padding to decrease overall header height
+    paddingTop: Platform.OS === 'ios' ? 10 : RNStatusBar.currentHeight + 10,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
     overflow: 'hidden',
@@ -601,7 +575,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    // FIX: Reduced vertical padding
+    paddingVertical: 5,
     marginBottom: 10,
   },
   backButton: {
@@ -614,7 +589,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 25,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 0,
+    // FIX: Decreased vertical padding for a shorter search bar
+    paddingVertical: Platform.OS === 'ios' ? 8 : 6,
     paddingHorizontal: 15,
   },
   searchIcon: {
@@ -651,7 +627,6 @@ const styles = StyleSheet.create({
     color: AppColors.primaryBlue,
     fontWeight: 'bold',
   },
-
   content: {
     flex: 1,
   },
@@ -659,10 +634,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: AppColors.lightBackground, // Match content background
+    backgroundColor: AppColors.lightBackground,
   },
   lottieLoader: {
-    width: 150, // Adjust size as needed
+    width: 150,
     height: 150,
   },
   errorContainer: {
@@ -681,206 +656,12 @@ const styles = StyleSheet.create({
     padding: 15,
     paddingBottom: 80,
   },
-
-  // === Enhanced Tournament Card Styles ===
-  cardContainerWrapper: {
-    marginBottom: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  cardElevation: {
-    backgroundColor: AppColors.white,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: AppColors.black,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 8,
-  },
-  statusBadge: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    zIndex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    shadowColor: AppColors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statusText: {
-    color: AppColors.white,
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  cardImage: {
-    width: '100%',
-    height: 160,
-  },
-  imageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 160,
-  },
-  cardContent: {
-    padding: 20,
-  },
-  cardHeader: {
-    marginBottom: 15,
-  },
-  tournamentNameCard: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: AppColors.darkText,
-    marginBottom: 5,
-  },
-  tournamentOversText: {
-    fontSize: 15,
-    color: AppColors.primaryBlue,
-    fontWeight: '600',
-  },
-  cardDetails: {
-    marginBottom: 20,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  detailText: {
-    marginLeft: 12,
-    fontSize: 14,
-    color: AppColors.mediumText,
-    flex: 1,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    shadowColor: AppColors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  scheduleButton: {
-    backgroundColor: AppColors.primaryBlue,
-  },
-  pointsButton: {
-    backgroundColor: AppColors.secondaryBlue,
-  },
-  actionButtonText: {
-    color: AppColors.white,
-    fontWeight: '600',
-    fontSize: 14,
-    marginLeft: 6,
-  },
-
-  // === Enhanced My Tournament Card Styles ===
-  myCardContainer: {
-    marginBottom: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  myCardPressable: {
-    borderRadius: 20,
-  },
-  myCardElevation: {
-    backgroundColor: AppColors.white,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: AppColors.black,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 8,
-  },
-  myTournamentImage: {
-    width: '100%',
-    height: 180,
-  },
-  myImageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 180,
-  },
-  myCardContent: {
-    padding: 20,
-  },
-  myCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 15,
-  },
-  myTournamentName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: AppColors.darkText,
-    flex: 1,
-    marginRight: 15,
-  },
-  deleteButton: {
-    padding: 4,
-  },
-  myCardDetails: {
-    marginBottom: 20,
-  },
-  myDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  myDetailText: {
-    marginLeft: 10,
-    color: AppColors.mediumText,
-    fontSize: 14,
-    flex: 1,
-  },
-  manageButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  manageButtonGradient: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  manageIcon: {
-    marginRight: 8,
-  },
-  manageButtonText: {
-    color: AppColors.white,
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-
-  // === Empty State Styles ===
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-    minHeight: 250, // Ensure it takes enough space
+    minHeight: 250,
   },
   emptyText: {
     color: AppColors.infoGrey,
@@ -911,4 +692,102 @@ const styles = StyleSheet.create({
     color: AppColors.white,
     fontWeight: 'bold',
   },
+
+  // === Common Card Styles (Refined) ===
+  cardContainer: {
+    backgroundColor: AppColors.white,
+    borderRadius: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  cardPressable: {
+    borderRadius: 15,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+  },
+  tournamentName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: AppColors.darkText,
+    flexShrink: 1,
+    paddingRight: 10,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 15,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statusText: {
+    color: AppColors.white,
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 15,
+    paddingBottom: 15,
+  },
+  tournamentImageContainer: {
+    width: 80,
+    height: 60,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginRight: 15,
+    backgroundColor: AppColors.lightBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tournamentImage: {
+    width: '100%',
+    height: '100%',
+  },
+  detailsContainer: {
+    flex: 1,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  detailText: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: AppColors.mediumText,
+    flex: 1,
+  },
+  cardFooter: {
+    padding: 12,
+    backgroundColor: AppColors.lightBackground,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    alignItems: 'center',
+  },
+  footerText: {
+    color: AppColors.mediumText,
+    fontSize: 14,
+  },
+  deleteButton: {
+    padding: 4,
+  },
 });
+
+export default Tournaments;

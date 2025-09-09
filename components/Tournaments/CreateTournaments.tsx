@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,9 +17,10 @@ import {
   KeyboardAvoidingView,
   Animated,
   Easing,
+  Modal,
+  FlatList,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -49,7 +50,7 @@ const AppColors = {
 const { height, width } = Dimensions.get('window');
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-// Notification Component
+// Reusable Notification Component
 const Notification = ({ message, type, visible, onHide }) => {
   const [fadeAnim] = useState(new Animated.Value(0));
 
@@ -73,7 +74,7 @@ const Notification = ({ message, type, visible, onHide }) => {
         onHide && onHide();
       });
     }
-  }, [visible, fadeAnim]);
+  }, [visible, fadeAnim, onHide]);
 
   if (!visible) return null;
 
@@ -98,6 +99,76 @@ const Notification = ({ message, type, visible, onHide }) => {
   );
 };
 
+// Reusable Dropdown Modal Component
+const DropdownModal = ({ visible, options, onSelect, onClose, selectedValue, title }) => {
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.timing(slideAnim, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, slideAnim]);
+
+  const translateY = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height, 0],
+  });
+
+  return (
+    <Modal
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+      animationType="none"
+    >
+      <TouchableOpacity
+        style={modalStyles.overlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <Animated.View
+          style={[modalStyles.modalContainer, { transform: [{ translateY }] }]}
+        >
+          <View style={modalStyles.modalHandle} />
+          <Text style={modalStyles.modalTitle}>{title}</Text>
+          <FlatList
+            data={options}
+            keyExtractor={(item) => item.value}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  modalStyles.optionItem,
+                  selectedValue === item.value && modalStyles.selectedOption,
+                ]}
+                onPress={() => onSelect(item.value)}
+              >
+                <Text style={modalStyles.optionText}>{item.label}</Text>
+                {selectedValue === item.value && (
+                  <Ionicons name="checkmark-circle" size={20} color={AppColors.primary} />
+                )}
+              </TouchableOpacity>
+            )}
+            style={modalStyles.optionsList}
+            showsVerticalScrollIndicator={false}
+          />
+        </Animated.View>
+      </TouchableOpacity>
+    </Modal>
+  );
+};
+
 const CreateTournament = () => {
   const navigation = useNavigation();
 
@@ -113,8 +184,8 @@ const CreateTournament = () => {
   const [banner, setBanner] = useState(null);
   const [loading, setLoading] = useState(false);
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
-  const [showFormatDropdown, setShowFormatDropdown] = useState(false);
-  const [showBallTypeDropdown, setShowBallTypeDropdown] = useState(false);
+  const [showFormatModal, setShowFormatModal] = useState(false); // 👈 New state for modal
+  const [showBallTypeModal, setShowBallTypeModal] = useState(false); // 👈 New state for modal
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [notification, setNotification] = useState({
     visible: false,
@@ -193,44 +264,6 @@ const CreateTournament = () => {
     }
 
     try {
-      // const formData = new FormData();
-      // formData.append("name", tournamentName);
-      // formData.append("startDate", startDate.toISOString().split('T')[0]);
-      // formData.append("endDate", endDate.toISOString().split('T')[0]);
-      // formData.append("format", format);
-      // formData.append("type", overs);
-      // formData.append("ballType", ballType);
-      // formData.append("matchesPerDay", "1");
-      // formData.append("matchesPerTeam", "1");
-      // formData.append("venues", "Default Venue");
-
-      // if (banner) {
-      //   const fileName = banner.split('/').pop();
-      //   const fileType = fileName.split('.').pop();
-      //   formData.append("banner", {
-      //     uri: banner,
-      //     name: fileName,
-      //     type: `image/${fileType}`,
-      //   });
-      // }
-
-      // const response = await apiService({
-      //   endpoint: `tournaments/${userId}`,
-      //   method: "POST",
-      //   body: formData,
-      //   headers: {
-      //     "Content-Type": "multipart/form-data",
-      //   },
-      // });
-
-      // if (response.success) {
-      //   showNotification('Tournament created successfully!');
-      //   setTimeout(() => {
-      //     navigation.navigate('Tournaments');
-      //   }, 2000);
-      // } else {
-      //   showNotification(response.error?.message || 'Failed to create tournament', 'error');
-      // }
       const tournamentData = {
         userId,
         name: tournamentName,
@@ -294,6 +327,17 @@ const CreateTournament = () => {
       default: return 'Select Ball Type *';
     }
   };
+
+  const formatOptions = [
+    { label: "Double Round Robin", value: "DOUBLE_ROUND_ROBIN" },
+    { label: "Single Round Robin", value: "SINGLE_ROUND_ROBIN" },
+    { label: "Knockout", value: "KNOCKOUT" },
+  ];
+
+  const ballTypeOptions = [
+    { label: "Tennis Ball", value: "TENNIS" },
+    { label: "Leather Ball", value: "LEATHER" },
+  ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -413,64 +457,33 @@ const CreateTournament = () => {
             <Text style={styles.label}>Tournament Format *</Text>
             <TouchableOpacity
               style={styles.dropdownButton}
-              onPress={() => setShowFormatDropdown(!showFormatDropdown)}
+              onPress={() => setShowFormatModal(true)}
             >
               <Text style={[styles.dropdownButtonText, !format && styles.placeholderText]}>
                 {getFormatLabel(format)}
               </Text>
               <Ionicons
-                name={showFormatDropdown ? "chevron-up" : "chevron-down"}
+                name={"chevron-down"}
                 size={20}
                 color={AppColors.primary}
               />
             </TouchableOpacity>
 
-            {showFormatDropdown && (
-              <View style={styles.dropdownContainer}>
-                <Picker
-                  selectedValue={format}
-                  onValueChange={(itemValue) => {
-                    setFormat(itemValue);
-                    setShowFormatDropdown(false);
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Double Round Robin" value="DOUBLE_ROUND_ROBIN" />
-                  <Picker.Item label="Single Round Robin" value="SINGLE_ROUND_ROBIN" />
-                  <Picker.Item label="Knockout" value="KNOCKOUT" />
-                </Picker>
-              </View>
-            )}
             <Text style={styles.label}>Ball Type *</Text>
             <TouchableOpacity
               style={styles.dropdownButton}
-              onPress={() => setShowBallTypeDropdown(!showBallTypeDropdown)}
+              onPress={() => setShowBallTypeModal(true)}
             >
               <Text style={[styles.dropdownButtonText, !ballType && styles.placeholderText]}>
                 {getBallTypeLabel(ballType)}
               </Text>
               <Ionicons
-                name={showBallTypeDropdown ? "chevron-up" : "chevron-down"}
+                name={"chevron-down"}
                 size={20}
                 color={AppColors.primary}
               />
             </TouchableOpacity>
 
-            {showBallTypeDropdown && (
-              <View style={styles.dropdownContainer}>
-                <Picker
-                  selectedValue={ballType}
-                  onValueChange={(itemValue) => {
-                    setBallType(itemValue);
-                    setShowBallTypeDropdown(false);
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Tennis Ball" value="TENNIS" />
-                  <Picker.Item label="Leather Ball" value="LEATHER" />
-                </Picker>
-              </View>
-            )}
             <Text style={styles.label}>Number of Overs</Text>
             <TextInput
               style={styles.input}
@@ -485,6 +498,31 @@ const CreateTournament = () => {
           <View style={{ height: 80 }} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <DropdownModal
+        visible={showFormatModal}
+        options={formatOptions}
+        onSelect={(value) => {
+          setFormat(value);
+          setShowFormatModal(false);
+        }}
+        onClose={() => setShowFormatModal(false)}
+        selectedValue={format}
+        title="Select Tournament Format"
+      />
+
+      <DropdownModal
+        visible={showBallTypeModal}
+        options={ballTypeOptions}
+        onSelect={(value) => {
+          setBallType(value);
+          setShowBallTypeModal(false);
+        }}
+        onClose={() => setShowBallTypeModal(false)}
+        selectedValue={ballType}
+        title="Select Ball Type"
+      />
+
       {!keyboardOpen && (
         <View style={styles.floatingButtonContainer}>
           <TouchableOpacity
@@ -646,18 +684,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: AppColors.darkText,
   },
-  dropdownContainer: {
-    borderColor: '#E0E0E0',
-    borderWidth: 1,
-    borderRadius: 12,
-    marginBottom: 16,
-    backgroundColor: AppColors.background,
-    overflow: 'hidden',
-  },
-  picker: {
-    color: AppColors.darkText,
-    height: 180,
-  },
   floatingButtonContainer: {
     position: 'absolute',
     bottom: 20,
@@ -724,6 +750,61 @@ const styles = StyleSheet.create({
   },
   notificationClose: {
     padding: 4,
+  },
+});
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  modalContainer: {
+    backgroundColor: AppColors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    maxHeight: height * 0.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 20,
+  },
+  modalHandle: {
+    width: 60,
+    height: 6,
+    backgroundColor: '#ccc',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginVertical: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 15,
+    color: AppColors.darkText,
+  },
+  optionsList: {
+    flexGrow: 0,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  optionText: {
+    fontSize: 16,
+    color: AppColors.darkText,
+  },
+  selectedOption: {
+    backgroundColor: '#e3f2fd',
   },
 });
 
