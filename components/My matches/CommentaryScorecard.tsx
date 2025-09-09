@@ -56,11 +56,10 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [overDetails, setOverDetails] = useState("");
   const legalDeliveriesRef = useRef(0);
   const [legalDeliveries, setLegalDeliveries] = useState(0);
-  const [team1BattingOrder, setTeam1BattingOrder] = useState([]);
-  const [team2BattingOrder, setTeam2BattingOrder] = useState([]);
-  const [team1BowlingOrder, setTeam1BowlingOrder] = useState([]);
-  const [team2BowlingOrder, setTeam2BowlingOrder] = useState([]);
-
+  const [battingFirst, setBattingFirst] = useState(null);
+  const [battingSecond, setBattingSecond] = useState(null);
+  const [innings, setInnings] = useState("1st");
+  const [subTab, setSubTab] = useState("Batting");
   const [activeTab, setActiveTab] = useState('commentary');
   const [scoreTab, setScoreTab] = useState('T1B');
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -89,6 +88,28 @@ const CommentaryScorecard = ({ route, navigation }) => {
     return Array.from(map.values());
   };
 
+  const mergeBattingData = (battingOrder = [], playingXI = []) => {
+    if (!Array.isArray(battingOrder) || !Array.isArray(playingXI)) return [];
+
+    const orderedPlayers = battingOrder.map((bat) => {
+      const stats = playingXI.find((p) => p.playerId === bat.playerId);
+      return {
+        ...bat,
+        ...stats,
+        wicketDetails: stats?.wicketDetails || null,
+      };
+    });
+
+    const yetToBat = playingXI
+      .filter((p) => !battingOrder.find((bat) => bat.playerId === p.playerId))
+      .map((p) => ({
+        ...p,
+        wicketDetails: null,
+      }));
+
+    return [...orderedPlayers, ...yetToBat];
+  };
+
   const safeNumber = (n, d = 0) => (Number.isFinite(n) ? n : d);
 
   const ballsToOvers = (balls) => {
@@ -114,6 +135,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
   };
 
   const dismissalText = (wicketDetails) => {
+    console.log(wicketDetails);
     if (!wicketDetails) return 'not out';
     const { dismissalType, bowlerId, catcherId, runOutMakerId } = wicketDetails || {};
     if (!dismissalType) return 'not out';
@@ -235,11 +257,17 @@ const CommentaryScorecard = ({ route, navigation }) => {
         setOverDetails("");
       }
 
-      setTeam1BattingOrder(dedupeByPlayer(data?.team1BattingOrder || []));
-      setTeam2BattingOrder(dedupeByPlayer(data?.team2BattingOrder || []));
-      setTeam1BowlingOrder(dedupeByPlayer(data?.team1BowlingOrder || []));
-      setTeam2BowlingOrder(dedupeByPlayer(data?.team2BowlingOrder || []));
+      setBattingFirst(data?.battingFirst);
+      setBattingSecond(data?.battingSecond);
 
+      // const t1bo = mergeBattingData(data?.team1BattingOrder, data?.team1?.playingXI);
+      // const t2bo = mergeBattingData(data?.team2BattingOrder, data?.team2?.playingXI);
+      // console.log(t1bo);
+      // console.log(t2bo);
+      // setTeam1BattingOrder(mergeBattingData(data?.team1BattingOrder, data?.team1?.playingXI));
+      // setTeam2BattingOrder(mergeBattingData(data?.team2BattingOrder, data?.team2?.playingXI));
+      // setTeam1BowlingOrder(dedupeByPlayer(data?.team1BowlingOrder || []));
+      // setTeam2BowlingOrder(dedupeByPlayer(data?.team2BowlingOrder || []));
     } catch (error) {
       console.log("Error fetching match state:", error);
     } finally {
@@ -247,9 +275,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
     }
   };
 
-  // ----------------------------
-  // 2. Live updates handler
-  // ----------------------------
   const matchScoreUpdateHandler = (data) => {
     setBattingTeamName(data?.battingTeam?.name);
     setBowlingTeamName(data?.bowlingTeam?.name);
@@ -304,17 +329,21 @@ const CommentaryScorecard = ({ route, navigation }) => {
         legalDeliveriesRef.current = updatedLegalDeliveries;
         setLegalDeliveries(updatedLegalDeliveries);
       }
+      matchScoreCardUpdateHandler(data);
     }
   };
 
-  // ----------------------------
-  // 3. STOMP connection
-  // ----------------------------
   const matchScoreCardUpdateHandler = (data) => {
-    if (Array.isArray(data?.team1BattingOrder)) setTeam1BattingOrder(dedupeByPlayer(data.team1BattingOrder));
-    if (Array.isArray(data?.team2BattingOrder)) setTeam2BattingOrder(dedupeByPlayer(data.team2BattingOrder));
-    if (Array.isArray(data?.team1BowlingOrder)) setTeam1BowlingOrder(dedupeByPlayer(data.team1BowlingOrder));
-    if (Array.isArray(data?.team2BowlingOrder)) setTeam2BowlingOrder(dedupeByPlayer(data.team2BowlingOrder));
+    // const t1bo = mergeBattingData(data?.team1BattingOrder, data?.team1?.playingXI);
+    // const t2bo = mergeBattingData(data?.team2BattingOrder, data?.team2?.playingXI);
+    // console.log(t1bo);
+    // console.log(t2bo);
+    // setTeam1BattingOrder(mergeBattingData(data?.team1BattingOrder, data?.team1?.playingXI));
+    // setTeam2BattingOrder(mergeBattingData(data?.team2BattingOrder, data?.team2?.playingXI));
+    // if (Array.isArray(data?.team1BowlingOrder)) setTeam1BowlingOrder(dedupeByPlayer(data.team1BowlingOrder));
+    // if (Array.isArray(data?.team2BowlingOrder)) setTeam2BowlingOrder(dedupeByPlayer(data.team2BowlingOrder));
+    setBattingFirst(data?.battingFirst);
+    setBattingSecond(data?.battingSecond);
   };
 
   const useStompConnection = () => {
@@ -354,6 +383,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
               switch (eventName) {
                 case 'ball-update':
                   matchScoreUpdateHandler(payload);
+                  matchScoreCardUpdateHandler(payload);
                   break;
                 case 'match-complete':
                   navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
@@ -506,6 +536,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
     const fours = safeNumber(item?.fours, 0);
     const sixes = safeNumber(item?.sixes, 0);
     const sr = strikeRateCalc(runs, balls);
+    console.log(item);
+    console.log(item?.wicketDetails);
+
     const outText = dismissalText(item?.wicketDetails);
 
     return (
@@ -695,10 +728,54 @@ const CommentaryScorecard = ({ route, navigation }) => {
                 <View style={styles.detailedScorecard}>
                   <ScoreTabs />
 
-                  {scoreTab === 'T1B' && <BattingTable data={team1BattingOrder} />}
+                  {/* {scoreTab === 'T1B' && <BattingTable data={team1BattingOrder} />}
                   {scoreTab === 'T1Bo' && <BowlingTable data={team1BowlingOrder} />}
                   {scoreTab === 'T2B' && <BattingTable data={team2BattingOrder} />}
-                  {scoreTab === 'T2Bo' && <BowlingTable data={team2BowlingOrder} />}
+                  {scoreTab === 'T2Bo' && <BowlingTable data={team2BowlingOrder} />} */}
+                  <View style={styles.inningsTabsRow}>
+                    <TouchableOpacity
+                      style={[styles.inningsTabBtn, innings === "1st" && styles.inningsTabActive]}
+                      onPress={() => { setInnings("1st"); setSubTab("Batting"); }}
+                    >
+                      <Text style={[styles.inningsTabText, innings === "1st" && styles.inningsTabTextActive]}>1st Innings</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.inningsTabBtn, innings === "2nd" && styles.inningsTabActive]}
+                      onPress={() => { setInnings("2nd"); setSubTab("Batting"); }}
+                    >
+                      <Text style={[styles.inningsTabText, innings === "2nd" && styles.inningsTabTextActive]}>2nd Innings</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.scoreTabsRow}>
+                    <TouchableOpacity
+                      style={[styles.scoreTabBtn, subTab === "Batting" && styles.scoreTabActive]}
+                      onPress={() => setSubTab("Batting")}
+                    >
+                      <Text style={[styles.scoreTabText, subTab === "Batting" && styles.scoreTabTextActive]}>
+                        Batting
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.scoreTabBtn, subTab === "Bowling" && styles.scoreTabActive]}
+                      onPress={() => setSubTab("Bowling")}
+                    >
+                      <Text style={[styles.scoreTabText, subTab === "Bowling" && styles.scoreTabTextActive]}>
+                        Bowling
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {innings === "1st" && subTab === "Batting" && (
+                    <BattingTable data={battingFirst} />
+                  )}
+                  {innings === "1st" && subTab === "Bowling" && (
+                    <BowlingTable data={battingSecond} />
+                  )}
+                  {innings === "2nd" && subTab === "Batting" && (
+                    <BattingTable data={battingSecond} />
+                  )}
+                  {innings === "2nd" && subTab === "Bowling" && (
+                    <BowlingTable data={battingFirst} />
+                  )}
                 </View>
               )}
             </Animated.ScrollView>
@@ -1021,6 +1098,38 @@ const styles = StyleSheet.create({
     color: AppColors.lightText,
     padding: 10,
     textAlign: 'center'
+  },
+  inningsTabsRow: {
+    flexDirection: 'row',
+    backgroundColor: AppColors.white,
+    borderRadius: 10,
+    padding: 4,
+    marginTop: 12,
+    marginBottom: 12,
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  inningsTabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    marginHorizontal: 2,
+    backgroundColor: AppColors.background,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  inningsTabActive: {
+    backgroundColor: AppColors.blue,
+  },
+  inningsTabText: {
+    color: AppColors.black,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  inningsTabTextActive: {
+    color: AppColors.white,
   },
 });
 
