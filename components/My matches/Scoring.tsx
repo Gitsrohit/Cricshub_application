@@ -151,16 +151,34 @@ const ScoringScreen = ({ route, navigation }) => {
   };
 
   const matchStateUpdateHandler = (data) => {
-    setOverDetails((prev) => prev + " " + data?.ballString);
-    setBowler({ id: data.currentBowler?.id, name: data.currentBowler?.name, overs: data.currentBowler?.overs, runsConceded: data.currentBowler?.runsConceded, wickets: data.currentBowler?.wickets });
-    setStriker({ id: data.striker?.id, name: data.striker?.name, runs: data.striker?.runs, ballsFaced: data.striker?.ballsFaced });
-    setNonStriker({ id: data.nonStriker?.id, name: data.nonStriker?.name, runs: data.nonStriker?.runs, ballsFaced: data.nonStriker?.ballsFaced });
+    // This is the source of truth from the server, which will overwrite
+    // the optimistic state to ensure correctness.
+    setOverDetails(data?.overDetails);
+    setBowler({
+      id: data.currentBowler?.id,
+      name: data.currentBowler?.name,
+      overs: data.currentBowler?.overs,
+      runsConceded: data.currentBowler?.runsConceded,
+      wickets: data.currentBowler?.wickets
+    });
+    setStriker({
+      id: data.striker?.id,
+      name: data.striker?.name,
+      runs: data.striker?.runs,
+      ballsFaced: data.striker?.ballsFaced
+    });
+    setNonStriker({
+      id: data.nonStriker?.id,
+      name: data.nonStriker?.name,
+      runs: data.nonStriker?.runs,
+      ballsFaced: data.nonStriker?.ballsFaced
+    });
     setCompletedOvers(data?.overNumber);
     setScore(data?.totalRuns);
     setWicket(data?.wicketsLost);
+    setLegalDeliveries(data?.balls);
 
     if (data.overComplete === true) {
-      const newOver = true;
       setOverDetails("");
       legalDeliveriesRef.current = 0;
       setLegalDeliveries(0);
@@ -171,23 +189,10 @@ const ScoringScreen = ({ route, navigation }) => {
         setModals((prev) => ({ ...prev, nextBowler: true }));
       }
     }
-    if (data.overComplete === false) {
-      const ballStr = data?.ballString?.toUpperCase();
-      const isWide = ballStr?.includes("WD");
-      const isNoBall = ballStr?.includes("NB");
-      const isLegalDelivery = !isWide && !isNoBall;
+  };
 
-      if (isLegalDelivery) {
-        const updatedLegalDeliveries = (legalDeliveriesRef.current + 1) % 6;
-        legalDeliveriesRef.current = updatedLegalDeliveries;
-        setLegalDeliveries(updatedLegalDeliveries);
-      }
-    }
-
-  }
-
-  const stompSubmitClientRef = useRef<Client | null>(null);
-  const stompLiveClientRef = useRef<Client | null>(null);
+  const stompSubmitClientRef = useRef(null);
+  const stompLiveClientRef = useRef(null);
 
   const useStompConnection = () => {
     const [submitConnected, setSubmitConnected] = useState(false);
@@ -195,22 +200,21 @@ const ScoringScreen = ({ route, navigation }) => {
     const reconnectAttempts = useRef(0);
     const MAX_RECONNECT_ATTEMPTS = 3;
 
-    const updateConnectionState = (type: 'submit' | 'live', isConnected: boolean) => {
+    const updateConnectionState = (type, isConnected) => {
       if (type === 'submit') {
         setSubmitConnected(isConnected);
       } else {
         setLiveConnected(isConnected);
       }
-
       if (!isConnected) {
         console.warn(`[${type}] Connection state updated to disconnected`);
       }
     };
 
     const setupClient = (
-      clientRef: React.MutableRefObject<Client | null>,
-      type: 'submit' | 'live',
-      matchId: string | null = null
+      clientRef,
+      type,
+      matchId = null
     ) => {
       if (clientRef.current && clientRef.current.active) {
         console.log(`[${type}] Connection already exists, skipping re-initialization.`);
@@ -227,7 +231,6 @@ const ScoringScreen = ({ route, navigation }) => {
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
-        // debug: (str) => console.log(`[${type}] DEBUG: ${str}`),
       });
 
       clientRef.current.onConnect = (frame) => {
@@ -235,23 +238,19 @@ const ScoringScreen = ({ route, navigation }) => {
         reconnectAttempts.current = 0;
 
         if (type === 'live' && matchId) {
-          clientRef.current?.subscribe(`/topic/match/${matchId}`, (message: IMessage) => {
+          clientRef.current?.subscribe(`/topic/match/${matchId}`, (message) => {
             try {
               const parsed = JSON.parse(message.body);
-
               if (!parsed.eventName || !parsed.payload) {
                 console.error('Invalid message format', parsed);
                 return;
               }
-
               const { eventName, payload } = parsed;
-
               switch (eventName) {
                 case 'ball-update':
                   console.log('Ball update:', payload);
                   matchStateUpdateHandler(payload);
                   break;
-
                 case 'match-complete':
                   console.log('Match complete:', payload);
                   liveSocketRef.current?.close();
@@ -260,7 +259,6 @@ const ScoringScreen = ({ route, navigation }) => {
                   canReconnectRef.current = false;
                   navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
                   break;
-
                 case 'innings-complete':
                   console.log('Innings complete:', payload);
                   matchStateUpdateHandler(payload);
@@ -287,12 +285,10 @@ const ScoringScreen = ({ route, navigation }) => {
                     });
                   }, 12000);
                   break;
-
                 case 'second-innings-started':
                   console.log('Second innings started:', payload);
                   matchStateUpdateHandler(payload);
                   break;
-
                 default:
                   console.warn('Unknown event type:', eventName, payload);
               }
@@ -312,7 +308,6 @@ const ScoringScreen = ({ route, navigation }) => {
         console.warn(`[${type}] WebSocket closed:`, event);
         updateConnectionState(type, false);
         console.log(canReconnectRef.current);
-
         if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS && canReconnectRef.current === true) {
           reconnectAttempts.current++;
           console.log(`[${type}] Attempting reconnect (${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS})`);
@@ -367,11 +362,7 @@ const ScoringScreen = ({ route, navigation }) => {
         console.log("Error fetching match state:", error);
         return;
       }
-
-      console.log(data);
-
       setMatchId(data.matchId);
-
       setBowler({
         id: data?.currentBowler?.playerId,
         name: data?.currentBowler?.name,
@@ -379,26 +370,22 @@ const ScoringScreen = ({ route, navigation }) => {
         runsConceded: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.runsConceded || 0,
         wickets: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.wicketsTaken || 0
       });
-
       setStriker({
         id: data?.currentStriker?.playerId,
         name: data?.currentStriker?.name,
         runs: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentStriker?.playerId)?.runs || 0,
         ballsFaced: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentStriker?.playerId)?.ballsFaced || 0
       });
-
       setNonStriker({
         id: data?.currentNonStriker?.playerId,
         name: data?.currentNonStriker?.name,
         runs: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentNonStriker?.playerId)?.runs || 0,
         ballsFaced: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentNonStriker?.playerId)?.ballsFaced || 0
       });
-
       setCompletedOvers(data?.completedOvers || 0);
       setScore(data?.battingTeam?.score || 0);
       setWicket(data?.battingTeam?.wickets || 0);
       setBattingTeamName(data.battingTeam.name);
-
       const formattedOverDetails =
         data?.currentOver?.map((ball) => {
           let event = ball.runs?.toString() || "0";
@@ -409,17 +396,13 @@ const ScoringScreen = ({ route, navigation }) => {
           if (ball.legBye) event += ' LB';
           return event.trim();
         }) || [];
-
-      setOverDetails(formattedOverDetails.join(" ")); // remove commas
-
+      setOverDetails(formattedOverDetails.join(" "));
       const deliveryCount =
         data.currentOver?.reduce((count, ball) => {
           return count + (ball.noBall || ball.wide ? 0 : 1);
         }, 0) || 0;
-
       legalDeliveriesRef.current = deliveryCount;
       setLegalDeliveries(deliveryCount);
-
       if (
         data.completedOvers !== 0 &&
         deliveryCount === 0 &&
@@ -429,7 +412,6 @@ const ScoringScreen = ({ route, navigation }) => {
         newBowlerSelectionRef.current = true;
         setModals((prev) => ({ ...prev, nextBowler: true }));
       };
-
       if (data.completedOvers === data.totalOvers && data.firstInnings === true) {
         newBowlerSelectionRef.current = false;
         setModals({ ...modals, startNextInnings: true, nextBowler: false });
@@ -451,14 +433,10 @@ const ScoringScreen = ({ route, navigation }) => {
         method: 'GET',
       });
       setBattingPlayingXI(batting.data);
-      console.log("Bowling");
-      console.log(bowling.data);
-      console.log("Batting");
-      console.log(batting.data);
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
   useEffect(() => {
     getMatchState();
@@ -468,30 +446,12 @@ const ScoringScreen = ({ route, navigation }) => {
   const scoringOptions = ['0', '1', '2', '3', '4', '6'];
 
   const extrasOptions = [
-    {
-      key: 'Wd',
-      value: 'Wide',
-    },
-    {
-      key: 'B',
-      value: 'Bye',
-    },
-    {
-      key: 'LB',
-      value: 'Leg Bye',
-    },
-    {
-      key: 'NB',
-      value: 'No Ball',
-    },
-    {
-      key: 'W',
-      value: 'Wicket',
-    },
-    {
-      key: 'Undo',
-      value: 'Undo',
-    }
+    { key: 'Wd', value: 'Wide' },
+    { key: 'B', value: 'Bye' },
+    { key: 'LB', value: 'Leg Bye' },
+    { key: 'NB', value: 'No Ball' },
+    { key: 'W', value: 'Wicket' },
+    { key: 'Undo', value: 'Undo' }
   ];
 
   const undoHandler = async () => {
@@ -501,12 +461,10 @@ const ScoringScreen = ({ route, navigation }) => {
         method: 'POST',
         body: {},
       });
-
       if (!success) {
         console.log("Undo failed:", error);
         return;
       }
-
       console.log("Undo successful:", data);
     } catch (err) {
       console.log("Unexpected error during undo:", err);
@@ -517,17 +475,16 @@ const ScoringScreen = ({ route, navigation }) => {
   const handleExtrasWicketSelection = (value) => {
     if (value === 'Wide') {
       setModals({ ...modals, wide: true });
-    } else if (value === 'Bye' || value === 'Leg Bye') {
+    } else if (value === 'Bye') {
       setModals({ ...modals, bye: true });
-    } else if (value === 'No Ball' || value === 'No Ball') {
+    } else if (value === 'Leg Bye') {
+        handleSubmit({ runs: parseInt(byeExtra || '0'), legBye: true });
+    } else if (value === 'No Ball') {
       setModals({ ...modals, noBall: true });
     } else if (value === 'Wicket') {
       setModals({ ...modals, wicket: true });
     } else if (value === 'Undo') {
       undoHandler();
-    } else {
-      setSelectedRun(value);
-      handleSubmit({ runs: parseInt(value), wide: false, noBall: false, bye: false, legBye: false, wicket: false });
     }
   };
 
@@ -536,22 +493,13 @@ const ScoringScreen = ({ route, navigation }) => {
       Alert.alert('Error', 'Please select a batsman first');
       return;
     }
-
-    if (striker.id === selectedPlayer.playerId) {
-      setStriker({ id: null, name: null, runs: 0, ballsFaced: 0 });
-    } else {
-      setNonStriker({ id: null, name: null, runs: 0, ballsFaced: 0 });
-    }
     setModals({ ...modals, nextBatsman: false });
-
     const { success, error } = await apiService({
       endpoint: `matches/${matchId}/next-batsman/${selectedPlayer.playerId}`,
       method: 'POST',
       body: {},
     });
-
     await getMatchState();
-
     if (!success) {
       console.error("Error updating next batsman:", error);
       Alert.alert("Error", "Failed to update next batsman.");
@@ -564,15 +512,12 @@ const ScoringScreen = ({ route, navigation }) => {
       method: 'POST',
       body: {},
     });
-
     if (!success) {
       console.error("Error selecting next bowler:", error);
       Alert.alert("Error", "Failed to update next bowler.");
       return;
     }
-
-    // Reset the new bowler's stats
-    setBowler({ id: playerId, name: playerName, overs: 0, runsConceded: 0, wickets: 0 })
+    setBowler({ id: playerId, name: playerName, overs: 0, runsConceded: 0, wickets: 0 });
     setOverDetails("");
     setLegalDeliveries(0);
     newBowlerSelectionRef.current = false;
@@ -581,30 +526,25 @@ const ScoringScreen = ({ route, navigation }) => {
 
   const catchHandler = () => {
     console.log('Selected Catcher:', selectedCatcher);
-
     handleSubmit({
       runs: 0,
       wicket: true,
       wicketType: 'Caught',
-      catcherId: selectedCatcher, // just pass the string ID
+      catcherId: selectedCatcher,
     });
-
     setAvailableBatsmen(battingPlayingXI);
     setWicketType('');
     setSelectedCatcher(null);
-
     setModals((prev) => ({ ...prev, catch: false }));
-
     setTimeout(() => {
       if (wicket < 9 || modals.startNextInnings === false) {
         setModals((prev) => ({ ...prev, nextBatsman: true }));
       }
-    }, 10000);
+    }, 1000);
   };
 
   const wicketHandler = (value) => {
     console.log("Wicket giraa");
-
     setWicketType(value);
     handleSubmit({
       runs: 0,
@@ -613,32 +553,17 @@ const ScoringScreen = ({ route, navigation }) => {
     });
     setAvailableBatsmen(battingPlayingXI);
     setWicketType('');
-
     setModals((prev) => ({ ...prev, wicket: false }));
     setTimeout(() => {
       if (wicket < 9) {
         setModals((prev) => ({ ...prev, nextBatsman: true }));
       }
-    }, 10000);
+    }, 1000);
   };
-
-  const waitForStomp = (client, timeout = 3000) =>
-    new Promise((resolve, reject) => {
-      const interval = 100;
-      let waited = 0;
-      const check = () => {
-        if (client.connected) return resolve(true);
-        waited += interval;
-        if (waited >= timeout) return reject('STOMP connection timeout');
-        setTimeout(check, interval);
-      };
-      check();
-    });
 
   const waitForSubmitConnection = async (checkConnectedState, timeout = 5000) => {
     const interval = 100;
     let waited = 0;
-
     return new Promise((resolve, reject) => {
       const check = () => {
         if (checkConnectedState()) {
@@ -671,29 +596,22 @@ const ScoringScreen = ({ route, navigation }) => {
       legBye: data.legBye || false,
       wicket: data.wicket || false,
       freeHit: false,
-      catcherId: selectedCatcher || null,
+      catcherId: data.catcherId || null,
       runOutMakerId: data.runOutMakerId || null,
       runOutGetterId: data.runOutGetterId || null,
     };
-
     try {
       await waitForSubmitConnection(isConnectedFn);
-
       if (!stompSubmitClientRef.current || !stompSubmitClientRef.current.connected) {
         throw new Error('STOMP submit client not connected');
       }
-
       const userId = await AsyncStorage.getItem('userUUID');
       stompSubmitClientRef.current.publish({
         destination: `/app/match/${matchId}/ball`,
         body: JSON.stringify(payload),
         headers: { 'content-type': 'application/json', 'userId': userId || '' },
       });
-
-      setTimeout(() => {
-        console.log('[Submit] Score published successfully');
-      }, 100);
-
+      console.log('[Submit] Score published successfully');
       return true;
     } catch (error) {
       console.error('[Submit] Publish error:', error);
@@ -702,33 +620,12 @@ const ScoringScreen = ({ route, navigation }) => {
     }
   };
 
-  const checkConnectionHealth = async (client, type) => {
-    console.log(`[${type}] Checking connection health...`);
-
-    // If client thinks it's connected but WebSocket isn't ready
-    if (client.connected && (!client.webSocket || client.webSocket.readyState !== WebSocket.OPEN)) {
-      console.warn(`[${type}] Connection state mismatch - forcing reconnect`);
-      try {
-        await client.deactivate();
-        await new Promise(resolve => setTimeout(resolve, 500));
-        client.activate();
-        return false;
-      } catch (err) {
-        console.error(`[${type}] Reconnect failed:`, err);
-        return false;
-      }
-    }
-
-    return client.connected;
-  };
-
   const handleStartSecondInnings = async () => {
     const { success, error } = await apiService({
       endpoint: `matches/matches/${matchId}/start-second-innings`,
       method: 'POST',
       body: {},
     });
-
     if (success) {
       newBowlerSelectionRef.current = false;
       setModals({ ...modals, startNextInnings: false, nextBowler: false });
@@ -743,7 +640,100 @@ const ScoringScreen = ({ route, navigation }) => {
   const { submitConnected, setupClient } = useStompConnection();
 
   const handleSubmit = async (data) => {
-    await submitScore(data, () => submitConnected); // 🔥 pass state as a function
+    // Optimistic UI Update Logic
+    const ballString = `${data.runs}${data.wide ? ' Wd' : ''}${data.noBall ? ' Nb' : ''}${data.bye ? ' B' : ''}${data.legBye ? ' Lb' : ''}${data.wicket ? ' W' : ''}`;
+    let runsAdded = data.runs;
+    let isLegal = true;
+    let extraString = '';
+    
+    if (data.wide) {
+        runsAdded += 1;
+        isLegal = false;
+        extraString = 'Wd';
+    } else if (data.noBall) {
+        runsAdded += 1;
+        isLegal = false;
+        extraString = 'Nb';
+    } else if (data.bye) {
+        extraString = 'B';
+    } else if (data.legBye) {
+        extraString = 'Lb';
+    } else if (data.wicket) {
+        extraString = 'W';
+    }
+    
+    // Update score and bowler's runs conceded
+    setScore(prevScore => prevScore + runsAdded);
+    if (!data.bye && !data.legBye) {
+        setBowler(prevBowler => ({
+            ...prevBowler,
+            runsConceded: prevBowler.runsConceded + runsAdded,
+        }));
+    }
+
+    // Update over details
+    setOverDetails(prevOverDetails => prevOverDetails + ` ${runsAdded}${extraString}`);
+
+    // Update striker stats
+    setStriker(prevStriker => {
+        let newStriker = { ...prevStriker };
+        if (data.wicket && (data.wicketType === 'Caught' || data.wicketType === 'Bowled' || data.wicketType === 'LBW' || data.wicketType === 'Stump')) {
+            // No balls faced for run out, but runs are added
+            if (data.wicketType !== 'Run Out') {
+                 newStriker.ballsFaced++;
+            }
+           
+            if (!data.wide && !data.noBall) {
+                setWicket(prevWicket => prevWicket + 1);
+                setBowler(prevBowler => ({
+                    ...prevBowler,
+                    wickets: prevBowler.wickets + 1,
+                }));
+            }
+        }
+        else if (isLegal) {
+            newStriker.runs += data.runs;
+            newStriker.ballsFaced++;
+        }
+        
+        return newStriker;
+    });
+
+    // Update non-striker stats if there's a run out
+    if (data.wicket && data.wicketType === 'Run Out' && data.runOutGetterId === nonStriker.id) {
+        setNonStriker(prevNonStriker => ({
+            ...prevNonStriker,
+            runs: prevNonStriker.runs + data.runs,
+        }));
+    }
+
+    // Handle strike rotation and over completion
+    if (isLegal) {
+        setLegalDeliveries(prevBalls => {
+            const newBalls = prevBalls + 1;
+            if (newBalls % 6 === 0) {
+                setCompletedOvers(prevOvers => prevOvers + 1);
+                setOverDetails("");
+                setLegalDeliveries(0);
+                
+                // Swap strikers at the end of the over
+                setStriker(prevStriker => nonStriker);
+                setNonStriker(prevNonStriker => striker);
+
+                return 0;
+            } else {
+                // Swap strikers on odd runs
+                if (data.runs % 2 !== 0 && !data.wicket) {
+                    setStriker(prevStriker => nonStriker);
+                    setNonStriker(prevNonStriker => striker);
+                }
+                return newBalls;
+            }
+        });
+    }
+
+    // Now, send the data to the server via WebSocket
+    await submitScore(data, () => submitConnected);
   };
 
   const handleWicketTypeSelection = async () => {
@@ -757,7 +747,7 @@ const ScoringScreen = ({ route, navigation }) => {
       method: 'GET',
     });
     setAvailableBatsmen(response.data.data);
-  }
+  };
 
   return (
     <View style={styles.container}>
@@ -773,8 +763,6 @@ const ScoringScreen = ({ route, navigation }) => {
           </View>
         </ImageBackground>
       </LinearGradient>
-
-      {/* Player Info Section */}
       <View style={styles.playerInfoContainer}>
         <View style={styles.playerInfo}>
           <Text style={styles.playerText}>{striker?.name}* - <Text style={styles.playerStats}>{striker?.runs}({striker?.ballsFaced})</Text></Text>
@@ -811,15 +799,8 @@ const ScoringScreen = ({ route, navigation }) => {
       <Modal visible={shotModalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setShotModalVisible(false)}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setShotModalVisible(false)}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text style={styles.modalTitle}>Select Shot Type</Text>
             <FlatList
@@ -829,22 +810,13 @@ const ScoringScreen = ({ route, navigation }) => {
               renderItem={({ item }) => (
                 <Pressable
                   style={styles.shotOption}
-                  onPress={() => handleShotSelection(item)}
-                >
-                  <Image
-                    source={shotImages[item]}
-                    style={styles.shotImage}
-                    resizeMode="contain"
-                  />
-
+                  onPress={() => handleShotSelection(item)}>
+                  <Image source={shotImages[item]} style={styles.shotImage} resizeMode="contain" />
                   <Text style={styles.shotText}>{item}</Text>
                 </Pressable>
               )}
             />
-            <Pressable
-              style={styles.cancelButton}
-              onPress={() => setShotModalVisible(false)}
-            >
+            <Pressable style={styles.cancelButton} onPress={() => setShotModalVisible(false)}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
           </View>
@@ -853,15 +825,8 @@ const ScoringScreen = ({ route, navigation }) => {
       <Modal visible={directionModalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setDirectionModalVisible(false)}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setDirectionModalVisible(false)}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text style={styles.modalTitle}>Select Shot Direction</Text>
             <View style={styles.wagonWheelContainer}>
@@ -870,7 +835,6 @@ const ScoringScreen = ({ route, navigation }) => {
                 const angleInRadians = (direction.angle * Math.PI) / 180;
                 const x = center + radius * Math.cos(angleInRadians) - 40;
                 const y = center + radius * Math.sin(angleInRadians) - 20;
-
                 return (
                   <Pressable
                     key={index}
@@ -878,17 +842,13 @@ const ScoringScreen = ({ route, navigation }) => {
                       styles.directionButton,
                       { top: y, left: x },
                     ]}
-                    onPress={() => handleDirectionSelection(direction.name)}
-                  >
+                    onPress={() => handleDirectionSelection(direction.name)}>
                     <Text style={styles.directionText}>{direction.name}</Text>
                   </Pressable>
                 );
               })}
             </View>
-            <Pressable
-              style={styles.cancelButton}
-              onPress={() => setDirectionModalVisible(false)}
-            >
+            <Pressable style={styles.cancelButton} onPress={() => setDirectionModalVisible(false)}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
           </View>
@@ -897,15 +857,8 @@ const ScoringScreen = ({ route, navigation }) => {
       <Modal visible={modals.wide} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setModals({ ...modals, wide: false })}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setModals({ ...modals, wide: false })}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text>Wide Runs:</Text>
             <TextInput
@@ -920,27 +873,17 @@ const ScoringScreen = ({ route, navigation }) => {
                 setModals({ ...modals, wide: false });
                 handleSubmit({ runs: parseInt(wideExtra || '0'), wide: true });
                 setWideExtra('0');
-              }}
-            >
+              }}>
               <Text style={styles.submitText}>Submit</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
-
-      {/* No-ball Modal */}
       <Modal visible={modals.noBall} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setModals({ ...modals, noBall: false })}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setModals({ ...modals, noBall: false })}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text>No ball runs:</Text>
             <TextInput
@@ -955,8 +898,7 @@ const ScoringScreen = ({ route, navigation }) => {
                 setModals({ ...modals, noBall: false });
                 handleSubmit({ runs: parseInt(noBallExtra || '0'), noBall: true });
                 setNoBallExtra('0');
-              }}
-            >
+              }}>
               <Text style={styles.submitText}>Submit</Text>
             </Pressable>
           </View>
@@ -965,15 +907,8 @@ const ScoringScreen = ({ route, navigation }) => {
       <Modal visible={modals.bye} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setModals({ ...modals, bye: false })}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setModals({ ...modals, bye: false })}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text>Bye/Leg Bye Runs:</Text>
             <TextInput
@@ -987,8 +922,7 @@ const ScoringScreen = ({ route, navigation }) => {
               onPress={() => {
                 setModals({ ...modals, bye: false });
                 handleSubmit({ runs: parseInt(byeExtra || '0'), bye: true });
-              }}
-            >
+              }}>
               <Text style={styles.submitText}>Submit</Text>
             </Pressable>
           </View>
@@ -997,34 +931,21 @@ const ScoringScreen = ({ route, navigation }) => {
       <Modal visible={modals.wicket} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setModals({ ...modals, wicket: false })}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setModals({ ...modals, wicket: false })}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text>Select Wicket Type:</Text>
-
-            <Picker
-              selectedValue={wicketType}
-              onValueChange={(itemValue) => {
-                if (itemValue === 'Catch') {
-                  setWicketType('Catch');
-                  setModals((prev) => ({ ...prev, wicket: false, catch: true }));
-                } else if (itemValue === 'Run Out') {
-                  setWicketType('Run Out');
-                  setModals((prev) => ({ ...prev, wicket: false, runout: true }));
-                } else {
-                  wicketHandler(itemValue);
-                }
-              }}
-
-              style={styles.picker}
-            >
+            <Picker selectedValue={wicketType} onValueChange={(itemValue) => {
+              if (itemValue === 'Catch') {
+                setWicketType('Catch');
+                setModals((prev) => ({ ...prev, wicket: false, catch: true }));
+              } else if (itemValue === 'Run Out') {
+                setWicketType('Run Out');
+                setModals((prev) => ({ ...prev, wicket: false, runout: true }));
+              } else {
+                wicketHandler(itemValue);
+              }
+            }} style={styles.picker}>
               <Picker.Item label="Select Wicket Type" value="" />
               <Picker.Item label="Bowled" value="Bowled" />
               <Picker.Item label="Catch" value="Catch" />
@@ -1032,11 +953,7 @@ const ScoringScreen = ({ route, navigation }) => {
               <Picker.Item label="Stump" value="Stump" />
               <Picker.Item label="LBW" value="LBW" />
             </Picker>
-
-            <Pressable
-              style={styles.submitButton}
-              onPress={() => handleWicketTypeSelection()}
-            >
+            <Pressable style={styles.submitButton} onPress={() => handleWicketTypeSelection()}>
               <Text style={styles.submitText}>Submit</Text>
             </Pressable>
           </View>
@@ -1045,46 +962,27 @@ const ScoringScreen = ({ route, navigation }) => {
       <Modal visible={modals.nextBatsman} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setModals({ ...modals, nextBatsman: false })}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setModals({ ...modals, nextBatsman: false })}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text style={styles.modalTitle}>Select Next Batsman</Text>
-
-            <Picker
-              selectedValue={selectedBatsman?.playerId}
-              onValueChange={(itemValue) => {
-                const selectedPlayer = availableBatsmen.find(player => player.playerId === itemValue);
-                setSelectedBatsman(selectedPlayer);
-                handleNextBatsmanSelection(selectedPlayer);
-              }}
-              style={styles.picker}
-            >
+            <Picker selectedValue={selectedBatsman?.playerId} onValueChange={(itemValue) => {
+              const selectedPlayer = availableBatsmen.find(player => player.playerId === itemValue);
+              setSelectedBatsman(selectedPlayer);
+              handleNextBatsmanSelection(selectedPlayer);
+            }} style={styles.picker}>
               <Picker.Item label="Select Batsman" value="" />
               {availableBatsmen?.map((batsman) => (
                 <Picker.Item key={batsman.playerId} label={batsman?.name} value={batsman?.playerId} />
               ))}
             </Picker>
-
-            <Pressable
-              style={styles.submitButton}
-              onPress={async () => {
-                if (!selectedBatsman) {
-                  Alert.alert('Error', 'Please select a batsman.');
-                  return;
-                }
-
-                // setStrikerId(selectedBatsman.playerId);
-                // setStrikerName(selectedBatsman?.name);
-                setModals({ ...modals, nextBatsman: false });
-              }}
-            >
+            <Pressable style={styles.submitButton} onPress={async () => {
+              if (!selectedBatsman) {
+                Alert.alert('Error', 'Please select a batsman.');
+                return;
+              }
+              setModals({ ...modals, nextBatsman: false });
+            }}>
               <Text style={styles.submitText}>Confirm Batsman</Text>
             </Pressable>
           </View>
@@ -1093,166 +991,94 @@ const ScoringScreen = ({ route, navigation }) => {
       <Modal visible={newBowlerSelectionRef.current} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              // onPress={() => setModals({ ...modals, nextBowler: false })}
-              onPress={() => newBowlerSelectionRef.current = false}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => newBowlerSelectionRef.current = false}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text style={styles.modalTitle}>Select Next Bowler</Text>
-
-            <Picker
-              selectedValue={selectedBowler?.playerId}
-              onValueChange={(itemValue) => {
-                const selectedPlayer = bowlingPlayingXI.find(player => player.playerId === itemValue);
-                setSelectedBowler(selectedPlayer);
-              }}
-              style={styles.picker}
-            >
+            <Picker selectedValue={selectedBowler?.playerId} onValueChange={(itemValue) => {
+              const selectedPlayer = bowlingPlayingXI.find(player => player.playerId === itemValue);
+              setSelectedBowler(selectedPlayer);
+            }} style={styles.picker}>
               <Picker.Item label="Select Bowler" value="" />
               {availableBowler?.map((bowler) => (
                 <Picker.Item key={bowler.playerId} label={bowler?.name} value={bowler?.playerId} />
               ))}
             </Picker>
-
-            <Pressable
-              style={styles.submitButton}
-              onPress={() => {
-                if (!selectedBowler?.playerId) {
-                  Alert.alert('Error', 'Please select a bowler.');
-                  return;
-                }
-                selectNextBowler(selectedBowler.playerId, selectedBowler.name);
-              }}
-            >
+            <Pressable style={styles.submitButton} onPress={() => {
+              if (!selectedBowler?.playerId) {
+                Alert.alert('Error', 'Please select a bowler.');
+                return;
+              }
+              selectNextBowler(selectedBowler.playerId, selectedBowler.name);
+            }}>
               <Text style={styles.submitText}>Confirm Bowler</Text>
             </Pressable>
-
           </View>
         </View>
       </Modal>
-      {/* Catcher Modal */}
       <Modal visible={modals.catch} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setModals({ ...modals, catch: false })}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setModals({ ...modals, catch: false })}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text style={styles.modalTitle}>Select Catcher</Text>
-
-            <Picker
-              selectedValue={selectedCatcher}
-              onValueChange={(itemValue) => {
-                console.log(itemValue);
-                setSelectedCatcher(itemValue);
-              }}
-              style={styles.picker}
-            >
+            <Picker selectedValue={selectedCatcher} onValueChange={(itemValue) => {
+              console.log(itemValue);
+              setSelectedCatcher(itemValue);
+            }} style={styles.picker}>
               <Picker.Item label="Select Catcher" value="" />
               {bowlingPlayingXI?.map((fielder) => (
                 <Picker.Item key={fielder.playerId} label={fielder?.name} value={fielder.playerId} />
               ))}
             </Picker>
-
-            <Pressable
-              style={styles.submitButton}
-              onPress={() => {
-                if (!selectedCatcher) {
-                  Alert.alert('Error', 'Please select the catcher.');
-                  return;
-                }
-                catchHandler();
-              }}
-            >
+            <Pressable style={styles.submitButton} onPress={() => {
+              if (!selectedCatcher) {
+                Alert.alert('Error', 'Please select the catcher.');
+                return;
+              }
+              catchHandler();
+            }}>
               <Text style={styles.submitText}>Confirm Catcher</Text>
             </Pressable>
-
           </View>
         </View>
       </Modal>
-
-      {/* Run Out - Step 1: Who got out */}
       <Modal visible={modals.runout} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setModals({ ...modals, runout: false })}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setModals({ ...modals, runout: false })}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text style={styles.modalTitle}>Who got run out?</Text>
-            <Pressable
-              style={styles.submitButton}
-              onPress={() => {
-                setRunOutGetterId(striker.id);
-                setModals((prev) => ({ ...prev, runout: false, fielderSelect: true }));
-              }}
-            >
+            <Pressable style={styles.submitButton} onPress={() => {
+              setRunOutGetterId(striker.id);
+              setModals((prev) => ({ ...prev, runout: false, fielderSelect: true }));
+            }}>
               <Text>{striker.name} (Striker)</Text>
             </Pressable>
-
-            <Pressable
-              style={styles.submitButton}
-              onPress={() => {
-                setRunOutGetterId(nonStriker.id);
-                setModals((prev) => ({ ...prev, runout: false, fielderSelect: true }));
-              }}
-            >
+            <Pressable style={styles.submitButton} onPress={() => {
+              setRunOutGetterId(nonStriker.id);
+              setModals((prev) => ({ ...prev, runout: false, fielderSelect: true }));
+            }}>
               <Text>{nonStriker.name} (Non-Striker)</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
-
-      {/* Run Out - Step 2: Fielder Involved */}
       <Modal visible={modals.fielderSelect} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setModals({ ...modals, fielderSelect: false })}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setModals({ ...modals, fielderSelect: false })}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
-
             <Text style={styles.modalTitle}>Select Fielder</Text>
-            <Picker
-              selectedValue={runOutFielderId}
-              onValueChange={(itemValue) => setRunOutFielderId(itemValue)}
-              style={styles.picker}
-            >
+            <Picker selectedValue={runOutFielderId} onValueChange={(itemValue) => setRunOutFielderId(itemValue)} style={styles.picker}>
               <Picker.Item label="Select Fielder" value="" />
               {bowlingPlayingXI?.map((fielder) => (
-                <Picker.Item
-                  key={fielder.playerId}
-                  label={fielder.name}
-                  value={fielder.playerId}
-                />
+                <Picker.Item key={fielder.playerId} label={fielder.name} value={fielder.playerId} />
               ))}
             </Picker>
-
-            {/* 🔥 Add TextInput for runs */}
             <Text style={{ marginTop: 10 }}>Runs Scored:</Text>
             <TextInput
               style={styles.input}
@@ -1261,80 +1087,51 @@ const ScoringScreen = ({ route, navigation }) => {
               onChangeText={setRunOutRuns}
               placeholder="Enter runs"
             />
-
-            <Pressable
-              style={styles.submitButton}
-              onPress={() => {
-                if (!runOutFielderId) {
-                  Alert.alert('Error', 'Please select a fielder.');
-                  return;
+            <Pressable style={styles.submitButton} onPress={() => {
+              if (!runOutFielderId) {
+                Alert.alert('Error', 'Please select a fielder.');
+                return;
+              }
+              const runs = parseInt(runOutRuns || '0');
+              handleSubmit({
+                runs: runs,
+                wicket: true,
+                wicketType: 'Run Out',
+                runOutGetterId: runOutGetterId,
+                runOutMakerId: runOutFielderId,
+              });
+              setAvailableBatsmen(battingPlayingXI);
+              setRunOutRuns('0');
+              setModals((prev) => ({ ...prev, fielderSelect: false }));
+              setTimeout(() => {
+                if (wicket < 9) {
+                  setModals((prev) => ({ ...prev, nextBatsman: true }));
                 }
-
-                const runs = parseInt(runOutRuns || '0');
-
-                // Call score handler with runs included
-                handleSubmit({
-                  runs: runs,
-                  wicket: true,
-                  wicketType: 'Run Out',
-                  runOutGetterId: runOutGetterId,
-                  runOutMakerId: runOutFielderId,
-                });
-
-                setAvailableBatsmen(battingPlayingXI);
-                setRunOutRuns('0');
-                setModals((prev) => ({ ...prev, fielderSelect: false }));
-
-                setTimeout(() => {
-                  if (wicket < 9) {
-                    setModals((prev) => ({ ...prev, nextBatsman: true }));
-                  }
-                }, 10000);
-              }}
-            >
+              }, 10000);
+            }}>
               <Text style={styles.submitText}>Confirm Run Out</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
-
-      {/* No-ball Modal */}
       <Modal visible={modals.startNextInnings} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setModals({ ...modals, startNextInnings: false })}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setModals({ ...modals, startNextInnings: false })}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text style={styles.modalTitle}>Start second innings?</Text>
-            <Pressable
-              style={styles.submitButton}
-              onPress={() => handleStartSecondInnings()}
-            >
+            <Pressable style={styles.submitButton} onPress={() => handleStartSecondInnings()}>
               <Text style={styles.submitText}>Yes</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
-
       <Modal visible={secondInningsStartInfoModal} transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable
-              onPress={() => setSecondInningsStartInfoModal(false)}
-            >
-              <MaterialIcons
-                name='cancel'
-                color='black'
-                size={20}
-                style={{ textAlign: 'right' }}
-              />
+            <Pressable onPress={() => setSecondInningsStartInfoModal(false)}>
+              <MaterialIcons name='cancel' color='black' size={20} style={{ textAlign: 'right' }} />
             </Pressable>
             <Text style={styles.infoTextHeading}>1st Innings completed</Text>
             <Text style={styles.infoText}>You can either start the second innings right away.</Text>
@@ -1343,7 +1140,6 @@ const ScoringScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-
     </View>
   );
 };
@@ -1452,7 +1248,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
-
   input: {
     backgroundColor: '#e7e7e7',
     borderRadius: 8,

@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     // Add conditional padding for Android to fix the status bar issue
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 50,
   },
   contentWrapper: {
     flex: 1,

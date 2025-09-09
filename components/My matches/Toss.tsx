@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: AppColors.BgColor,
     // Fix for Android status bar issue
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 50,
   },
   mainContentArea: {
     flex: 1,
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     color: AppColors.darkText,
     marginBottom: 8,
     textAlign: 'center',
-    paddingTop: 20, // Add padding top to push heading down below status bar on iOS
+    paddingTop: 20, 
   },
   inputSection: {
     marginBottom: 20,

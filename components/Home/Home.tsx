@@ -427,7 +427,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: AppColors.white,
     // Add conditional padding for Android
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 50,
   },
   safeArea: { flex: 1, backgroundColor: "transparent" },
   topBarWrapper: {
