@@ -7,6 +7,7 @@ import Tournaments from './components/Tournaments/Tournaments';
 import Home from './components/Home/Home';
 import Teams from './components/Teams/Teams';
 import OTP from './components/Authentication/Otp'
+import RegisterForm from './components/Authentication/RegistrationForm';
 import Profile from './components/Settings/Profile';
 import Support from './components/Settings/Support';
 import TossFlip from './components/Settings/TossFlip';
@@ -64,6 +65,7 @@ const App = () => {
           screenOptions={{ headerShown: false }}
         >
           <Stack.Screen name="Login" component={Login} />
+           <Stack.Screen name="RegisterForm" component={RegisterForm} />
           <Stack.Screen name="OTP" component={OTP} />
           <Stack.Screen name="Main" component={MainScreens} />
         </Stack.Navigator>

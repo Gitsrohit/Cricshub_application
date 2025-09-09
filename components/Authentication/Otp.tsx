@@ -118,6 +118,7 @@ const Otp = ({ route, navigation }) => {
         const token = response.data?.token;
         const userId = response.data?.user?.id;
         const name = response.data?.user?.name;
+        const isOldUser = response.data?.user?.email;
 
         if (!token || !userId) {
           throw new Error('Token or User ID is missing in the API response.');
@@ -127,7 +128,11 @@ const Otp = ({ route, navigation }) => {
         await AsyncStorage.setItem('userUUID', userId);
         await AsyncStorage.setItem('userName', name);
         
-        navigation.replace('Main');
+        if (isOldUser) {
+          navigation.replace('Main');
+        } else {
+          navigation.replace('registerForm');
+        }
       } else {
         if (response.status === 401) {
           Alert.alert(
