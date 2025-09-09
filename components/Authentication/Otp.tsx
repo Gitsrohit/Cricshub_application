@@ -93,6 +93,8 @@ const Otp = ({ route, navigation }) => {
 
   const handleVerifyOtp = async () => {
     const fullOtp = otp.join('');
+    console.log('Attempting to verify OTP:', fullOtp);
+    console.log('Attempting to verify phone:', phoneNumber);
     if (fullOtp.length < 6) {
       Alert.alert('Validation Error', 'Please enter the complete 6-digit code.');
       return;
@@ -104,7 +106,7 @@ const Otp = ({ route, navigation }) => {
       const response = await apiService({
         endpoint: `auth/verify`,
         method: 'POST',
-        body: {
+        params: {
           phone: phoneNumber,
           otp: fullOtp,
         },
@@ -126,10 +128,13 @@ const Otp = ({ route, navigation }) => {
         await AsyncStorage.setItem('userName', name);
         
         navigation.replace('Main');
-
       } else {
-        // More specific error handling
-        if (response.status === 400) {
+        if (response.status === 401) {
+          Alert.alert(
+            'Authentication Error',
+            'Your session has expired or you are not authorized. Please restart the process.'
+          );
+        } else if (response.status === 400) {
           Alert.alert(
             'Invalid OTP',
             response.error.message || 'The entered OTP is incorrect or has expired. Please try again.'

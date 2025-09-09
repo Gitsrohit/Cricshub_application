@@ -64,7 +64,6 @@ const Login = ({ navigation }) => {
     setLoading(true);
 
     try {
-      // API call to send OTP to the mobile number
       const response = await apiService({
         endpoint: `auth/send`,
         method: 'POST',
@@ -73,7 +72,6 @@ const Login = ({ navigation }) => {
 
       if (response.success) {
         Alert.alert('Success', 'OTP has been sent to your phone number.');
-        // Navigate to the OTP verification page, passing the phone number
         navigation.navigate('OTP', { phoneNumber });
       } else {
         Alert.alert(
