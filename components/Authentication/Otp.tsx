@@ -115,10 +115,10 @@ const Otp = ({ route, navigation }) => {
       if (response.success) {
         Alert.alert('Success', 'OTP verified successfully!');
 
-        const token = response.data?.token;
-        const userId = response.data?.user?.id;
-        const name = response.data?.user?.name;
-        const isOldUser = response.data?.user?.email;
+        const token = response.data?.data?.token;
+        const userId = response.data?.data?.user?.id;
+        const name = response.data?.data?.user?.name;
+        const isOldUser = response.data?.data?.user?.email;
 
         if (!token || !userId) {
           throw new Error('Token or User ID is missing in the API response.');
