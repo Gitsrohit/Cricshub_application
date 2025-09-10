@@ -14,25 +14,34 @@ import {
   Dimensions,
   Easing,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from '../APIservices';
+import MaskInput from 'react-native-mask-input'; 
+
 const { height } = Dimensions.get('window');
+
 const AppColors = {
   white: '#FFFFFF',
   blue: '#3498DB',
   background: '#F8F9FA',
   placeholder: '#A0A0A0',
   text: '#333333',
+  loader: '#FFF',
 };
 
 const appLogo = require('../../assets/images/iconLogo.png');
 const downLogo = require('../../assets/images/textLogo.png');
+
 const Login = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const logoAnim = useRef(new Animated.Value(0)).current;
   const contentAnim = useRef(new Animated.Value(height * 0.1)).current;
+
+  // Mask for a typical 10-digit phone number
+  const phoneNumberMask = [/\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/];
 
   useEffect(() => {
     Animated.sequence([
@@ -52,24 +61,23 @@ const Login = ({ navigation }) => {
   }, []);
 
   const handleGetStarted = async () => {
-    if (!phoneNumber) {
-      Alert.alert('Validation Error', 'Please enter your phone number.');
+    const unmaskedPhoneNumber = phoneNumber.replace(/[^0-9]/g, '');
+    if (!unmaskedPhoneNumber || unmaskedPhoneNumber.length !== 10) {
+      Alert.alert('Validation Error', 'Please enter a valid 10-digit phone number.');
       return;
     }
     setLoading(true);
 
     try {
-      // API call to send OTP to the mobile number
       const response = await apiService({
         endpoint: `auth/send`,
         method: 'POST',
-        params: { phone: phoneNumber },
+        params: { phone: unmaskedPhoneNumber },
       });
 
       if (response.success) {
         Alert.alert('Success', 'OTP has been sent to your phone number.');
-        // Navigate to the OTP verification page, passing the phone number
-        navigation.navigate('OTP', { phoneNumber });
+        navigation.navigate('OTP', { phoneNumber: unmaskedPhoneNumber });
       } else {
         Alert.alert(
           'Error',
@@ -79,7 +87,6 @@ const Login = ({ navigation }) => {
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please check your network connection.');
       console.error(error);
-
     } finally {
       setLoading(false);
     }
@@ -123,15 +130,17 @@ const Login = ({ navigation }) => {
           >
             <Text style={styles.welcomeText}>Welcome Aboard!</Text>
             <Text style={styles.tagline}>
-              Transform your cricket experience with the ultimate platform for live scoring, YouTube streaming, tournament management, and fantasy cricket - all in one powerful app.
+             Your ultimate cricket experience awaits.
             </Text>
-            <TextInput
+            {/* Replaced TextInput with MaskInput */}
+            <MaskInput
               style={styles.input}
               placeholder="PHONE NUMBER"
               placeholderTextColor={AppColors.placeholder}
               keyboardType="phone-pad"
               value={phoneNumber}
-              onChangeText={setPhoneNumber}
+              onChangeText={(masked, unmasked) => setPhoneNumber(masked)}
+              mask={phoneNumberMask}
               editable={!loading}
             />
             <TouchableOpacity
@@ -140,9 +149,11 @@ const Login = ({ navigation }) => {
               disabled={loading}
               activeOpacity={0.8}
             >
-              <Text style={styles.buttonText}>
-                {loading ? 'Processing...' : 'Get Started'}
-              </Text>
+              {loading ? (
+                <ActivityIndicator size="small" color={AppColors.loader} />
+              ) : (
+                <Text style={styles.buttonText}>Get Started</Text>
+              )}
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -164,7 +175,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-
   },
   logoContainer: {
     alignItems: 'center',
@@ -228,7 +238,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 8,
-    // Removed absolute positioning
   },
   buttonText: {
     color: AppColors.white,

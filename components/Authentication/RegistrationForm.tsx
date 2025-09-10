@@ -15,8 +15,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from '../APIservices';
 
 // Note: These image paths are assumed to be correct for your project structure.
-const logo = require('../../assets/images/cricshub.png');
-const background = require('../../assets/images/cricsLogo.png');
+const logo = require('../../assets/images/iconLogo.png');
+const background = require('../../assets/images/textLogo.png');
 
 // Get window dimensions for styling
 const { width } = Dimensions.get('window');
