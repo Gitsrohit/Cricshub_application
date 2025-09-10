@@ -169,7 +169,7 @@ const AddPlayersToTeam = () => {
     <Animatable.View animation="fadeIn" duration={300} style={styles.dropdownItem}>
       <View style={styles.dropdownLeft}>
         <Image
-          source={ item.profilePic ? { uri: item.profilePic } : require("../../assets/defaultLogo.png") }
+          source={item.profilePic ? { uri: item.profilePic } : require("../../assets/defaultLogo.png")}
           style={styles.dropdownPlayerProfilePic}
         />
         <View style={styles.dropdownPlayerInfo}>
@@ -188,7 +188,7 @@ const AddPlayersToTeam = () => {
       <View style={styles.playerMainInfo}>
         <View style={[styles.playerProfileWrapper, captainId === item.id && styles.captainHighlight]}>
           <Image
-            source={ item.profilePic ? { uri: item.profilePic } : require("../../assets/defaultLogo.png") }
+            source={item.profilePic ? { uri: item.profilePic } : require("../../assets/defaultLogo.png")}
             style={styles.playerProfilePic}
           />
           {captainId === item.id && (
@@ -216,13 +216,13 @@ const AddPlayersToTeam = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      <KeyboardAvoidingView 
-        style={styles.container} 
+      <KeyboardAvoidingView
+        style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <Animated.View style={[styles.contentContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          
+
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -254,7 +254,7 @@ const AddPlayersToTeam = () => {
             {/* Floating Search Results */}
             {filteredPlayers.length > 0 && (
               <View style={styles.dropdownContainer}>
-                <ScrollView 
+                <ScrollView
                   keyboardShouldPersistTaps="handled"
                   nestedScrollEnabled={true}
                 >
@@ -311,52 +311,52 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
-  container: { 
-    flex: 1, 
-    backgroundColor: '#fff' 
+  container: {
+    flex: 1,
+    backgroundColor: '#fff'
   },
-  contentContainer: { 
-    flex: 1, 
-    padding: 20 
+  contentContainer: {
+    flex: 1,
+    padding: 20
   },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    marginBottom: 20 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20
   },
-  headerText: { 
-    fontSize: 22, 
-    fontWeight: 'bold', 
-    color: '#333' 
+  headerText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333'
   },
-  teamNameContainer: { 
-    borderWidth: 1, 
-    borderColor: '#4A90E2', 
-    borderRadius: 20, 
-    paddingHorizontal: 10, 
-    paddingVertical: 4 
+  teamNameContainer: {
+    borderWidth: 1,
+    borderColor: '#4A90E2',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4
   },
-  teamName: { 
-    fontSize: 14, 
-    fontWeight: '600', 
-    color: '#4A90E2' 
+  teamName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4A90E2'
   },
-  searchContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#f7f7f7', 
-    borderRadius: 10, 
-    paddingHorizontal: 12, 
-    height: 50, 
-    borderWidth: 1, 
-    borderColor: '#ddd' 
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f7f7f7',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#ddd'
   },
-  input: { 
-    flex: 1, 
-    fontSize: 16, 
-    color: '#333', 
-    marginLeft: 8 
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 8
   },
   dropdownContainer: {
     position: 'absolute',
@@ -375,33 +375,33 @@ const styles = StyleSheet.create({
     zIndex: 10,
     maxHeight: 200,
   },
-  dropdownItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 12, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee' 
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee'
   },
-  dropdownLeft: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    flex: 1 
+  dropdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1
   },
-  dropdownPlayerProfilePic: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    marginRight: 12 
+  dropdownPlayerProfilePic: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12
   },
-  dropdownPlayerName: { 
-    fontSize: 16, 
-    fontWeight: '600', 
-    color: '#333' 
+  dropdownPlayerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333'
   },
-  dropdownPlayerRole: { 
-    fontSize: 14, 
-    color: '#777' 
+  dropdownPlayerRole: {
+    fontSize: 14,
+    color: '#777'
   },
   teamPlayersContainer: {
     flex: 1,
@@ -419,84 +419,84 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
   },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    color: '#333', 
-    marginBottom: 10 
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10
   },
-  teamPlayerCard: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    backgroundColor: '#fff', 
-    padding: 15, 
-    borderRadius: 12, 
-    borderWidth: 1, 
-    borderColor: '#eee', 
-    marginBottom: 10, 
-    shadowColor: '#000', 
-    shadowOpacity: 0.08, 
-    shadowRadius: 6, 
-    elevation: 3 
+  teamPlayerCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3
   },
-  playerMainInfo: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    flex: 1 
+  playerMainInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1
   },
-  playerProfileWrapper: { 
-    position: 'relative' 
+  playerProfileWrapper: {
+    position: 'relative'
   },
-  captainHighlight: { 
-    borderWidth: 2, 
-    borderColor: '#FFD700', 
-    borderRadius: 25, 
-    padding: 2 
+  captainHighlight: {
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    borderRadius: 25,
+    padding: 2
   },
-  captainBadge: { 
-    position: 'absolute', 
-    bottom: -2, 
-    right: -2, 
-    backgroundColor: '#fff', 
-    borderRadius: 10, 
-    padding: 2, 
-    elevation: 2 
+  captainBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 2,
+    elevation: 2
   },
-  playerProfilePic: { 
-    width: 50, 
-    height: 50, 
-    borderRadius: 25 
+  playerProfilePic: {
+    width: 50,
+    height: 50,
+    borderRadius: 25
   },
-  playerInfo: { 
-    flex: 1, 
-    marginLeft: 10 
+  playerInfo: {
+    flex: 1,
+    marginLeft: 10
   },
-  playerName: { 
-    fontSize: 16, 
-    fontWeight: '600', 
-    color: '#333' 
+  playerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333'
   },
-  playerRole: { 
-    fontSize: 14, 
-    color: '#555' 
+  playerRole: {
+    fontSize: 14,
+    color: '#555'
   },
-  cardActions: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 10 
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
   },
-  captainButton: { 
-    width: 36, 
-    height: 36, 
-    borderRadius: 18, 
-    borderWidth: 1, 
-    borderColor: '#4A90E2', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  captainButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#4A90E2',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  activeCaptainButton: { 
-    backgroundColor: '#eaf4ff' 
+  activeCaptainButton: {
+    backgroundColor: '#eaf4ff'
   },
   footer: {
     position: 'absolute',
@@ -507,20 +507,20 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#eee',
   },
-  createButton: { 
-    padding: 16, 
-    borderRadius: 12, 
-    alignItems: 'center' 
+  createButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center'
   },
-  createButtonText: { 
-    color: '#fff', 
-    fontSize: 16, 
-    fontWeight: 'bold' 
+  createButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold'
   },
-  errorMessage: { 
-    color: '#F44336', 
-    textAlign: 'center', 
-    marginBottom: 10 
+  errorMessage: {
+    color: '#F44336',
+    textAlign: 'center',
+    marginBottom: 10
   },
 });
 

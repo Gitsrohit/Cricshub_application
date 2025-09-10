@@ -1,10 +1,10 @@
-// PointsTable.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, ActivityIndicator, Dimensions, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import apiService from '../../APIservices';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { AppColors } from '../../../assets/constants/colors';
 
 const PointsTable = ({ id }) => {
   const navigation = useNavigation();
@@ -118,7 +118,7 @@ const PointsTable = ({ id }) => {
     );
   }
 
-  if (pointsData.length === 0 || !pointsData.some(item => item.matchesPlayed > 0)) {
+  if (pointsData.length === 0) {
     return (
       <View style={styles.emptyContainer}>
         <MaterialCommunityIcons name="trophy-outline" size={60} color="#FFC107" />
@@ -167,13 +167,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2E7D32',
+    color: AppColors.primaryBlue,
     marginBottom: 16,
     marginLeft: 4,
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#2E7D32',
+    backgroundColor: AppColors.primaryBlue,
     paddingVertical: 14,
     paddingHorizontal: 8,
   },
@@ -207,10 +207,10 @@ const styles = StyleSheet.create({
   },
   firstPlaceText: {
     fontWeight: 'bold',
-    color: '#2E7D32',
+    color: AppColors.primaryBlue,
   },
   positiveNRR: {
-    color: '#2E7D32',
+    color: AppColors.primaryBlue,
     fontWeight: 'bold',
   },
   negativeNRR: {
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#2E7D32',
+    color: AppColors.primaryBlue,
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
@@ -264,11 +264,11 @@ const styles = StyleSheet.create({
   },
   retryText: {
     fontSize: 16,
-    color: '#2E7D32',
+    color: AppColors.primaryBlue,
     fontWeight: 'bold',
     textDecorationLine: 'underline',
   },
-  loadignContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

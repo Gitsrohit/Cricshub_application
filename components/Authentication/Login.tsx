@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from '../APIservices';
-import MaskInput from 'react-native-mask-input'; 
+import MaskInput from 'react-native-mask-input';
 
 const { height } = Dimensions.get('window');
 
@@ -43,7 +43,14 @@ const Login = ({ navigation }) => {
   // Mask for a typical 10-digit phone number
   const phoneNumberMask = [/\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/];
 
+  const checkIsRegistered = async () => {
+    const token = await AsyncStorage.getItem('jwtToken');
+    if (token !== null)
+      navigation.replace('Main');
+  }
+
   useEffect(() => {
+    checkIsRegistered();
     Animated.sequence([
       Animated.timing(logoAnim, {
         toValue: 1,
@@ -130,7 +137,7 @@ const Login = ({ navigation }) => {
           >
             <Text style={styles.welcomeText}>Welcome Aboard!</Text>
             <Text style={styles.tagline}>
-             Your ultimate cricket experience awaits.
+              Your ultimate cricket experience awaits.
             </Text>
             {/* Replaced TextInput with MaskInput */}
             <MaskInput

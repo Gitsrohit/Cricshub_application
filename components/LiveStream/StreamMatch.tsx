@@ -50,7 +50,7 @@ const StreamMatch = ({ navigation }) => {
 
       if (response.success && response.data?.data) {
         const uid = await AsyncStorage.getItem('userUUID');
-        setMatches(response.data.data.filter(m => m.creatorName.id == uid));
+        setMatches(response.data.data.filter(m => m.matchOps?.includes(userId) == uid));
       } else {
         setError('Failed to fetch live matches');
         setMatches([]);
@@ -75,7 +75,7 @@ const StreamMatch = ({ navigation }) => {
 
   const renderMatchItem = ({ item }) => {
     const matchDate = item?.matchDate ? `${item?.matchDate[2]}-${item?.matchDate[1]}-${item?.matchDate[0]}` : 'N/A';
-    
+
     // Status info for live matches
     const statusInfo = { text: 'LIVE', color: AppColors.liveGreen, icon: 'live-tv' };
 
@@ -192,7 +192,7 @@ const StreamMatch = ({ navigation }) => {
         </View>
       );
     }
-    
+
     return (
       <FlatList
         data={matches}
@@ -204,11 +204,11 @@ const StreamMatch = ({ navigation }) => {
       />
     );
   };
-  
+
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor={AppColors.lightBackground} barStyle="dark-content" />
-      
+
       {/* Consistent Header */}
       <SafeAreaView style={styles.headerSafeArea}>
         <View style={styles.header}>
@@ -226,11 +226,11 @@ const StreamMatch = ({ navigation }) => {
       <SafeAreaView style={styles.safeContentContainer}>
         {renderContent()}
       </SafeAreaView>
-       <StreamInfoModal
-            visible={showModal}
-            onClose={() => setShowModal(false)}
-            onContinue={() => setShowModal(false)}
-        />
+      <StreamInfoModal
+        visible={showModal}
+        onClose={() => setShowModal(false)}
+        onContinue={() => setShowModal(false)}
+      />
     </View>
   );
 };

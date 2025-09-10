@@ -101,9 +101,11 @@ const TournamentMatchOperatives = ({ route, navigation }) => {
       formData.append("matchesPerTeam", tournamentData.matchesPerTeam);
       formData.append("venues", tournamentData.venues);
       formData.append(
-        "matchOperatives",
+        "tnmtMatchOps",
         JSON.stringify(selectedOperatives.map((p) => p.id))
       );
+
+      console.log(formData);
 
       if (tournamentData.banner) {
         const fileName = tournamentData.banner.split("/").pop();
@@ -200,7 +202,7 @@ const TournamentMatchOperatives = ({ route, navigation }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar />
       <View style={styles.container}>
-        <Text style={styles.title}>Select Tournament Match Operatives</Text>
+        <Text style={styles.title}>Select Tournament Operatives</Text>
         <Text style={styles.subTitle}>
           Tournament operatives will manage scoring and streaming
         </Text>
