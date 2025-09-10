@@ -48,9 +48,11 @@ const StreamMatch = ({ navigation }) => {
         params: { status: 'Live' },
       });
 
+      console.log(response.data.data);
+
       if (response.success && response.data?.data) {
         const uid = await AsyncStorage.getItem('userUUID');
-        setMatches(response.data.data.filter(m => m.matchOps?.includes(userId) == uid));
+        setMatches(response.data.data.filter(m => m.matchOps?.includes(id)));
       } else {
         setError('Failed to fetch live matches');
         setMatches([]);
