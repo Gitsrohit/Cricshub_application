@@ -22,12 +22,13 @@ const OBS_REQUEST_TIMEOUT = 5000;
 
 
 const manualScenes = [
-  'wicketScene',
-  'newBowlerScene',
+  // 'wicketScene',
+  // 'newBowlerScene',
+  'mainScene',
   'newBatsmanScene',
-  'scoreCardScene',
-  'playingTeamsScene',
-  'firstInningsCompleteScene',
+  // 'scoreCardScene',
+  'playingXIScene',
+  // 'firstInningsCompleteScene',
 ];
 
 const ConnectLiveStream = ({ route, navigation }) => {
@@ -45,7 +46,7 @@ const ConnectLiveStream = ({ route, navigation }) => {
       name: 'mainScene',
       inputSettings: {
         url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
-        width: '100vw',
+        width: 1900,
         height: 300,
         positionX: 0,
         positionY: 0,
@@ -55,7 +56,7 @@ const ConnectLiveStream = ({ route, navigation }) => {
       name: 'boundaryScene',
       inputSettings: {
         url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
-        width: '100vw',
+        width: '20000vw',
         height: 300,
         positionX: 0,
         positionY: 0,
@@ -95,8 +96,8 @@ const ConnectLiveStream = ({ route, navigation }) => {
       name: 'newBatsmanScene',
       inputSettings: {
         url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
-        width: '100vw',
-        height: 300,
+        width: 800,
+        height: 400,
         positionX: 0,
         positionY: 0,
       },
@@ -135,12 +136,11 @@ const ConnectLiveStream = ({ route, navigation }) => {
       name: 'playingXIScene',
       inputSettings: {
         url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=playingXI`,
-        width: '100vw',
-        height: 300,
-        positionX: 0,
-        positionY: 0,
+        width: 1600,
+        height: 900
       },
-    },
+    }
+
   ];
 
   const wsRef = useRef(null);
@@ -190,6 +190,35 @@ const ConnectLiveStream = ({ route, navigation }) => {
       }));
     });
   }, []);
+  const setSceneTransform = (sceneName, sceneItemId) => {
+    if (sceneName === 'playingXIScene') {
+      const left = 86, right = 234, top = 128, bottom = 52;
+      const width = 1920 - left - right;
+      const height = 1080 - top - bottom;
+      return {
+        positionX: left,
+        positionY: top,
+        width,
+        height,
+      };
+    }
+
+    if (sceneName === 'newBatsmanScene') {
+      const bottom = 65;
+      const width = 800; // full width
+      const height = 400; // example, replace with your actual overlay height
+      return {
+        positionX: 0,
+        positionY: 1080 - height - bottom, // stick from bottom
+        width,
+        height,
+      };
+    }
+
+    // fallback
+    return { positionX: 0, positionY: 780 };
+  };
+
 
   const connectToOBS = useCallback(() => {
     if (!obsIp) return Alert.alert('Enter OBS IP');
@@ -209,6 +238,7 @@ const ConnectLiveStream = ({ route, navigation }) => {
     socket.onmessage = async (e) => {
       try {
         const data = JSON.parse(e.data);
+        console.log('OBS Message:', data.op, data);
         if (data.op === 0) {
           const identifyPayload = { op: 1, d: { rpcVersion: 1 } };
           if (data.d.authentication?.challenge) {
@@ -285,12 +315,10 @@ const ConnectLiveStream = ({ route, navigation }) => {
           params: {
             sceneName: scene.name,
             sceneItemId,
-            sceneItemTransform: {
-              positionX: 0,
-              positionY: 780,
-            },
+            sceneItemTransform: setSceneTransform(scene.name, sceneItemId),
           },
         });
+
       }
 
       await sendOBSEvent({
@@ -438,18 +466,30 @@ const ConnectLiveStream = ({ route, navigation }) => {
                 <View style={styles.scenesSection}>
                   <Text style={styles.scenesTitle}>Scene Controls</Text>
                   <View style={styles.scenesGrid}>
-                    {manualScenes.map((scene) => (
-                      <TouchableOpacity
-                        key={scene}
-                        style={styles.sceneButton}
-                        onPress={() => switchScene(scene)}
-                      >
-                        <MaterialCommunityIcons name="monitor" size={18} color="#fff" />
-                        <Text style={styles.buttonText}> Show {scene}</Text>
-                      </TouchableOpacity>
-                    ))}
+                    {manualScenes.length > 0 ? (
+                      manualScenes.map((scene) => (
+                        <TouchableOpacity
+                          key={scene}
+                          style={styles.sceneButton}
+                          onPress={() => switchScene(scene)}
+                        >
+                          <MaterialCommunityIcons name="monitor" size={18} color="#fff" />
+                          <Text style={styles.buttonText}>
+                            {scene === 'mainScene' && 'Show Scoring Overlay'}
+                            {scene === 'wicketScene' && 'Show Wicket'}
+                            {scene === 'newBowlerScene' && 'Show New Bowler'}
+                            {scene === 'newBatsmanScene' && 'Show New Batsman'}
+                            {scene === 'scorecardScene' && 'Show Scorecard'}
+                            {scene === 'playingXIScene' && 'Show Playing XI'}
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <Text style={{ color: 'red' }}>No manual scenes available</Text>
+                    )}
                   </View>
                 </View>
+
 
                 <TouchableOpacity style={[styles.button, styles.disconnectButton]} onPress={disconnectFromOBS}>
                   <MaterialCommunityIcons name="connection-off" size={20} color="#fff" />
@@ -579,12 +619,12 @@ const styles = StyleSheet.create({
   disconnectButton: {
     backgroundColor: '#F44336',
   },
-  buttonText: {
-    color: AppColors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
+  // buttonText: {
+  //   color: AppColors.white,
+  //   fontSize: 16,
+  //   fontWeight: '600',
+  //   marginLeft: 8,
+  // },
   connectionStatusContainer: {
     marginBottom: 20,
   },
@@ -599,40 +639,46 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(76, 175, 80, 0.5)',
   },
   connectionStatusText: {
-    color: '#4CAF50',
+    color: '#249628', // proper green
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
   },
+
   scenesSection: {
-    marginBottom: 20,
+    marginTop: 20,
+    paddingHorizontal: 16,
   },
+
   scenesTitle: {
-    color: AppColors.blue,
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',   // visible white text
+    marginBottom: 8,
   },
+
   scenesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    // flexDirection: 'row',
+    // flexWrap: 'wrap',
+    // marginTop: 8,
   },
+
   sceneButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: AppColors.blue,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 10,
-    width: '48%',
+    backgroundColor: '#1E88E5',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    marginRight: 12,
   },
-  sceneButtonText: {
-    color: AppColors.white,
+
+  buttonText: {
+    color: '#fff',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     marginLeft: 6,
-    flexShrink: 1,
   },
+
 });
