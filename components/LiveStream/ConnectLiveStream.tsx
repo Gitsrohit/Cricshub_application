@@ -133,13 +133,13 @@ const ConnectLiveStream = ({ route, navigation }) => {
       },
     },
     {
-  name: 'playingXIScene',
-  inputSettings: {
-    url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=playingXI`,
-    width: 1600,
-    height: 900
-  },
-}
+      name: 'playingXIScene',
+      inputSettings: {
+        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=playingXI`,
+        width: 1600,
+        height: 900
+      },
+    }
 
   ];
 
@@ -191,33 +191,33 @@ const ConnectLiveStream = ({ route, navigation }) => {
     });
   }, []);
   const setSceneTransform = (sceneName, sceneItemId) => {
-  if (sceneName === 'playingXIScene') {
-    const left = 86, right = 234, top = 128, bottom = 52;
-    const width = 1920 - left - right;
-    const height = 1080 - top - bottom;
-    return {
-      positionX: left,
-      positionY: top,
-      width,
-      height,
-    };
-  }
+    if (sceneName === 'playingXIScene') {
+      const left = 86, right = 234, top = 128, bottom = 52;
+      const width = 1920 - left - right;
+      const height = 1080 - top - bottom;
+      return {
+        positionX: left,
+        positionY: top,
+        width,
+        height,
+      };
+    }
 
-  if (sceneName === 'newBatsmanScene') {
-    const bottom = 65;
-    const width = 800; // full width
-    const height = 400; // example, replace with your actual overlay height
-    return {
-      positionX: 0,
-      positionY: 1080 - height - bottom, // stick from bottom
-      width,
-      height,
-    };
-  }
+    if (sceneName === 'newBatsmanScene') {
+      const bottom = 65;
+      const width = 800; // full width
+      const height = 400; // example, replace with your actual overlay height
+      return {
+        positionX: 0,
+        positionY: 1080 - height - bottom, // stick from bottom
+        width,
+        height,
+      };
+    }
 
-  // fallback
-  return { positionX: 0, positionY: 780 };
-};
+    // fallback
+    return { positionX: 0, positionY: 780 };
+  };
 
 
   const connectToOBS = useCallback(() => {
@@ -311,13 +311,13 @@ const ConnectLiveStream = ({ route, navigation }) => {
         });
 
         await sendOBSEvent({
-  requestType: 'SetSceneItemTransform',
-  params: {
-    sceneName: scene.name,
-    sceneItemId,
-    sceneItemTransform: setSceneTransform(scene.name, sceneItemId),
-  },
-});
+          requestType: 'SetSceneItemTransform',
+          params: {
+            sceneName: scene.name,
+            sceneItemId,
+            sceneItemTransform: setSceneTransform(scene.name, sceneItemId),
+          },
+        });
 
       }
 
@@ -463,32 +463,32 @@ const ConnectLiveStream = ({ route, navigation }) => {
                   )}
                 </TouchableOpacity>
 
-              <View style={styles.scenesSection}>
-  <Text style={styles.scenesTitle}>Scene Controls</Text>
-  <View style={styles.scenesGrid}>
-    {manualScenes.length > 0 ? (
-      manualScenes.map((scene) => (
-        <TouchableOpacity
-          key={scene}
-          style={styles.sceneButton}
-          onPress={() => switchScene(scene)}
-        >
-          <MaterialCommunityIcons name="monitor" size={18} color="#fff" />
-          <Text style={styles.buttonText}>
-             {scene === 'mainScene' && 'Show Scoring Overlay'}
-            {scene === 'wicketScene' && 'Show Wicket'}
-            {scene === 'newBowlerScene' && 'Show New Bowler'}
-            {scene === 'newBatsmanScene' && 'Show New Batsman'}
-            {scene === 'scorecardScene' && 'Show Scorecard'}
-            {scene === 'playingXIScene' && 'Show Playing XI'}
-          </Text>
-        </TouchableOpacity>
-      ))
-    ) : (
-      <Text style={{ color: 'red' }}>No manual scenes available</Text>
-    )}
-  </View>
-</View>
+                <View style={styles.scenesSection}>
+                  <Text style={styles.scenesTitle}>Scene Controls</Text>
+                  <View style={styles.scenesGrid}>
+                    {manualScenes.length > 0 ? (
+                      manualScenes.map((scene) => (
+                        <TouchableOpacity
+                          key={scene}
+                          style={styles.sceneButton}
+                          onPress={() => switchScene(scene)}
+                        >
+                          <MaterialCommunityIcons name="monitor" size={18} color="#fff" />
+                          <Text style={styles.buttonText}>
+                            {scene === 'mainScene' && 'Show Scoring Overlay'}
+                            {scene === 'wicketScene' && 'Show Wicket'}
+                            {scene === 'newBowlerScene' && 'Show New Bowler'}
+                            {scene === 'newBatsmanScene' && 'Show New Batsman'}
+                            {scene === 'scorecardScene' && 'Show Scorecard'}
+                            {scene === 'playingXIScene' && 'Show Playing XI'}
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <Text style={{ color: 'red' }}>No manual scenes available</Text>
+                    )}
+                  </View>
+                </View>
 
 
                 <TouchableOpacity style={[styles.button, styles.disconnectButton]} onPress={disconnectFromOBS}>
@@ -638,47 +638,47 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(76, 175, 80, 0.5)',
   },
- connectionStatusText: {
-  color: '#249628', // proper green
-  fontSize: 16,
-  fontWeight: '600',
-  marginLeft: 8,
-},
+  connectionStatusText: {
+    color: '#249628', // proper green
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
 
-scenesSection: {
-  marginTop: 20,
-  paddingHorizontal: 16,
-},
+  scenesSection: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
 
-scenesTitle: {
-  fontSize: 18,
-  fontWeight: '700',
-  color: '#fff',   // visible white text
-  marginBottom: 8,
-},
+  scenesTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',   // visible white text
+    marginBottom: 8,
+  },
 
-scenesGrid: {
-  // flexDirection: 'row',
-  // flexWrap: 'wrap',
-  // marginTop: 8,
-},
+  scenesGrid: {
+    // flexDirection: 'row',
+    // flexWrap: 'wrap',
+    // marginTop: 8,
+  },
 
-sceneButton: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#1E88E5',
-  paddingVertical: 10,
-  paddingHorizontal: 16,
-  borderRadius: 8,
-  marginBottom: 12,
-  marginRight: 12,
-},
+  sceneButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E88E5',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    marginRight: 12,
+  },
 
-buttonText: {
-  color: '#fff',
-  fontSize: 14,
-  fontWeight: '600',
-  marginLeft: 6,
-},
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
 
 });
