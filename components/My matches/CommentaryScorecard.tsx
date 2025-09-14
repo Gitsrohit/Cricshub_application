@@ -12,11 +12,11 @@ import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
 import apiService from '../APIservices';
 import { LinearGradient } from 'expo-linear-gradient';
+import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
 
 const { width, height } = Dimensions.get('window');
 const background = require('../../assets/images/cricsLogo.png');
-
-// Color theme matching the Performance component
+const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 const AppColors = {
   white: "#FFFFFF",
   black: "#000000",
@@ -35,8 +35,59 @@ const AppGradients = {
   primaryCard: ["#34B8FF", "#0575E6"],
   secondaryCard: ["#6C5CE7", "#3498DB"],
   header: ["#1F2A44", "#162036"],
-  tabActive: ["#3498DB", "#2c3e50"]
+  tabActive: ["#3498DB", "#2c3e50"],
+  shimmer: ['#F0F0F0', '#E0E0E0', '#F0F0F0'],
 };
+
+// Shimmer card component for the loading state
+const ShimmerCard = () => (
+  <View style={styles.shimmerContainer}>
+    {/* Header Placeholder */}
+    <View style={styles.shimmerHeaderPlaceholder}>
+      <ShimmerPlaceholder style={styles.shimmerHeaderTitle} />
+    </View>
+
+    {/* Scorecard Placeholder */}
+    <View style={styles.shimmerScorecardPlaceholder}>
+      <View style={styles.shimmerTeamScore}>
+        <ShimmerPlaceholder style={styles.shimmerTeamName} />
+        <ShimmerPlaceholder style={styles.shimmerTeamRuns} />
+      </View>
+      <View style={styles.shimmerVs} />
+      <View style={styles.shimmerTeamScore}>
+        <ShimmerPlaceholder style={styles.shimmerTeamName} />
+        <ShimmerPlaceholder style={styles.shimmerTeamRuns} />
+      </View>
+      <View style={styles.shimmerPlayerInfo}>
+        <ShimmerPlaceholder style={styles.shimmerPlayerName} />
+        <ShimmerPlaceholder style={styles.shimmerPlayerRuns} />
+      </View>
+    </View>
+
+    {/* Tabs Placeholder */}
+    <View style={styles.shimmerTabsPlaceholder}>
+      <ShimmerPlaceholder style={styles.shimmerTabButton} />
+      <ShimmerPlaceholder style={styles.shimmerTabButton} />
+    </View>
+
+    {/* Table Placeholder (3 rows) */}
+    <View style={styles.shimmerTableContainer}>
+      <View style={styles.shimmerTableHeader}>
+        <ShimmerPlaceholder style={styles.shimmerTableText} />
+        <ShimmerPlaceholder style={styles.shimmerTableTextSmall} />
+      </View>
+      {[1, 2, 3].map((item) => (
+        <View key={item} style={styles.shimmerTableRow}>
+          <ShimmerPlaceholder style={styles.shimmerTablePlayer} />
+          <ShimmerPlaceholder style={styles.shimmerTableStat} />
+          <ShimmerPlaceholder style={styles.shimmerTableStat} />
+          <ShimmerPlaceholder style={styles.shimmerTableStat} />
+          <ShimmerPlaceholder style={styles.shimmerTableStat} />
+        </View>
+      ))}
+    </View>
+  </View>
+);
 
 const CommentaryScorecard = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -52,7 +103,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [bowlingTeamWickets, setBowlingTeamWickets] = useState(null);
   const [totalOvers, setTotalOvers] = useState(null);
   const [wicket, setWicket] = useState(null);
-  const [completedOvers, setCompletedOvers] = useState(null);
+  const [completedOvers, setCompletedOvers] = useState(0);
   const [overDetails, setOverDetails] = useState("");
   const legalDeliveriesRef = useRef(0);
   const [legalDeliveries, setLegalDeliveries] = useState(0);
@@ -60,14 +111,17 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [battingSecond, setBattingSecond] = useState(null);
   const [bowlingFirst, setBowlingFirst] = useState(null);
   const [bowlingSecond, setBowlingSecond] = useState(null);
+  const [battingFirstTeamName, setBattingFirstTeamName] = useState(null);
+  const [battingSecondTeamName, setBattingSecondTeamName] = useState(null);
+  const [activeTab, setActiveTab] = useState('scorecard');
   const [innings, setInnings] = useState("1st");
   const [subTab, setSubTab] = useState("Batting");
-  const [activeTab, setActiveTab] = useState('scorecard');
-  const [scoreTab, setScoreTab] = useState('T1B');
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
-  const stompLiveClientRef = useRef<Client | null>(null);
-  const stompSubmitClientRef = useRef<Client | null>(null);
+  const stompLiveClientRef = useRef(null);
+  const stompSubmitClientRef = useRef(null);
+
+  const [scorecardCache, setScorecardCache] = useState({});
 
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 100],
@@ -124,20 +178,19 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const economy = (runsConceded, ballsBowled) => {
     const r = safeNumber(runsConceded, 0);
     const b = safeNumber(ballsBowled, 0);
-    if (b === 0) return '0.0';
+    if (b === 0) return '0.00';
     const ov = b / 6;
-    return (r / ov).toFixed(1);
+    return (r / ov).toFixed(2);
   };
 
   const strikeRateCalc = (runs, balls) => {
     const r = safeNumber(runs, 0);
     const b = safeNumber(balls, 0);
-    if (b === 0) return '0.0';
-    return ((r * 100) / b).toFixed(1);
+    if (b === 0) return '0.00';
+    return ((r * 100) / b).toFixed(2);
   };
 
   const dismissalText = (wicketDetails) => {
-    console.log(wicketDetails);
     if (!wicketDetails) return 'not out';
     const { dismissalType, bowlerId, catcherId, runOutMakerId } = wicketDetails || {};
     if (!dismissalType) return 'not out';
@@ -174,6 +227,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
       }
 
       setMatchId(data?.matchId);
+
+      setBattingFirstTeamName(data?.team1?.name);
+      setBattingSecondTeamName(data?.team2?.name);
 
       setBowler({
         id: data?.currentBowler?.playerId,
@@ -259,19 +315,16 @@ const CommentaryScorecard = ({ route, navigation }) => {
         setOverDetails("");
       }
 
+      setScorecardCache({
+        [data?.team1?.name]: { batting: data?.team1BattingOrder, bowling: data?.team1BowlingOrder },
+        [data?.team2?.name]: { batting: data?.team2BattingOrder, bowling: data?.team2BowlingOrder },
+      });
+      
       setBattingFirst(data?.team1BattingOrder);
       setBattingSecond(data?.team2BattingOrder);
       setBowlingFirst(data?.team1BowlingOrder);
       setBowlingSecond(data?.team2BowlingOrder);
 
-      // const t1bo = mergeBattingData(data?.team1BattingOrder, data?.team1?.playingXI);
-      // const t2bo = mergeBattingData(data?.team2BattingOrder, data?.team2?.playingXI);
-      // console.log(t1bo);
-      // console.log(t2bo);
-      // setTeam1BattingOrder(mergeBattingData(data?.team1BattingOrder, data?.team1?.playingXI));
-      // setTeam2BattingOrder(mergeBattingData(data?.team2BattingOrder, data?.team2?.playingXI));
-      // setTeam1BowlingOrder(dedupeByPlayer(data?.team1BowlingOrder || []));
-      // setTeam2BowlingOrder(dedupeByPlayer(data?.team2BowlingOrder || []));
     } catch (error) {
       console.log("Error fetching match state:", error);
     } finally {
@@ -282,87 +335,87 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const matchScoreUpdateHandler = (data) => {
     setBattingTeamName(data?.battingTeam?.name);
     setBowlingTeamName(data?.bowlingTeam?.name);
-    setOverDetails((prev) => prev + " " + (data?.ballString || ""));
-    setBowler({
+    
+    // Update over details with the latest ball string
+    setOverDetails((prev) => {
+      // Logic to append or replace based on over completion
+      const currentOverBalls = data?.currentOver?.map(ball => {
+        let event = ball.runs?.toString() || "0";
+        if (ball.wicket) event += " W";
+        if (ball.noBall) event += " NB";
+        if (ball.wide) event += " Wd";
+        if (ball.bye) event += " B";
+        if (ball.legBye) event += " LB";
+        return event.trim();
+      }).join(" ");
+      return currentOverBalls || "";
+    });
+    
+    // Update bowler stats with a new object to ensure re-render
+    setBowler(prevBowler => ({
+      ...prevBowler,
       id: data?.currentBowler?.id,
       name: data?.currentBowler?.name,
       overs: data?.currentBowler?.overs,
       runsConceded: data?.currentBowler?.runsConceded,
       wickets: data?.currentBowler?.wickets,
       economyRate: data?.currentBowler?.economyRate,
-    });
+    }));
 
-    setStriker({
+    // Update striker and non-striker stats
+    setStriker(prevStriker => ({
+      ...prevStriker,
       id: data?.striker?.id,
       name: data?.striker?.name,
       runs: data?.striker?.runs,
       ballsFaced: data?.striker?.ballsFaced,
-      strikeRate: data?.striker?.strikeRate,
-    });
+    }));
 
-    setNonStriker({
+    setNonStriker(prevNonStriker => ({
+      ...prevNonStriker,
       id: data?.nonStriker?.id,
       name: data?.nonStriker?.name,
       runs: data?.nonStriker?.runs,
       ballsFaced: data?.nonStriker?.ballsFaced,
-      strikeRate: data?.nonStriker?.strikeRate,
-    });
+    }));
 
+    // Update main scorecard numbers
     setCompletedOvers(data?.overNumber);
     setScore(data?.totalRuns);
     setWicket(data?.wicketsLost);
+    
+    // Update legal deliveries count live
+    const deliveryCount = data?.currentOver?.filter(ball => !ball.noBall && !ball.wide).length || 0;
+    setLegalDeliveries(deliveryCount);
 
-    if (data?.overComplete === true) {
-      setOverDetails("");
-      legalDeliveriesRef.current = 0;
-      setLegalDeliveries(0);
-
-      if (data?.overNumber !== data?.totalOvers) {
-        console.log("next bowler modal open");
-      }
-    }
-
-    if (data?.overComplete === false) {
-      const ballStr = data?.ballString?.toUpperCase() || "";
-      const isWide = ballStr.includes("WD");
-      const isNoBall = ballStr.includes("NB");
-      const isLegalDelivery = !isWide && !isNoBall;
-
-      if (isLegalDelivery) {
-        const updatedLegalDeliveries = (legalDeliveriesRef.current + 1) % 6;
-        legalDeliveriesRef.current = updatedLegalDeliveries;
-        setLegalDeliveries(updatedLegalDeliveries);
-      }
-      matchScoreCardUpdateHandler(data);
-    }
+    // Call the secondary update handler to refresh all data tables
+    matchScoreCardUpdateHandler(data);
   };
 
   const matchScoreCardUpdateHandler = (data) => {
-    // const t1bo = mergeBattingData(data?.team1BattingOrder, data?.team1?.playingXI);
-    // const t2bo = mergeBattingData(data?.team2BattingOrder, data?.team2?.playingXI);
-    // console.log(t1bo);
-    // console.log(t2bo);
-    // setTeam1BattingOrder(mergeBattingData(data?.team1BattingOrder, data?.team1?.playingXI));
-    // setTeam2BattingOrder(mergeBattingData(data?.team2BattingOrder, data?.team2?.playingXI));
-    // if (Array.isArray(data?.team1BowlingOrder)) setTeam1BowlingOrder(dedupeByPlayer(data.team1BowlingOrder));
-    // if (Array.isArray(data?.team2BowlingOrder)) setTeam2BowlingOrder(dedupeByPlayer(data.team2BowlingOrder));
     setBattingFirst(data?.team1BattingOrder);
     setBattingSecond(data?.team2BattingOrder);
     setBowlingFirst(data?.team1BowlingOrder);
     setBowlingSecond(data?.team2BowlingOrder);
+    
+    setScorecardCache(prevCache => ({
+      ...prevCache,
+      [data?.team1?.name]: { batting: data?.team1BattingOrder, bowling: data?.team1BowlingOrder },
+      [data?.team2?.name]: { batting: data?.team2BattingOrder, bowling: data?.team2BowlingOrder },
+    }));
   };
 
   const useStompConnection = () => {
     const [liveConnected, setLiveConnected] = useState(false);
 
-    const updateConnectionState = (type: 'live', isConnected: boolean) => {
+    const updateConnectionState = (type, isConnected) => {
       if (type === 'live') setLiveConnected(isConnected);
     };
 
     const setupClient = (
-      clientRef: React.MutableRefObject<Client | null>,
-      type: 'submit' | 'live',
-      matchId: string | null = null
+      clientRef,
+      type,
+      matchId = null
     ) => {
       if (clientRef.current && clientRef.current.active) {
         return;
@@ -380,7 +433,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
         updateConnectionState('live', true);
 
         if (type === 'live' && matchId) {
-          clientRef.current?.subscribe(`/topic/match/${matchId}`, (message: IMessage) => {
+          clientRef.current?.subscribe(`/topic/match/${matchId}`, (message) => {
             try {
               const parsed = JSON.parse(message.body);
               if (!parsed.eventName || !parsed.payload) return;
@@ -406,8 +459,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
               if (eventName === 'live-score-board') {
                 matchScoreCardUpdateHandler(payload);
-                console.log("Ball by ball");
-                console.log(payload);
               }
             } catch (error) {
               console.error('Error processing live message:', error, message.body);
@@ -468,21 +519,10 @@ const CommentaryScorecard = ({ route, navigation }) => {
   };
 
   const renderScorecard = () => {
-    console.log("📊 Scorecard Data:", {
-      battingTeamName,
-      score,
-      wicket,
-      completedOvers,
-      legalDeliveries,
-      bowlingTeamName,
-      bowlingTeamScore,
-      bowlingTeamWickets,
-      totalOvers,
-      striker,
-      nonStriker,
-      bowler,
-      overDetails,
-    });
+    const currentOversFormatted = `${completedOvers}.${legalDeliveries}`;
+    const strikerSR = striker?.ballsFaced > 0 ? (striker.runs * 100 / striker.ballsFaced).toFixed(2) : '0.00';
+    const nonStrikerSR = nonStriker?.ballsFaced > 0 ? (nonStriker.runs * 100 / nonStriker.ballsFaced).toFixed(2) : '0.00';
+    const bowlerEconomy = bowler?.ballsBowled > 0 ? (bowler.runsConceded / (bowler.ballsBowled / 6)).toFixed(2) : '0.00';
 
     return (
       <LinearGradient
@@ -495,9 +535,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
           <View style={styles.teamScore}>
             <Text style={styles.teamName}>{battingTeamName}</Text>
             <Text style={styles.teamRuns}>
-              {/* {score}/{wicket} ({completedOvers}.{legalDeliveries} ov) */}
               {score}/{wicket}
             </Text>
+            <Text style={styles.oversText}>({currentOversFormatted} ov)</Text>
           </View>
 
           <View style={styles.versusContainer}>
@@ -507,9 +547,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
           <View style={styles.teamScore}>
             <Text style={styles.teamName}>{bowlingTeamName}</Text>
             <Text style={styles.teamRuns}>
-              {/* {bowlingTeamScore}/{bowlingTeamWickets} ({totalOvers}.0 ov) */}
               {bowlingTeamScore}/{bowlingTeamWickets}
             </Text>
+            <Text style={styles.oversText}>({totalOvers}.0 ov)</Text>
           </View>
         </View>
 
@@ -525,7 +565,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
               {striker?.runs} ({striker?.ballsFaced})
             </Text>
             <Text style={styles.playerExtra}>
-              SR: {striker?.ballsFaced != 0 ? (striker?.runs * 100) / striker?.ballsFaced : 0.0}
+              SR: {strikerSR}
             </Text>
           </View>
 
@@ -538,7 +578,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
               {nonStriker?.runs} ({nonStriker?.ballsFaced})
             </Text>
             <Text style={styles.playerExtra}>
-              SR: {nonStriker?.ballsFaced != 0 ? (nonStriker?.runs * 100) / nonStriker?.ballsFaced : 0.0}
+              SR: {nonStrikerSR}
             </Text>
           </View>
 
@@ -551,6 +591,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
             </View>
             <Text style={styles.playerStats}>
               {bowler?.wickets}/{bowler?.runsConceded}
+            </Text>
+            <Text style={styles.playerExtra}>
+              Eco: {bowlerEconomy}
             </Text>
           </View>
         </View>
@@ -566,8 +609,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
   };
 
   const BattingRow = ({ item }) => {
-    console.log("🏏 BattingRow Data:", item);
-
     const name = item?.name || "-";
     const runs = safeNumber(item?.runs, 0);
     const balls = safeNumber(item?.ballsFaced, 0);
@@ -592,8 +633,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
   };
 
   const BowlingRow = ({ item }) => {
-    console.log("🎯 BowlingRow Data:", item);
-
     const name = item?.name || "-";
     const balls = safeNumber(item?.ballsBowled, 0);
     const oversDisp = ballsToOvers(balls);
@@ -617,8 +656,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
   };
 
   const BattingTable = ({ data }) => {
-    console.log("📋 BattingTable Data:", data);
-
     return (
       <View style={styles.tableContainer}>
         <View style={[styles.tableRow, styles.tableHeader]}>
@@ -641,8 +678,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
   };
 
   const BowlingTable = ({ data }) => {
-    console.log("📋 BowlingTable Data:", data);
-
     return (
       <View style={styles.tableContainer}>
         <View style={[styles.tableRow, styles.tableHeader]}>
@@ -664,16 +699,40 @@ const CommentaryScorecard = ({ route, navigation }) => {
     );
   };
 
+  const handleInningsTabPress = (teamName) => {
+    const selectedInnings = teamName === battingFirstTeamName ? '1st' : '2nd';
+    setInnings(selectedInnings);
+    setSubTab('Batting');
+
+    const cachedData = scorecardCache[teamName];
+    if (cachedData) {
+      if (selectedInnings === '1st') {
+        setBattingFirst(cachedData.batting);
+        setBowlingFirst(cachedData.bowling);
+      } else {
+        setBattingSecond(cachedData.batting);
+        setBowlingSecond(cachedData.bowling);
+      }
+    } else {
+      if (selectedInnings === '1st') {
+        setBattingFirst([]);
+        setBowlingFirst([]);
+      } else {
+        setBattingSecond([]);
+        setBowlingSecond([]);
+      }
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={AppColors.darkBlue} />
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={AppColors.blue} />
+        <View style={styles.shimmerFullScreen}>
+          <ShimmerCard />
         </View>
       ) : (
         <>
-          {/* Header matching Performance component style */}
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
               <TouchableOpacity
@@ -700,26 +759,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
               {renderScorecard()}
 
-              {/* <View style={styles.tabContainer}>
-                <TouchableOpacity
-                  style={[styles.tabButton, activeTab === 'commentary' && styles.activeTab]}
-                  onPress={() => setActiveTab('commentary')}
-                >
-                  <Text style={[styles.tabText, activeTab === 'commentary' && styles.activeTabText]}>
-                    Commentary
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.tabButton, activeTab === 'scorecard' && styles.activeTab]}
-                  onPress={() => setActiveTab('scorecard')}
-                >
-                  <Text style={[styles.tabText, activeTab === 'scorecard' && styles.activeTabText]}>
-                    Scorecard
-                  </Text>
-                </TouchableOpacity>
-              </View> */}
-
               {activeTab === 'commentary' ? (
                 <FlatList
                   data={getAllCommentary()}
@@ -742,24 +781,18 @@ const CommentaryScorecard = ({ route, navigation }) => {
                 />
               ) : (
                 <View style={styles.detailedScorecard}>
-                  {/* <ScoreTabs /> */}
-
-                  {/* {scoreTab === 'T1B' && <BattingTable data={team1BattingOrder} />}
-                  {scoreTab === 'T1Bo' && <BowlingTable data={team1BowlingOrder} />}
-                  {scoreTab === 'T2B' && <BattingTable data={team2BattingOrder} />}
-                  {scoreTab === 'T2Bo' && <BowlingTable data={team2BowlingOrder} />} */}
                   <View style={styles.inningsTabsRow}>
                     <TouchableOpacity
                       style={[styles.inningsTabBtn, innings === "1st" && styles.inningsTabActive]}
-                      onPress={() => { setInnings("1st"); setSubTab("Batting"); }}
+                      onPress={() => handleInningsTabPress(battingFirstTeamName)}
                     >
-                      <Text style={[styles.inningsTabText, innings === "1st" && styles.inningsTabTextActive]}>1st Innings</Text>
+                      <Text style={[styles.inningsTabText, innings === "1st" && styles.inningsTabTextActive]}>{battingFirstTeamName}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.inningsTabBtn, innings === "2nd" && styles.inningsTabActive]}
-                      onPress={() => { setInnings("2nd"); setSubTab("Batting"); }}
+                      onPress={() => handleInningsTabPress(battingSecondTeamName)}
                     >
-                      <Text style={[styles.inningsTabText, innings === "2nd" && styles.inningsTabTextActive]}>2nd Innings</Text>
+                      <Text style={[styles.inningsTabText, innings === "2nd" && styles.inningsTabTextActive]}>{battingSecondTeamName}</Text>
                     </TouchableOpacity>
                   </View>
                   <View style={styles.scoreTabsRow}>
@@ -822,7 +855,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    // color: AppColors.darkBlue,
   },
   headerTitle: {
     fontSize: 18,
@@ -832,11 +864,125 @@ const styles = StyleSheet.create({
   headerRight: {
     width: 40,
   },
-  loadingContainer: {
+  // Shimmer-specific styles
+  shimmerFullScreen: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: AppColors.background,
+    paddingHorizontal: 12,
+  },
+  shimmerContainer: {
+    marginTop: 20,
+  },
+  shimmerBox: {
+    borderRadius: 15,
+    marginBottom: 15,
+  },
+  shimmerHeaderPlaceholder: {
+    height: 60,
+    paddingHorizontal: 15,
+    justifyContent: 'center',
+    marginBottom: 15,
+    borderRadius: 15,
+    backgroundColor: AppColors.white,
+  },
+  shimmerHeaderTitle: {
+    width: '50%',
+    height: 20,
+  },
+  shimmerScorecardPlaceholder: {
+    padding: 15,
+    backgroundColor: AppColors.white,
+    borderRadius: 15,
+    marginBottom: 15,
+  },
+  shimmerTeamScore: {
+    width: '45%',
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shimmerTeamName: {
+    width: '80%',
+    height: 16,
+    marginBottom: 8,
+  },
+  shimmerTeamRuns: {
+    width: '60%',
+    height: 24,
+  },
+  shimmerVs: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: AppColors.lightText,
+  },
+  shimmerPlayerInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    paddingHorizontal: 10,
+  },
+  shimmerPlayerName: {
+    width: '40%',
+    height: 14,
+  },
+  shimmerPlayerRuns: {
+    width: '20%',
+    height: 14,
+  },
+  shimmerTabsPlaceholder: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 5,
+    backgroundColor: AppColors.white,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  shimmerTabButton: {
+    width: '48%',
+    height: 40,
+    borderRadius: 8,
+  },
+  shimmerTableContainer: {
+    backgroundColor: AppColors.white,
+    borderRadius: 15,
+    marginBottom: 20,
+  },
+  shimmerTableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: AppColors.blue,
+    padding: 10,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+  },
+  shimmerTableText: {
+    width: '30%',
+    height: 14,
+    borderRadius: 4,
+  },
+  shimmerTableTextSmall: {
+    width: '15%',
+    height: 14,
+    borderRadius: 4,
+  },
+  shimmerTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  shimmerTablePlayer: {
+    width: '40%',
+    height: 14,
+    borderRadius: 4,
+  },
+  shimmerTableStat: {
+    width: '12%',
+    height: 14,
+    borderRadius: 4,
   },
   background: {
     flex: 1
@@ -865,7 +1011,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   stickyTabsContainer: {
-    zIndex: 10, // Ensure tabs stay above content
+    zIndex: 10,
   },
   tabButton: {
     flex: 1,
@@ -912,6 +1058,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     marginTop: 4
+  },
+  oversText: {
+    color: AppColors.white,
+    fontSize: 12,
+    opacity: 0.8,
   },
   versusContainer: {
     width: 50,
@@ -1062,7 +1213,6 @@ const styles = StyleSheet.create({
   detailedScorecard: {
     backgroundColor: AppColors.white,
     borderRadius: 15,
-    // padding: 15,
     marginBottom: 20,
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 4 },
@@ -1071,7 +1221,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tableContainer: {
-    marginTop: 8
+    marginTop: 8,
+    paddingHorizontal: 15
   },
   tableHeader: {
     backgroundColor: AppColors.blue,

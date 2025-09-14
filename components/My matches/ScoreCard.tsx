@@ -17,23 +17,24 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import apiService from '../APIservices';
-// Import SafeAreaView and useSafeAreaInsets
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
 
 const { width } = Dimensions.get('window');
 const background = require('../../assets/images/cricsLogo.png');
 
-// Assuming you have AppGradients defined in a separate file or within this one
+const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
+
 const AppGradients = {
   primaryCard: ['#34B8FF', '#1E88E5'],
+  shimmer: ['#E0E0E0', '#F5F5F5', '#E0E0E0'],
 };
 
-// Reusable PlayerRow component for better readability and maintenance
 const PlayerRow = ({ player, index, type, isBatted }) => {
   const isEvenRow = index % 2 === 0;
 
   if (type === 'batting') {
-    const isDismissed = isBatted && player?.dismissalInfo;
+    const isNotOut = isBatted && player?.dismissalInfo === null;
     const dismissalText = isBatted ? (player?.wicketDetails ? player?.wicketDetails.dismissalType : 'Not out') : 'Yet to bat';
     const runs = player?.runs || 0;
     const ballsFaced = player?.ballsFaced || 0;
@@ -46,11 +47,12 @@ const PlayerRow = ({ player, index, type, isBatted }) => {
         <View style={styles.nameCol}>
           <View style={styles.playerInfo}>
             <Text style={styles.playerName}>{player?.name || 'Unknown Player'}</Text>
-            {isBatted && (
+            {/* Show green tick ONLY for not-out players */}
+            {isNotOut && (
               <Ionicons
-                name={isDismissed ? 'close-circle' : 'checkmark-circle'}
+                name="checkmark-circle"
                 size={14}
-                color={isDismissed ? '#F44336' : '#4CAF50'}
+                color="#4CAF50"
                 style={styles.playerStatusIcon}
               />
             )}
@@ -83,6 +85,24 @@ const PlayerRow = ({ player, index, type, isBatted }) => {
   );
 };
 
+// Enhanced ShimmerRow to better represent data rows
+const ShimmerRow = ({ index }) => {
+  const isEvenRow = index % 2 === 0;
+  return (
+    <View style={[styles.statsRow, isEvenRow && styles.evenRow]}>
+      <View style={styles.nameCol}>
+        <ShimmerPlaceholder style={[styles.shimmerLine, styles.shimmerPlayerName]} />
+        <ShimmerPlaceholder style={[styles.shimmerLine, styles.shimmerDismissal]} />
+      </View>
+      <ShimmerPlaceholder style={[styles.shimmerLine, styles.statCol, { width: '80%' }]} />
+      <ShimmerPlaceholder style={[styles.shimmerLine, styles.statCol, { width: '80%' }]} />
+      <ShimmerPlaceholder style={[styles.shimmerLine, styles.statCol, { width: '80%' }]} />
+      <ShimmerPlaceholder style={[styles.shimmerLine, styles.statCol, { width: '80%' }]} />
+      <ShimmerPlaceholder style={[styles.shimmerLine, styles.statCol, { width: '80%' }]} />
+    </View>
+  );
+};
+
 const ScoreCard = ({ route, navigation }) => {
   const { matchId } = route.params;
   const [team, setTeam] = useState(null);
@@ -91,8 +111,6 @@ const ScoreCard = ({ route, navigation }) => {
   const [loadingError, setLoadingError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Get the safe area insets
   const insets = useSafeAreaInsets();
 
   const getMatchState = useCallback(async (isManualRefresh = false) => {
@@ -151,27 +169,6 @@ const ScoreCard = ({ route, navigation }) => {
 
   const onRefresh = () => {
     getMatchState(true);
-  };
-
-  const getMatchStatusText = (status) => {
-    if (!status) {
-      return 'Status Unknown';
-    }
-    const lowerStatus = status.toLowerCase();
-    switch (lowerStatus) {
-      case 'completed':
-        return 'Completed';
-      case 'live':
-        return 'Live';
-      case 'upcoming':
-        return 'Upcoming';
-      case 'abandoned':
-        return 'Abandoned';
-      case 'in_progress':
-        return 'In Progress';
-      default:
-        return 'In Progress';
-    }
   };
 
   const renderBattingTable = (teamData, battingOrder) => {
@@ -281,8 +278,30 @@ const ScoreCard = ({ route, navigation }) => {
           style={styles.fullScreenGradient}
         >
           <MaterialCommunityIcons name="cricket" size={40} color="#fff" />
-          <Text style={styles.loadingText}>Loading match details...</Text>
-          <ActivityIndicator size="large" color="#fff" style={styles.spinner} />
+          <Text style={styles.loadingText}>Fetching Live Scorecard...</Text>
+          <View style={styles.shimmerContainer}>
+            <ShimmerPlaceholder style={styles.shimmerScoreCard} />
+            <ShimmerPlaceholder style={styles.shimmerScoreCard} />
+          </View>
+          <ShimmerPlaceholder style={styles.shimmerButton} />
+          <ShimmerPlaceholder style={styles.shimmerTabs} />
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <ShimmerPlaceholder style={styles.shimmerSectionTitle} />
+              <ShimmerPlaceholder style={styles.shimmerTeamIndicator} />
+            </View>
+            <View style={styles.statsHeader}>
+              <ShimmerPlaceholder style={[styles.shimmerLine, styles.nameCol]} />
+              <ShimmerPlaceholder style={[styles.shimmerLine, styles.statCol]} />
+              <ShimmerPlaceholder style={[styles.shimmerLine, styles.statCol]} />
+              <ShimmerPlaceholder style={[styles.shimmerLine, styles.statCol]} />
+              <ShimmerPlaceholder style={[styles.shimmerLine, styles.statCol]} />
+              <ShimmerPlaceholder style={[styles.shimmerLine, styles.statCol]} />
+            </View>
+            <ShimmerRow index={0} />
+            <ShimmerRow index={1} />
+            <ShimmerRow index={2} />
+          </View>
         </LinearGradient>
       </View>
     );
@@ -316,9 +335,7 @@ const ScoreCard = ({ route, navigation }) => {
       imageStyle={styles.backgroundImage}
     >
       <StatusBar barStyle="light-content" backgroundColor="#0A5A9C" />
-      {/* Use SafeAreaView to wrap the main content */}
       <SafeAreaView style={styles.safeArea}>
-
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           refreshControl={
@@ -330,10 +347,10 @@ const ScoreCard = ({ route, navigation }) => {
             />
           }
         >
-          {/* Match Header with dynamic top padding */}
+          {/* Refactored Match Header */}
           <LinearGradient
             colors={AppGradients.primaryCard}
-            style={[styles.matchHeader, { paddingTop: insets.top + 20 }]} // Adjust top padding
+            style={styles.matchHeader}
           >
             <View style={styles.matchTitleContainer}>
               <Text style={styles.matchTitle} numberOfLines={1} ellipsizeMode="tail">
@@ -341,8 +358,6 @@ const ScoreCard = ({ route, navigation }) => {
               </Text>
             </View>
           </LinearGradient>
-
-          {/* Team Scores */}
           <View style={styles.scoreContainer}>
             <View style={styles.teamScoreCard}>
               <Text style={styles.teamName}>{matchState.team1?.name || 'Team 1'}</Text>
@@ -353,11 +368,9 @@ const ScoreCard = ({ route, navigation }) => {
                 <Text style={styles.teamOvers}>{matchState.team1.overs} overs</Text>
               )}
             </View>
-
             <View style={styles.vsContainer}>
               <Text style={styles.vsText}>vs</Text>
             </View>
-
             <View style={styles.teamScoreCard}>
               <Text style={styles.teamName}>{matchState.team2?.name || 'Team 2'}</Text>
               <Text style={styles.teamRuns}>
@@ -369,8 +382,6 @@ const ScoreCard = ({ route, navigation }) => {
             </View>
           </View>
           <Text style={styles.matchResultText}>{matchState?.result || 'Scoreboard'}</Text>
-
-          {/* Team Selector */}
           <View style={styles.teamSelector}>
             {[matchState.team1, matchState.team2].map((t) => (
               <TouchableOpacity
@@ -390,8 +401,6 @@ const ScoreCard = ({ route, navigation }) => {
               </TouchableOpacity>
             ))}
           </View>
-
-          {/* Stats Tabs */}
           <View style={styles.statsTabs}>
             <TouchableOpacity
               style={[
@@ -414,7 +423,6 @@ const ScoreCard = ({ route, navigation }) => {
                 Batting
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[
                 styles.statsTab,
@@ -437,13 +445,10 @@ const ScoreCard = ({ route, navigation }) => {
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* Stats Content */}
           {activeTab === 'batting' && team === matchState.team1?.name &&
             renderBattingTable(matchState.team1, matchState.team1BattingOrder)}
           {activeTab === 'batting' && team === matchState.team2?.name &&
             renderBattingTable(matchState.team2, matchState.team2BattingOrder)}
-
           {activeTab === 'bowling' && team === matchState.team1?.name &&
             renderBowlingTable(matchState.team2)}
           {activeTab === 'bowling' && team === matchState.team2?.name &&
@@ -457,10 +462,10 @@ const ScoreCard = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    backgroundColor: '#f4f8fc',
   },
   background: {
     flex: 1,
-    backgroundColor: '#f4f8fc',
   },
   backgroundImage: {
     resizeMode: 'cover',
@@ -479,8 +484,6 @@ const styles = StyleSheet.create({
   fullScreenGradient: {
     width: '100%',
     height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
   },
   loadingText: {
@@ -489,6 +492,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontWeight: '500',
     textAlign: 'center',
+    marginBottom: 20,
   },
   errorTitle: {
     fontSize: 20,
@@ -503,9 +507,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
     marginBottom: 20,
-  },
-  spinner: {
-    marginTop: 20,
   },
   retryButton: {
     marginTop: 20,
@@ -525,7 +526,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   matchHeader: {
-    paddingVertical: 20,
+    paddingVertical: 15,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -545,32 +546,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  cricketIcon: {
-    marginRight: 10,
-  },
   matchTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
     flexShrink: 1,
     flexWrap: 'nowrap',
-  },
-  matchSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 5,
-  },
-  matchStatusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  matchStatusText: {
-    fontSize: 14,
-    color: '#fff',
-    marginLeft: 5,
-    fontWeight: '500'
   },
   scoreContainer: {
     flexDirection: 'row',
@@ -742,6 +724,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 15,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
     borderColor: '#eee',
     backgroundColor: '#f8fbff',
@@ -827,6 +810,45 @@ const styles = StyleSheet.create({
     color: '#999',
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+  shimmerLine: {
+    height: 14,
+    borderRadius: 4,
+  },
+  shimmerPlayerName: {
+    width: '80%',
+    marginBottom: 5,
+  },
+  shimmerDismissal: {
+    width: '60%',
+    height: 10,
+  },
+  shimmerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 15,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  shimmerScoreCard: {
+    height: 100,
+    width: '45%',
+    borderRadius: 15,
+  },
+  shimmerButton: {
+    width: '60%',
+    height: 45,
+    alignSelf: 'center',
+    borderRadius: 25,
+    marginBottom: 20,
+  },
+  shimmerTabs: {
+    width: '90%',
+    height: 50,
+    alignSelf: 'center',
+    borderRadius: 12,
+    marginBottom: 20,
   },
 });
 

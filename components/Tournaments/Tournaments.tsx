@@ -14,18 +14,19 @@ import {
   Dimensions,
   Animated,
   SafeAreaView,
+  FlatList,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import LottieView from 'lottie-react-native';
-
-// These are correctly imported from colors.js, so they should NOT be re-declared here.
+import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
 import { AppGradients, AppColors } from '../../assets/constants/colors.js';
 import apiService from '../APIservices';
 
 const { width } = Dimensions.get('window');
+
+const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 
 const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
   const navigation = useNavigation();
@@ -33,7 +34,6 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
   const [opacityValue] = useState(new Animated.Value(0));
 
   useEffect(() => {
-    // Staggered animation for cards
     Animated.sequence([
       Animated.delay(index * 100),
       Animated.timing(opacityValue, {
@@ -81,7 +81,6 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
     'https://'
   );
 
-  // Determine status and corresponding color
   const getStatusInfo = () => {
     switch (tournamentTimeStatus) {
       case 'LIVE':
@@ -167,7 +166,6 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
   const [opacityValue] = useState(new Animated.Value(0));
 
   useEffect(() => {
-    // Staggered animation for cards
     Animated.sequence([
       Animated.delay(index * 100),
       Animated.timing(opacityValue, {
@@ -322,13 +320,36 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
   );
 };
 
+// New Shimmer Skeleton Card
+const ShimmerTournamentCard = () => {
+  return (
+    <View style={styles.cardContainer}>
+      <View style={styles.cardHeader}>
+        <ShimmerPlaceholder style={styles.shimmerTournamentName} />
+        <ShimmerPlaceholder style={styles.shimmerStatusBadge} />
+      </View>
+      <View style={styles.cardContent}>
+        <ShimmerPlaceholder style={styles.shimmerImage} />
+        <View style={styles.detailsContainer}>
+          <ShimmerPlaceholder style={styles.shimmerDetailLine} />
+          <ShimmerPlaceholder style={styles.shimmerDetailLine} />
+          <ShimmerPlaceholder style={styles.shimmerDetailLine} />
+        </View>
+      </View>
+      <View style={styles.cardFooter}>
+        <ShimmerPlaceholder style={styles.shimmerFooterText} />
+      </View>
+    </View>
+  );
+};
+
 const Tournaments = () => {
   const [activeTab, setActiveTab] = useState('LIVE');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [tournaments, setTournaments] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [allTournaments, setAllTournaments] = useState([]); // 👈 New state for unfiltered list
+  const [allTournaments, setAllTournaments] = useState([]);
   const navigation = useNavigation();
 
   const filterTournaments = (query) => {
@@ -379,7 +400,7 @@ const Tournaments = () => {
       console.error('Fetch tournaments unexpected error:', err);
       setError(err.message || 'An unexpected error occurred while loading tournaments.');
       setAllTournaments([]);
-        setTournaments([]);
+      setTournaments([]);
     } finally {
       setLoading(false);
     }
@@ -400,35 +421,8 @@ const Tournaments = () => {
     setSearchQuery(text);
     filterTournaments(text);
   };
-  
-  // Re-declare AppColors and AppGradients here as a temporary fix
-  const AppColors = {
-    primaryBlue: '#34B8FF',
-    secondaryBlue: '#1E88E5',
-    white: '#FFFFFF',
-    black: '#000000',
-    darkText: '#333333',
-    mediumText: '#555555',
-    lightText: '#888888',
-    lightBackground: '#F8F9FA',
-    cardBackground: '#FFFFFF',
-    errorRed: '#FF4757',
-    successGreen: '#2ED573',
-    liveGreen: '#2ED573',
-    upcomingOrange: '#FF9F43',
-    pastGray: '#747D8C',
-    infoGrey: '#A4B0BE',
-    cardBorder: '#E0E0E0',
-    gray: '#A4B0BE',
-  };
-
-  const AppGradients = {
-    primaryCard: ['#34B8FF', '#1E88E5'],
-    primaryButton: ['#34B8FF', '#1E88E5'],
-  };
 
   useEffect(() => {
-    // Correctly handle the status bar behavior on both platforms
     RNStatusBar.setBarStyle('light-content');
     if (Platform.OS === 'android') {
       RNStatusBar.setTranslucent(true);
@@ -497,14 +491,13 @@ const Tournaments = () => {
       
       <View style={styles.content}>
         {loading ? (
-          <View style={styles.loaderContainer}>
-            <LottieView
-              source={require('../../assets/animations/loader.json')}
-              autoPlay
-              loop
-              style={styles.lottieLoader}
-            />
-          </View>
+          <FlatList
+            data={['1', '2', '3']}
+            renderItem={() => <ShimmerTournamentCard />}
+            keyExtractor={item => item}
+            contentContainerStyle={styles.tournamentsContainer}
+            showsVerticalScrollIndicator={false}
+          />
         ) : error ? (
           <View style={styles.errorContainer}>
             <Icon name="error-outline" size={40} color={AppColors.errorRed} />
@@ -565,7 +558,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingBottom: 20,
-    // FIX: Reduced padding to decrease overall header height
     paddingTop: Platform.OS === 'ios' ? 10 : RNStatusBar.currentHeight + 10,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
@@ -575,7 +567,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
-    // FIX: Reduced vertical padding
     paddingVertical: 5,
     marginBottom: 10,
   },
@@ -589,7 +580,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 25,
-    // FIX: Decreased vertical padding for a shorter search bar
     paddingVertical: Platform.OS === 'ios' ? 8 : 6,
     paddingHorizontal: 15,
   },
@@ -630,16 +620,17 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: AppColors.lightBackground,
-  },
-  lottieLoader: {
-    width: 150,
-    height: 150,
-  },
+  // No longer needed since we are using shimmer effect
+  // loaderContainer: {
+  //   flex: 1,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   backgroundColor: AppColors.lightBackground,
+  // },
+  // lottieLoader: {
+  //   width: 150,
+  //   height: 150,
+  // },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -787,6 +778,34 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 4,
+  },
+  // Shimmer-specific styles
+  shimmerTournamentName: {
+    height: 20,
+    width: '60%',
+    borderRadius: 4,
+  },
+  shimmerStatusBadge: {
+    height: 20,
+    width: '30%',
+    borderRadius: 10,
+  },
+  shimmerImage: {
+    width: 80,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 15,
+  },
+  shimmerDetailLine: {
+    height: 12,
+    width: '80%',
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  shimmerFooterText: {
+    height: 14,
+    width: '70%',
+    borderRadius: 4,
   },
 });
 

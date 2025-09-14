@@ -1,27 +1,31 @@
-import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View,
-  Text,
   StyleSheet,
+  Text,
+  View,
+  ImageBackground,
+  StatusBar,
   TouchableOpacity,
   ScrollView,
-  Image,
-  Pressable,
-  ActivityIndicator,
-  FlatList,
   Dimensions,
-  Animated,
-  StatusBar,
+  ActivityIndicator,
+  RefreshControl,
   Platform,
-  TextInput
+  TextInput,
+  Animated,
+  Pressable,
+  Image,
+  FlatList,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import apiService from '../../APIservices';
+import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
 
 const { width } = Dimensions.get('window');
+const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 
 // Define the color palette and gradients for consistency
 const AppColors = {
@@ -46,6 +50,178 @@ const AppColors = {
 const AppGradients = {
   primaryCard: ['#34B8FF', '#1E88E5'],
   primaryButton: ['#34B8FF', '#1E88E5'],
+  shimmer: ['#F0F0F0', '#E0E0E0', '#F0F0F0'],
+};
+
+const MatchCard = ({
+  item,
+  onPress,
+  status = 'UPCOMING',
+  showScores = true,
+  showWinner = false,
+  userId
+}) => {
+  const [scaleValue] = useState(new Animated.Value(1));
+
+  const handlePressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: 0.97,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      friction: 4,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const matchDate = item?.matchDate ? `${item?.matchDate[2]}-${item?.matchDate[1]}-${item?.matchDate[0]}` : 'N/A';
+  const isCreator = userId && item?.matchOps?.includes(userId);
+
+  const getStatusInfo = () => {
+    switch (status) {
+      case 'LIVE':
+        return { text: 'LIVE', color: AppColors.liveGreen, icon: 'live-tv' };
+      case 'UPCOMING':
+        return { text: 'UPCOMING', color: AppColors.upcomingOrange, icon: 'schedule' };
+      case 'PAST':
+        return { text: 'Completed', color: AppColors.pastGray, icon: 'check-circle' };
+      default:
+        return { text: status, color: AppColors.primaryBlue, icon: 'info' };
+    }
+  };
+
+  const statusInfo = getStatusInfo();
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={styles.matchCard}
+      >
+        <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+          <Icon name={statusInfo.icon} size={16} color={AppColors.white} />
+          <Text style={styles.statusText}>{statusInfo.text}</Text>
+        </View>
+
+        <LinearGradient
+          colors={['#e3f2fd', '#ffffff']}
+          style={styles.matchCardHeader}
+        >
+          <Text style={styles.tournamentName} numberOfLines={1}>
+            {item?.tournamentResponse?.name || 'Individual Match'}
+          </Text>
+        </LinearGradient>
+
+        <View style={styles.matchCardContent}>
+          <View style={styles.teamRow}>
+            <View style={styles.teamContainer}>
+              <Image
+                source={{ uri: item?.team1?.logoPath }}
+                style={styles.teamLogo}
+              />
+              <Text style={styles.teamName} numberOfLines={1}>{item?.team1?.name}</Text>
+              {showScores && (item?.team1Score > 0 || item?.team2Score > 0) && (
+                <View style={styles.scoreBadge}>
+                  <Text style={styles.teamScore}>{item?.team1Score || '0'}</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.vsContainer}>
+              <Text style={styles.vsText}>VS</Text>
+            </View>
+
+            <View style={styles.teamContainer}>
+              <Image
+                source={{ uri: item?.team2?.logoPath }}
+                style={styles.teamLogo}
+              />
+              <Text style={styles.teamName} numberOfLines={1}>{item?.team2?.name}</Text>
+              {showScores && (item?.team1Score > 0 || item?.team2Score > 0) && (
+                <View style={styles.scoreBadge}>
+                  <Text style={styles.teamScore}>{item?.team2Score || '0'}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.matchDetailsRow}>
+            <Icon name="calendar-month" size={14} color={AppColors.infoGrey} />
+            <Text style={styles.matchDetailText}>{matchDate}</Text>
+            <Text style={styles.dotSeparator}>•</Text>
+
+            {item?.matchTime && (
+              <>
+                <Icon name="access-time" size={14} color={AppColors.infoGrey} />
+                <Text style={styles.matchDetailText}>{item.matchTime[0]}:{item.matchTime[1]}</Text>
+                <Text style={styles.dotSeparator}>•</Text>
+              </>
+            )}
+
+            <Icon name="location-on" size={14} color={AppColors.infoGrey} />
+            <Text style={styles.matchDetailText} numberOfLines={1}>
+              {item?.venue || 'Venue not specified'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.matchCardFooter}>
+          {showWinner && item?.winner ? (
+            <Text style={styles.winnerText}>🏆 {item.winner} won the match!</Text>
+          ) : (
+            <Text style={styles.footerText}>
+              {isCreator ? (status === 'LIVE' ? 'Tap to Score Match' : 'Tap to Setup Match') : 'Tap to View Match'}
+            </Text>
+          )}
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+};
+
+// New Shimmer Match Card Component
+const ShimmerMatchCard = () => {
+  return (
+    <View style={styles.matchCard}>
+      <View style={[styles.statusBadge, { backgroundColor: AppColors.infoGrey }]}>
+        <ShimmerPlaceholder style={styles.shimmerStatusIcon} />
+        <ShimmerPlaceholder style={styles.shimmerStatusText} />
+      </View>
+      <View style={styles.matchCardHeader}>
+        <ShimmerPlaceholder style={styles.shimmerHeader} />
+      </View>
+      <View style={styles.matchCardContent}>
+        <View style={styles.teamRow}>
+          <View style={styles.teamContainer}>
+            <ShimmerPlaceholder style={styles.shimmerLogo} />
+            <ShimmerPlaceholder style={styles.shimmerTeamName} />
+          </View>
+          <View style={styles.vsContainer}>
+            <Text style={styles.vsText}>VS</Text>
+          </View>
+          <View style={styles.teamContainer}>
+            <ShimmerPlaceholder style={styles.shimmerLogo} />
+            <ShimmerPlaceholder style={styles.shimmerTeamName} />
+          </View>
+        </View>
+        <View style={[styles.matchDetailsRow, { justifyContent: 'space-around' }]}>
+          <ShimmerPlaceholder style={styles.shimmerDetails} />
+          <ShimmerPlaceholder style={styles.shimmerDetails} />
+          <ShimmerPlaceholder style={styles.shimmerDetails} />
+        </View>
+      </View>
+      <View style={styles.matchCardFooter}>
+        <ShimmerPlaceholder style={styles.shimmerFooter} />
+      </View>
+    </View>
+  );
 };
 
 const AllMatches = () => {
@@ -102,7 +278,6 @@ const AllMatches = () => {
           </View>
         </View>
 
-
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -136,145 +311,6 @@ const AllMatches = () => {
         {activeTab === 'PAST' && <PastMatch searchQuery={searchQuery} />}
       </View>
     </View>
-  );
-};
-
-const MatchCard = ({
-  item,
-  onPress,
-  status = 'UPCOMING',
-  showScores = true,
-  showWinner = false,
-  userId
-}) => {
-  const [scaleValue] = useState(new Animated.Value(1));
-
-  const handlePressIn = () => {
-    Animated.spring(scaleValue, {
-      toValue: 0.97,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleValue, {
-      toValue: 1,
-      friction: 4,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const matchDate = item?.matchDate ? `${item?.matchDate[2]}-${item?.matchDate[1]}-${item?.matchDate[0]}` : 'N/A';
-  const isCreator = userId && item?.matchOps?.includes(userId);
-
-  const getStatusInfo = () => {
-    switch (status) {
-      case 'LIVE':
-        return { text: 'LIVE', color: AppColors.liveGreen, icon: 'live-tv' };
-      case 'UPCOMING':
-        return { text: 'UPCOMING', color: AppColors.upcomingOrange, icon: 'schedule' };
-      case 'PAST':
-        return { text: 'Completed', color: AppColors.pastGray, icon: 'check-circle' };
-      default:
-        return { text: status, color: AppColors.primaryBlue, icon: 'info' };
-    }
-  };
-
-  const statusInfo = getStatusInfo();
-
-  return (
-    <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        style={styles.matchCard}
-      >
-        {/* Status Badge */}
-        <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
-          <Icon name={statusInfo.icon} size={16} color={AppColors.white} />
-          <Text style={styles.statusText}>{statusInfo.text}</Text>
-        </View>
-
-        {/* Tournament Header */}
-        <LinearGradient
-          colors={['#e3f2fd', '#ffffff']}
-          style={styles.matchCardHeader}
-        >
-          <Text style={styles.tournamentName} numberOfLines={1}>
-            {item?.tournamentResponse?.name || 'Individual Match'}
-          </Text>
-        </LinearGradient>
-
-        {/* Match Content */}
-        <View style={styles.matchCardContent}>
-          {/* Teams */}
-          <View style={styles.teamRow}>
-            <View style={styles.teamContainer}>
-              <Image
-                source={{ uri: item?.team1?.logoPath }}
-                style={styles.teamLogo}
-              />
-              <Text style={styles.teamName} numberOfLines={1}>{item?.team1?.name}</Text>
-              {showScores && (item?.team1Score > 0 || item?.team2Score > 0) && (
-                <View style={styles.scoreBadge}>
-                  <Text style={styles.teamScore}>{item?.team1Score || '0'}</Text>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.vsContainer}>
-              <Text style={styles.vsText}>VS</Text>
-            </View>
-
-            <View style={styles.teamContainer}>
-              <Image
-                source={{ uri: item?.team2?.logoPath }}
-                style={styles.teamLogo}
-              />
-              <Text style={styles.teamName} numberOfLines={1}>{item?.team2?.name}</Text>
-              {showScores && (item?.team1Score > 0 || item?.team2Score > 0) && (
-                <View style={styles.scoreBadge}>
-                  <Text style={styles.teamScore}>{item?.team2Score || '0'}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* Match Details */}
-          <View style={styles.matchDetailsRow}>
-            <Icon name="calendar-month" size={14} color={AppColors.infoGrey} />
-            <Text style={styles.matchDetailText}>{matchDate}</Text>
-            <Text style={styles.dotSeparator}>•</Text>
-
-            {item?.matchTime && (
-              <>
-                <Icon name="access-time" size={14} color={AppColors.infoGrey} />
-                <Text style={styles.matchDetailText}>{item.matchTime[0]}:{item.matchTime[1]}</Text>
-                <Text style={styles.dotSeparator}>•</Text>
-              </>
-            )}
-
-            <Icon name="location-on" size={14} color={AppColors.infoGrey} />
-            <Text style={styles.matchDetailText} numberOfLines={1}>
-              {item?.venue || 'Venue not specified'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.matchCardFooter}>
-          {showWinner && item?.winner ? (
-            <Text style={styles.winnerText}>🏆 {item.winner} won the match!</Text>
-          ) : (
-            <Text style={styles.footerText}>
-              {isCreator ? (status === 'LIVE' ? 'Tap to Score Match' : 'Tap to Setup Match') : 'Tap to View Match'}
-            </Text>
-          )}
-        </View>
-      </Pressable>
-    </Animated.View>
   );
 };
 
@@ -353,7 +389,13 @@ const MyMatch = ({ searchQuery }) => {
   if (loading && !refreshing) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color={AppColors.primaryBlue} />
+        <FlatList
+          data={[1, 2, 3, 4]}
+          keyExtractor={(item) => item.toString()}
+          renderItem={() => <ShimmerMatchCard />}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
     );
   }
@@ -480,7 +522,13 @@ const LiveMatch = ({ searchQuery }) => {
   if (loading && !refreshing) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color={AppColors.primaryBlue} />
+        <FlatList
+          data={[1, 2, 3, 4]}
+          keyExtractor={(item) => item.toString()}
+          renderItem={() => <ShimmerMatchCard />}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
     );
   }
@@ -604,7 +652,13 @@ const UpcomingMatch = ({ searchQuery }) => {
   if (loading && !refreshing) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color={AppColors.primaryBlue} />
+        <FlatList
+          data={[1, 2, 3, 4]}
+          keyExtractor={(item) => item.toString()}
+          renderItem={() => <ShimmerMatchCard />}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
     );
   }
@@ -713,7 +767,13 @@ const PastMatch = ({ searchQuery }) => {
   if (loading && !refreshing) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color={AppColors.primaryBlue} />
+        <FlatList
+          data={[1, 2, 3, 4]}
+          keyExtractor={(item) => item.toString()}
+          renderItem={() => <ShimmerMatchCard />}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
     );
   }
@@ -827,8 +887,6 @@ const styles = StyleSheet.create({
   },
   loaderContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   errorText: {
     color: AppColors.errorRed,
@@ -998,6 +1056,51 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     color: AppColors.white,
     fontWeight: 'bold',
+  },
+  // Shimmer-specific styles
+  shimmerHeader: {
+    width: '70%',
+    height: 20,
+    borderRadius: 4,
+  },
+  shimmerLogo: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 4,
+    borderWidth: 1.5,
+    borderColor: AppColors.cardBorder,
+  },
+  shimmerTeamName: {
+    width: '80%',
+    height: 16,
+    marginTop: 4,
+    borderRadius: 4,
+  },
+  shimmerVsText: {
+    width: 30,
+    height: 14,
+  },
+  shimmerDetails: {
+    width: '30%',
+    height: 12,
+    borderRadius: 4,
+  },
+  shimmerFooter: {
+    width: '85%',
+    height: 14,
+    borderRadius: 4,
+  },
+  shimmerStatusIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  shimmerStatusText: {
+    width: 50,
+    height: 11,
+    marginLeft: 4,
+    borderRadius: 4,
   },
 });
 
