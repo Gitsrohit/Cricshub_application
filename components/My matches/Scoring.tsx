@@ -417,11 +417,11 @@ const ScoringScreen = ({ route, navigation }) => {
       const formattedOverDetails =
         data?.currentOver?.map((ball) => {
           let event = ball.runs?.toString() || "0";
-          if (ball.wicket) event += ' W';
-          if (ball.noBall) event += ' NB';
-          if (ball.wide) event += ' Wd';
-          if (ball.bye) event += ' B';
-          if (ball.legBye) event += ' LB';
+          if (ball.wicket) event += 'W';
+          if (ball.noBall) event += 'NB';
+          if (ball.wide) event += 'Wd';
+          if (ball.bye) event += 'B';
+          if (ball.legBye) event += 'LB';
           return event.trim();
         }) || [];
 

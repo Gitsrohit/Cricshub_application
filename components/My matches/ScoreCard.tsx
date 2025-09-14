@@ -34,7 +34,7 @@ const PlayerRow = ({ player, index, type, isBatted }) => {
 
   if (type === 'batting') {
     const isDismissed = isBatted && player?.dismissalInfo;
-    const dismissalText = isBatted ? (player?.dismissalInfo || 'Not out') : 'Yet to bat';
+    const dismissalText = isBatted ? (player?.wicketDetails ? player?.wicketDetails.dismissalType : 'Not out') : 'Yet to bat';
     const runs = player?.runs || 0;
     const ballsFaced = player?.ballsFaced || 0;
     const fours = player?.fours || 0;
@@ -211,10 +211,10 @@ const ScoreCard = ({ route, navigation }) => {
           const isBatted = battingOrder?.some((b) => b.playerId === item.playerId);
           const finalPlayer = { ...playerStats, ...item };
           const playerKey = finalPlayer.playerId || `${finalPlayer.name}-${index}`;
-          
+
           return (
             <PlayerRow
-              key={playerKey} 
+              key={playerKey}
               player={finalPlayer}
               index={index}
               type="batting"
