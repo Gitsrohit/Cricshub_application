@@ -237,7 +237,7 @@ const ScoringScreen = ({ route, navigation }) => {
       clientRef.current.configure({
         webSocketFactory: () => {
           console.log(`[${type}] Creating SockJS connection...`);
-          return new SockJS('http://34.47.150.57:8081/ws');
+          return new SockJS('https://41d83e6106c9.ngrok-free.app/ws');
         },
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,
@@ -1069,7 +1069,7 @@ const ScoringScreen = ({ route, navigation }) => {
               style={styles.picker}
             >
               <Picker.Item label="Select Bowler" value="" />
-              {availableBowler?.map((bowler) => (
+              {bowlingPlayingXI?.map((bowler) => (
                 <Picker.Item key={bowler.playerId} label={bowler?.name} value={bowler?.playerId} />
               ))}
             </Picker>

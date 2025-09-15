@@ -96,13 +96,13 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [bowler, setBowler] = useState({ id: null, name: null, overs: 0, runsConceded: 0, wickets: 0, economyRate: 0.0 });
   const [striker, setStriker] = useState({ id: null, name: null, runs: 0, ballsFaced: 0, strikeRate: 0.0 });
   const [nonStriker, setNonStriker] = useState({ id: null, name: null, runs: 0, ballsFaced: 0, strikeRate: 0.0 });
-  const [score, setScore] = useState(null);
+  const [battingScore, setbattingScore] = useState(null);
   const [bowlingTeamName, setBowlingTeamName] = useState(null);
   const [battingTeamName, setBattingTeamName] = useState(null);
   const [bowlingTeamScore, setBowlingTeamScore] = useState(null);
   const [bowlingTeamWickets, setBowlingTeamWickets] = useState(null);
   const [totalOvers, setTotalOvers] = useState(null);
-  const [wicket, setWicket] = useState(null);
+  const [battingWicket, setbattingWicket] = useState(null);
   const [completedOvers, setCompletedOvers] = useState(0);
   const [overDetails, setOverDetails] = useState("");
   const legalDeliveriesRef = useRef(0);
@@ -111,6 +111,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [battingSecond, setBattingSecond] = useState(null);
   const [bowlingFirst, setBowlingFirst] = useState(null);
   const [bowlingSecond, setBowlingSecond] = useState(null);
+  const [battingFirstOvers, setBattingFirstOvers] = useState(null);
+  const [battingSecondOvers, setBattingSecondOvers] = useState(null);
   const [battingFirstTeamName, setBattingFirstTeamName] = useState(null);
   const [battingSecondTeamName, setBattingSecondTeamName] = useState(null);
   const [activeTab, setActiveTab] = useState('scorecard');
@@ -120,8 +122,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const scrollY = useRef(new Animated.Value(0)).current;
   const stompLiveClientRef = useRef(null);
   const stompSubmitClientRef = useRef(null);
-
   const [scorecardCache, setScorecardCache] = useState({});
+  const [showScoreCard, setShowScoreCard] = useState(false);
 
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 100],
@@ -180,14 +182,14 @@ const CommentaryScorecard = ({ route, navigation }) => {
     const b = safeNumber(ballsBowled, 0);
     if (b === 0) return '0.00';
     const ov = b / 6;
-    return (r / ov).toFixed(2);
+    return (r / ov).toFixed(1);
   };
 
   const strikeRateCalc = (runs, balls) => {
     const r = safeNumber(runs, 0);
     const b = safeNumber(balls, 0);
     if (b === 0) return '0.00';
-    return ((r * 100) / b).toFixed(2);
+    return ((r * 100) / b).toFixed(0);
   };
 
   const dismissalText = (wicketDetails) => {
@@ -226,10 +228,12 @@ const CommentaryScorecard = ({ route, navigation }) => {
         return;
       }
 
+      setShowScoreCard(false);
+
       setMatchId(data?.matchId);
 
-      setBattingFirstTeamName(data?.team1?.name);
-      setBattingSecondTeamName(data?.team2?.name);
+      setBattingFirstTeamName(data?.battingTeam?.name);
+      setBattingSecondTeamName(data?.bowlingTeam?.name);
 
       setBowler({
         id: data?.currentBowler?.playerId,
@@ -277,8 +281,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
       });
 
       setCompletedOvers(data?.completedOvers || 0);
-      setScore(data?.battingTeam?.score || 0);
-      setWicket(data?.battingTeam?.wickets || 0);
+      setbattingScore(data?.battingTeam?.score || 0);
+      setbattingWicket(data?.battingTeam?.wickets || 0);
       setBattingTeamName(data?.battingTeam?.name || "");
       setTotalOvers(data.totalOvers);
 
@@ -319,11 +323,14 @@ const CommentaryScorecard = ({ route, navigation }) => {
         [data?.team1?.name]: { batting: data?.team1BattingOrder, bowling: data?.team1BowlingOrder },
         [data?.team2?.name]: { batting: data?.team2BattingOrder, bowling: data?.team2BowlingOrder },
       });
-      
+
       setBattingFirst(data?.team1BattingOrder);
       setBattingSecond(data?.team2BattingOrder);
       setBowlingFirst(data?.team1BowlingOrder);
       setBowlingSecond(data?.team2BowlingOrder);
+
+      setBattingFirstOvers(data?.battingTeam?.overs);
+      setBattingSecondOvers(data?.bowlingTeam?.overs);
 
     } catch (error) {
       console.log("Error fetching match state:", error);
@@ -335,7 +342,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const matchScoreUpdateHandler = (data) => {
     setBattingTeamName(data?.battingTeam?.name);
     setBowlingTeamName(data?.bowlingTeam?.name);
-    
+
     // Update over details with the latest ball string
     setOverDetails((prev) => {
       // Logic to append or replace based on over completion
@@ -350,7 +357,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
       }).join(" ");
       return currentOverBalls || "";
     });
-    
+
     // Update bowler stats with a new object to ensure re-render
     setBowler(prevBowler => ({
       ...prevBowler,
@@ -381,9 +388,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
     // Update main scorecard numbers
     setCompletedOvers(data?.overNumber);
-    setScore(data?.totalRuns);
-    setWicket(data?.wicketsLost);
-    
+    setbattingScore(data?.totalRuns);
+    setbattingWicket(data?.wicketsLost);
+
     // Update legal deliveries count live
     const deliveryCount = data?.currentOver?.filter(ball => !ball.noBall && !ball.wide).length || 0;
     setLegalDeliveries(deliveryCount);
@@ -393,11 +400,86 @@ const CommentaryScorecard = ({ route, navigation }) => {
   };
 
   const matchScoreCardUpdateHandler = (data) => {
+    setShowScoreCard(true);
     setBattingFirst(data?.team1BattingOrder);
     setBattingSecond(data?.team2BattingOrder);
     setBowlingFirst(data?.team1BowlingOrder);
     setBowlingSecond(data?.team2BowlingOrder);
-    
+
+    setBattingFirstTeamName(data?.battingTeam?.name);
+    setBattingSecondTeamName(data?.bowlingTeam?.name);
+
+    setBowler({
+      id: data?.currentBowler?.playerId,
+      name: data?.currentBowler?.name,
+      overs: data?.bowlingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentBowler?.playerId
+      )?.overs || 0,
+      runsConceded: data?.bowlingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentBowler?.playerId
+      )?.runsConceded || 0,
+      wickets: data?.bowlingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentBowler?.playerId
+      )?.wicketsTaken || 0,
+      economyRate: data?.bowlingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentBowler?.playerId
+      )?.economyRate || 0.0,
+    });
+
+    setStriker({
+      id: data?.currentStriker?.playerId,
+      name: data?.currentStriker?.name,
+      runs: data?.battingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentStriker?.playerId
+      )?.runs || 0,
+      ballsFaced: data?.battingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentStriker?.playerId
+      )?.ballsFaced || 0,
+      strikeRate: data?.battingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentStriker?.playerId
+      )?.strikeRate || 0.0,
+    });
+
+    setNonStriker({
+      id: data?.currentNonStriker?.playerId,
+      name: data?.currentNonStriker?.name,
+      runs: data?.battingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentNonStriker?.playerId
+      )?.runs || 0,
+      ballsFaced: data?.battingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentNonStriker?.playerId
+      )?.ballsFaced || 0,
+      strikeRate: data?.battingTeam?.playingXI?.find(
+        (p) => p.playerId === data?.currentNonStriker?.playerId
+      )?.strikeRate || 0.0,
+    });
+
+    const formattedOverDetails =
+      data?.currentOver?.map((ball) => {
+        let event = ball.runs?.toString() || "0";
+        if (ball.wicket) event += " W";
+        if (ball.noBall) event += " NB";
+        if (ball.wide) event += " Wd";
+        if (ball.bye) event += " B";
+        if (ball.legBye) event += " LB";
+        return event.trim();
+      }) || [];
+
+    setOverDetails(formattedOverDetails.join(" "));
+
+    setCompletedOvers(data?.completedOvers || 0);
+    setbattingScore(data?.battingTeam?.score || 0);
+    setbattingWicket(data?.battingTeam?.wickets || 0);
+    setBattingTeamName(data?.battingTeam?.name || "");
+    setTotalOvers(data.totalOvers);
+
+    setBowlingTeamName(data?.bowlingTeam?.name || "");
+    setBowlingTeamScore(data?.bowlingTeam?.score || 0);
+    setBowlingTeamWickets(data?.bowlingTeam?.wickets || 0);
+
+    setBattingFirstOvers(data?.battingTeam?.overs);
+    setBattingSecondOvers(data?.bowlingTeam?.overs);
+
     setScorecardCache(prevCache => ({
       ...prevCache,
       [data?.team1?.name]: { batting: data?.team1BattingOrder, bowling: data?.team1BowlingOrder },
@@ -423,7 +505,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
       clientRef.current = new Client();
       clientRef.current.configure({
-        webSocketFactory: () => new SockJS('http://34.47.150.57:8081/ws'),
+        webSocketFactory: () => new SockJS('https://41d83e6106c9.ngrok-free.app/ws'),
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
@@ -439,26 +521,31 @@ const CommentaryScorecard = ({ route, navigation }) => {
               if (!parsed.eventName || !parsed.payload) return;
               const { eventName, payload } = parsed;
 
-              switch (eventName) {
-                case 'ball-update':
-                  matchScoreUpdateHandler(payload);
-                  matchScoreCardUpdateHandler(payload);
-                  break;
-                case 'match-complete':
-                  navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
-                  break;
-                case 'innings-complete':
-                  matchScoreUpdateHandler(payload);
-                  break;
-                case 'second-innings-started':
-                  matchScoreUpdateHandler(payload);
-                  break;
-                default:
-                  console.warn('Unknown event type:', eventName, payload);
-              }
+              // switch (eventName) {
+              //   case 'ball-update':
+              //     matchScoreUpdateHandler(payload);
+              //     matchScoreCardUpdateHandler(payload);
+              //     break;
+              //   case 'match-complete':
+              //     navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
+              //     break;
+              //   case 'innings-complete':
+              //     matchScoreUpdateHandler(payload);
+              //     break;
+              //   case 'second-innings-started':
+              //     matchScoreUpdateHandler(payload);
+              //     break;
+              //   default:
+              //     console.warn('Unknown event type:', eventName, payload);
+              // }
+
+              console.log('Unknown event type:', eventName, payload);
 
               if (eventName === 'live-score-board') {
                 matchScoreCardUpdateHandler(payload);
+              }
+              if (eventName === 'match-complete') {
+                navigation.navigate('MatchScoreCard', { matchId: payload.matchId });
               }
             } catch (error) {
               console.error('Error processing live message:', error, message.body);
@@ -520,9 +607,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
   const renderScorecard = () => {
     const currentOversFormatted = `${completedOvers}.${legalDeliveries}`;
-    const strikerSR = striker?.ballsFaced > 0 ? (striker.runs * 100 / striker.ballsFaced).toFixed(2) : '0.00';
-    const nonStrikerSR = nonStriker?.ballsFaced > 0 ? (nonStriker.runs * 100 / nonStriker.ballsFaced).toFixed(2) : '0.00';
-    const bowlerEconomy = bowler?.ballsBowled > 0 ? (bowler.runsConceded / (bowler.ballsBowled / 6)).toFixed(2) : '0.00';
+    const strikerSR = striker?.ballsFaced > 0 ? (striker.runs * 100 / striker.ballsFaced).toFixed(0) : '0.00';
+    const nonStrikerSR = nonStriker?.ballsFaced > 0 ? (nonStriker.runs * 100 / nonStriker.ballsFaced).toFixed(0) : '0.00';
+    const bowlerEconomy = bowler?.economyRate !== null ? (bowler.economyRate).toFixed(1) : '0.00';
 
     return (
       <LinearGradient
@@ -535,9 +622,9 @@ const CommentaryScorecard = ({ route, navigation }) => {
           <View style={styles.teamScore}>
             <Text style={styles.teamName}>{battingTeamName}</Text>
             <Text style={styles.teamRuns}>
-              {score}/{wicket}
+              {battingScore}/{battingWicket}
             </Text>
-            <Text style={styles.oversText}>({currentOversFormatted} ov)</Text>
+            <Text style={styles.oversText}>({battingFirstOvers} ov)</Text>
           </View>
 
           <View style={styles.versusContainer}>
@@ -549,7 +636,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
             <Text style={styles.teamRuns}>
               {bowlingTeamScore}/{bowlingTeamWickets}
             </Text>
-            <Text style={styles.oversText}>({totalOvers}.0 ov)</Text>
+            <Text style={styles.oversText}>({battingSecondOvers} ov)</Text>
           </View>
         </View>
 
@@ -686,7 +773,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
           <Text style={[styles.cell, styles.cellNum, styles.headerText]}>M</Text>
           <Text style={[styles.cell, styles.cellNum, styles.headerText]}>R</Text>
           <Text style={[styles.cell, styles.cellNum, styles.headerText]}>W</Text>
-          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>Econ</Text>
+          <Text style={[styles.cell, styles.cellNum, styles.headerText]}>Eco</Text>
         </View>
         <FlatList
           data={data}
@@ -702,7 +789,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const handleInningsTabPress = (teamName) => {
     const selectedInnings = teamName === battingFirstTeamName ? '1st' : '2nd';
     setInnings(selectedInnings);
-    setSubTab('Batting');
+    // setSubTab('Batting');
 
     const cachedData = scorecardCache[teamName];
     if (cachedData) {
@@ -781,7 +868,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
                 />
               ) : (
                 <View style={styles.detailedScorecard}>
-                  <View style={styles.inningsTabsRow}>
+                  {/* <View style={styles.inningsTabsRow}>
                     <TouchableOpacity
                       style={[styles.inningsTabBtn, innings === "1st" && styles.inningsTabActive]}
                       onPress={() => handleInningsTabPress(battingFirstTeamName)}
@@ -794,8 +881,8 @@ const CommentaryScorecard = ({ route, navigation }) => {
                     >
                       <Text style={[styles.inningsTabText, innings === "2nd" && styles.inningsTabTextActive]}>{battingSecondTeamName}</Text>
                     </TouchableOpacity>
-                  </View>
-                  <View style={styles.scoreTabsRow}>
+                  </View> */}
+                  {/* <View style={styles.scoreTabsRow}>
                     <TouchableOpacity
                       style={[styles.scoreTabBtn, subTab === "Batting" && styles.scoreTabActive]}
                       onPress={() => setSubTab("Batting")}
@@ -812,8 +899,19 @@ const CommentaryScorecard = ({ route, navigation }) => {
                         Bowling
                       </Text>
                     </TouchableOpacity>
-                  </View>
-                  {innings === "1st" && subTab === "Batting" && (
+                  </View> */}
+                  {showScoreCard &&
+                    <>
+                      <Text style={styles.inningsDetail}>1st Innings</Text>
+                      <BattingTable data={battingFirst} />
+                      <BowlingTable data={bowlingFirst} />
+                      <Text style={styles.inningsDetail}>2nd Innings</Text>
+                      <BattingTable data={battingSecond} />
+                      <BowlingTable data={bowlingSecond} />
+                    </>
+                  }
+
+                  {/* {innings === "1st" && subTab === "Batting" && (
                     <BattingTable data={battingFirst} />
                   )}
                   {innings === "1st" && subTab === "Bowling" && (
@@ -824,7 +922,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
                   )}
                   {innings === "2nd" && subTab === "Bowling" && (
                     <BowlingTable data={bowlingSecond} />
-                  )}
+                  )} */}
                 </View>
               )}
             </Animated.ScrollView>
@@ -1213,7 +1311,7 @@ const styles = StyleSheet.create({
   detailedScorecard: {
     backgroundColor: AppColors.white,
     borderRadius: 15,
-    marginBottom: 20,
+    marginVertical: 20,
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -1221,7 +1319,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tableContainer: {
-    marginTop: 8,
+    marginVertical: 8,
     paddingHorizontal: 15
   },
   tableHeader: {
@@ -1298,6 +1396,13 @@ const styles = StyleSheet.create({
   inningsTabTextActive: {
     color: AppColors.white,
   },
+  inningsDetail: {
+    fontWeight: '600',
+    fontSize: 16,
+    color: AppColors.blue,
+    textAlign: 'center',
+    marginTop: 6,
+  }
 });
 
 export default CommentaryScorecard;

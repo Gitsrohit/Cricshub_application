@@ -180,12 +180,7 @@ const ScoreCard = ({ route, navigation }) => {
       );
     }
 
-    const orderedBatting = [
-      ...(battingOrder || []),
-      ...teamData.playingXI.filter(
-        (player) => !battingOrder?.some((b) => b?.playerId === player?.playerId)
-      ),
-    ];
+    const orderedBatting = battingOrder;
 
     return (
       <View style={styles.card}>
