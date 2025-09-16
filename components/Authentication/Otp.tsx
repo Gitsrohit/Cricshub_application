@@ -16,7 +16,8 @@ import {
   Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiService from '../APIservices'
+import apiService from '../APIservices';
+import { Ionicons } from '@expo/vector-icons'; 
 
 const { height } = Dimensions.get('window');
 
@@ -26,6 +27,9 @@ const AppColors = {
   background: '#F8F9FA',
   placeholder: '#A0A0A0',
   text: '#333333',
+  darkBlue: '#1F2A44', 
+  gray: '#CCCCCC',
+  red: '#FF0000',
 };
 
 const appLogo = require('../../assets/images/iconLogo.png');
@@ -36,6 +40,9 @@ const Otp = ({ route, navigation }) => {
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [timer, setTimer] = useState(60); // 60 seconds timer
+  const [canResend, setCanResend] = useState(false);
 
   const otpInputs = useRef([]);
 
@@ -58,6 +65,21 @@ const Otp = ({ route, navigation }) => {
       }),
     ]).start();
   }, []);
+
+  // Timer effect
+  useEffect(() => {
+    let interval;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer(prevTimer => prevTimer - 1);
+      }, 1000);
+    } else {
+      setCanResend(true);
+      clearInterval(interval);
+    }
+    
+    return () => clearInterval(interval);
+  }, [timer]);
 
   const saveToken = async (token) => {
     try {
@@ -88,6 +110,40 @@ const Otp = ({ route, navigation }) => {
   const handleBackspace = (text, index) => {
     if (text === '' && index > 0) {
       otpInputs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!canResend) return;
+    
+    setResendLoading(true);
+    
+    try {
+      const response = await apiService({
+        endpoint: `auth/send`,
+        method: 'POST',
+        params: {
+          phone: phoneNumber,
+        },
+      });
+
+      if (response.success) {
+        Alert.alert('Success', 'OTP has been resent to your phone number.');
+        setTimer(60);
+        setCanResend(false);
+        setOtp(['', '', '', '', '', '']);
+        otpInputs.current[0]?.focus();
+      } else {
+        Alert.alert(
+          'Error',
+          response.error.message || 'Failed to resend OTP. Please try again.'
+        );
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong. Please check your network connection.');
+      console.error(error);
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -134,7 +190,6 @@ const Otp = ({ route, navigation }) => {
           navigation.replace('registerForm');
         }
       } else {
-        // More specific error handling
         if (response.status === 401) {
           Alert.alert(
             'Authentication Error',
@@ -160,9 +215,24 @@ const Otp = ({ route, navigation }) => {
     }
   };
 
+  const handleGoBack = () => {
+    navigation.goBack();
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={AppColors.background} />
+
+      <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+        <Ionicons name="arrow-back" size={24} color={AppColors.darkBlue} />
+      </TouchableOpacity>
+      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
@@ -220,6 +290,7 @@ const Otp = ({ route, navigation }) => {
                 />
               ))}
             </View>
+            
             <TouchableOpacity
               style={styles.button}
               onPress={handleVerifyOtp}
@@ -230,6 +301,25 @@ const Otp = ({ route, navigation }) => {
                 {loading ? 'Verifying...' : 'Verify OTP'}
               </Text>
             </TouchableOpacity>
+            
+            {/* Resend OTP Section */}
+            <View style={styles.resendContainer}>
+              <Text style={styles.resendText}>Didn't receive the code? </Text>
+              {canResend ? (
+                <TouchableOpacity 
+                  onPress={handleResendOtp} 
+                  disabled={resendLoading}
+                >
+                  <Text style={styles.resendLink}>
+                    {resendLoading ? 'Sending...' : 'Resend OTP'}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.timerText}>
+                  Resend in {formatTime(timer)}
+                </Text>
+              )}
+            </View>
           </Animated.View>
         </View>
       </KeyboardAvoidingView>
@@ -250,6 +340,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 30,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: AppColors.white,
+    shadowColor: AppColors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   logoContainer: {
     alignItems: 'center',
@@ -318,10 +422,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 8,
+    marginBottom: 20,
   },
   buttonText: {
     color: AppColors.white,
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  resendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  resendText: {
+    fontSize: 14,
+    color: AppColors.placeholder,
+  },
+  resendLink: {
+    fontSize: 14,
+    color: AppColors.blue,
+    fontWeight: 'bold',
+  },
+  timerText: {
+    fontSize: 14,
+    color: AppColors.red,
     fontWeight: 'bold',
   },
 });

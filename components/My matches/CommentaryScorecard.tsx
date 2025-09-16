@@ -12,7 +12,9 @@ import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
 import apiService from '../APIservices';
 import { LinearGradient } from 'expo-linear-gradient';
+import LottieView from 'lottie-react-native';
 import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
+const waitingAnimation = require('../../assets/animations/Waiting P.json');
 
 const { width, height } = Dimensions.get('window');
 const background = require('../../assets/images/cricsLogo.png');
@@ -103,6 +105,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [bowlingTeamWickets, setBowlingTeamWickets] = useState(null);
   const [totalOvers, setTotalOvers] = useState(null);
   const [battingWicket, setbattingWicket] = useState(null);
+  const [showWaitingAnimation, setShowWaitingAnimation] = useState(true); 
   const [completedOvers, setCompletedOvers] = useState(0);
   const [overDetails, setOverDetails] = useState("");
   const legalDeliveriesRef = useRef(0);
@@ -218,6 +221,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const getMatchState = async () => {
     try {
       setLoading(true);
+      setShowWaitingAnimation(true);
       const { success, data, error } = await apiService({
         endpoint: `matches/matchstate/${matchId}`,
         method: 'GET',
@@ -401,6 +405,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
   const matchScoreCardUpdateHandler = (data) => {
     setShowScoreCard(true);
+    setShowWaitingAnimation(false);
     setBattingFirst(data?.team1BattingOrder);
     setBattingSecond(data?.team2BattingOrder);
     setBowlingFirst(data?.team1BowlingOrder);
@@ -811,127 +816,86 @@ const CommentaryScorecard = ({ route, navigation }) => {
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={AppColors.darkBlue} />
-      {loading ? (
-        <View style={styles.shimmerFullScreen}>
-          <ShimmerCard />
-        </View>
-      ) : (
-        <>
-          <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={AppColors.darkBlue} />
+        {loading ? (
+          <View style={styles.shimmerFullScreen}>
+            <ShimmerCard />
+          </View>
+        ) : (
+          <>
+            <SafeAreaView style={styles.safeArea}>
+              <View style={styles.header}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => navigation.goBack()}
+                >
+                  <Ionicons name="arrow-back" size={24} color={AppColors.darkBlue} />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Match Details</Text>
+                <View style={styles.headerRight} />
+              </View>
+            </SafeAreaView>
+  
+            <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
+              <View style={styles.stickyScorecard}>
+                {renderScorecard()}
+              </View>
+              <ScrollView
+                style={styles.scrollableContent}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    tintColor={AppColors.blue}
+                    onRefresh={getMatchState}
+                  />
+                }
               >
-                <Ionicons name="arrow-back" size={24} color={AppColors.darkBlue} />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Match Details</Text>
-              <View style={styles.headerRight} />
-            </View>
-          </SafeAreaView>
-
-          <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
-            <Animated.ScrollView
-              style={styles.contentContainer}
-              onScroll={Animated.event(
-                [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                { useNativeDriver: true }
-              )}
-              scrollEventThrottle={16}
-            >
-              <View style={styles.topSpacer} />
-
-              {renderScorecard()}
-
-              {activeTab === 'commentary' ? (
-                <FlatList
-                  data={getAllCommentary()}
-                  renderItem={renderCommentary}
-                  keyExtractor={(_, index) => index.toString()}
-                  scrollEnabled={false}
-                  contentContainerStyle={styles.commentaryList}
-                  refreshControl={
-                    <RefreshControl
-                      refreshing={refreshing}
-                      tintColor={AppColors.blue}
-                      onRefresh={getMatchState}
+                {showWaitingAnimation && !showScoreCard ? (
+                  <View style={styles.waitingAnimationContainer}>
+                    <LottieView
+                      source={waitingAnimation}
+                      autoPlay
+                      loop
+                      style={styles.waitingAnimation}
                     />
-                  }
-                  ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                      <Text style={styles.emptyText}>No commentary available yet</Text>
-                    </View>
-                  }
-                />
-              ) : (
-                <View style={styles.detailedScorecard}>
-                  {/* <View style={styles.inningsTabsRow}>
-                    <TouchableOpacity
-                      style={[styles.inningsTabBtn, innings === "1st" && styles.inningsTabActive]}
-                      onPress={() => handleInningsTabPress(battingFirstTeamName)}
-                    >
-                      <Text style={[styles.inningsTabText, innings === "1st" && styles.inningsTabTextActive]}>{battingFirstTeamName}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.inningsTabBtn, innings === "2nd" && styles.inningsTabActive]}
-                      onPress={() => handleInningsTabPress(battingSecondTeamName)}
-                    >
-                      <Text style={[styles.inningsTabText, innings === "2nd" && styles.inningsTabTextActive]}>{battingSecondTeamName}</Text>
-                    </TouchableOpacity>
-                  </View> */}
-                  {/* <View style={styles.scoreTabsRow}>
-                    <TouchableOpacity
-                      style={[styles.scoreTabBtn, subTab === "Batting" && styles.scoreTabActive]}
-                      onPress={() => setSubTab("Batting")}
-                    >
-                      <Text style={[styles.scoreTabText, subTab === "Batting" && styles.scoreTabTextActive]}>
-                        Batting
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.scoreTabBtn, subTab === "Bowling" && styles.scoreTabActive]}
-                      onPress={() => setSubTab("Bowling")}
-                    >
-                      <Text style={[styles.scoreTabText, subTab === "Bowling" && styles.scoreTabTextActive]}>
-                        Bowling
-                      </Text>
-                    </TouchableOpacity>
-                  </View> */}
-                  {showScoreCard &&
-                    <>
-                      <Text style={styles.inningsDetail}>1st Innings</Text>
-                      <BattingTable data={battingFirst} />
-                      <BowlingTable data={bowlingFirst} />
-                      <Text style={styles.inningsDetail}>2nd Innings</Text>
-                      <BattingTable data={battingSecond} />
-                      <BowlingTable data={bowlingSecond} />
-                    </>
-                  }
-
-                  {/* {innings === "1st" && subTab === "Batting" && (
-                    <BattingTable data={battingFirst} />
-                  )}
-                  {innings === "1st" && subTab === "Bowling" && (
-                    <BowlingTable data={bowlingFirst} />
-                  )}
-                  {innings === "2nd" && subTab === "Batting" && (
-                    <BattingTable data={battingSecond} />
-                  )}
-                  {innings === "2nd" && subTab === "Bowling" && (
-                    <BowlingTable data={bowlingSecond} />
-                  )} */}
-                </View>
-              )}
-            </Animated.ScrollView>
-          </ImageBackground>
-        </>
-      )}
-    </SafeAreaView>
-  );
-};
+                    <Text style={styles.waitingText}>Waiting for match data...</Text>
+                  </View>
+                ) : activeTab === 'commentary' ? (
+                  <FlatList
+                    data={getAllCommentary()}
+                    renderItem={renderCommentary}
+                    keyExtractor={(_, index) => index.toString()}
+                    scrollEnabled={false}
+                    contentContainerStyle={styles.commentaryList}
+                    ListEmptyComponent={
+                      <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>No commentary available yet</Text>
+                      </View>
+                    }
+                  />
+                ) : (
+                  <View style={styles.detailedScorecard}>
+                    {showScoreCard && (
+                      <>
+                        <Text style={styles.inningsDetail}>1st Innings</Text>
+                        <BattingTable data={battingFirst} />
+                        <BowlingTable data={bowlingFirst} />
+                        <Text style={styles.inningsDetail}>2nd Innings</Text>
+                        <BattingTable data={battingSecond} />
+                        <BowlingTable data={bowlingSecond} />
+                      </>
+                    )}
+                  </View>
+                )}
+              </ScrollView>
+            </ImageBackground>
+          </>
+        )}
+      </SafeAreaView>
+    );
+  };
 
 
 const styles = StyleSheet.create({
@@ -942,6 +906,20 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: AppColors.darkBlue,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  stickyScorecard: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingHorizontal: 12,
+    paddingTop: Platform.OS === 'ios' ? 10 : 10, 
+  },
+  scrollableContent: {
+    marginTop: 300,
+    paddingHorizontal: 12,
+    flex: 1,
   },
   header: {
     flexDirection: "row",
@@ -1211,6 +1189,21 @@ const styles = StyleSheet.create({
   playerStats: {
     color: AppColors.white,
     fontWeight: '600'
+  },
+  waitingAnimationContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  waitingAnimation: {
+    width: 200,
+    height: 200,
+  },
+  waitingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: AppColors.darkBlue,
+    fontWeight: '600',
   },
   playerExtra: {
     color: AppColors.white,
