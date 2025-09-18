@@ -4,8 +4,8 @@ import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppColors, AppGradients } from '../../assets/constants/colors'; // Corrected import path
-import apiService from '../APIservices';
+import { AppColors, AppGradients } from '../../../assets/constants/colors'; // Corrected import path
+import apiService from '../../APIservices';
 
 const TossScreen = ({ navigation, route }) => {
     const { matchId, team1PlayingXIIds, team2PlayingXIIds, matchDetails } = route.params;
@@ -44,7 +44,7 @@ const TossScreen = ({ navigation, route }) => {
         endpoint: `matches/${matchId}/start`,
         method: 'POST',
         body: requestBody,
-        token: token, // Pass token explicitly if your apiService requires it this way
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
       });
 
       console.log("TossScreen: API Response:", response); // Log the full response

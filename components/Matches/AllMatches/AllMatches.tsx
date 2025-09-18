@@ -20,7 +20,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useAppNavigation } from '../../NavigationService';
+import { useFocusEffect } from '@react-navigation/native';
 import apiService from '../../APIservices';
 import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
 
@@ -111,7 +112,7 @@ const MatchCard = ({
         </View>
 
         <LinearGradient
-          colors={['#e3f2fd', '#ffffff']}
+          colors={[AppGradients.primaryCard[0], AppGradients.primaryCard[1]]}
           style={styles.matchCardHeader}
         >
           <Text style={styles.tournamentName} numberOfLines={1}>
@@ -227,7 +228,7 @@ const ShimmerMatchCard = () => {
 const AllMatches = () => {
   const [activeTab, setActiveTab] = useState('MY');
   const [searchQuery, setSearchQuery] = useState('');
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
 
   const debounce = (func, delay) => {
     let timer;
@@ -251,7 +252,7 @@ const AllMatches = () => {
     <View style={styles.container}>
       {/* Header with Search and Tabs */}
       <LinearGradient
-        colors={AppGradients.primaryCard}
+        colors={[AppGradients.primaryCard[0], AppGradients.primaryCard[1]]}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -320,7 +321,7 @@ const MyMatch = ({ searchQuery }) => {
   const [matches, setMatches] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState(null);
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
 
   const getMyMatches = useCallback(async () => {
     try {
@@ -439,7 +440,7 @@ const MyMatch = ({ searchQuery }) => {
 };
 
 const LiveMatch = ({ searchQuery }) => {
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
@@ -572,7 +573,7 @@ const LiveMatch = ({ searchQuery }) => {
 };
 
 const UpcomingMatch = ({ searchQuery }) => {
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
@@ -706,7 +707,12 @@ const PastMatch = ({ searchQuery }) => {
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const navigation = useNavigation();
+  const [userId, setUserId] = useState<string | null>(null);
+  const navigation = useAppNavigation();
+
+  useEffect(() => {
+    AsyncStorage.getItem('userId').then(id => setUserId(id));
+  }, []);
 
   const getPastMatches = useCallback(async () => {
     try {
@@ -761,6 +767,7 @@ const PastMatch = ({ searchQuery }) => {
       status="PAST"
       showScores={true}
       showWinner={true}
+      userId={userId}
     />
   );
 

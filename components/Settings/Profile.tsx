@@ -261,11 +261,14 @@ const Settings = ({ navigation }) => {
       const formData = new FormData();
       for (let key in updatedData) {
         if (key === "profilePicture" && typeof updatedData[key] === "string") {
-          formData.append(key, {
-            uri: updatedData[key],
-            type: "image/jpeg",
-            name: "profile.jpg",
-          });
+          formData.append(
+            key,
+            {
+              uri: updatedData[key],
+              type: "image/jpeg",
+              name: "profile.jpg"
+            } as any 
+          );
         } else {
           formData.append(key, updatedData[key]);
         }

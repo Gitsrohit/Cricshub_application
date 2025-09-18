@@ -3,12 +3,14 @@ import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { useNavigation } from '@react-navigation/native';
-import apiService from '../APIservices';
+import { useAppNavigation } from '../../NavigationService';
+import apiService from '../../APIservices';
+
+const stadiumBG = require('../../../assets/images/cricsLogo.png');
 
 const SelectRoles2ndInnings = ({ route }) => {
   const { battingTeamII, bowlingTeamII, matchId } = route.params;
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
   const [battingII, setBattingII] = useState(battingTeamII);
   const [bowlingII, setBowlingII] = useState(bowlingTeamII);
 
@@ -64,6 +66,7 @@ const SelectRoles2ndInnings = ({ route }) => {
           nonStriker: nonStrikerId,
           bowler,
         },
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
       });
 
       if (response.success) {

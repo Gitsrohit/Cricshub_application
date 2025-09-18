@@ -12,22 +12,22 @@ import {
   Animated,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
 } from "react-native";
 import React, { useEffect, useState, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import apiService from "../APIservices";
-import { AppColors } from "../../assets/constants/colors.js";
-import { AppGradients } from "../../assets/constants/colors.js";
-import CustomAlertDialog from "../Customs/CustomDialog.js";
+import { useAppNavigation } from '../../NavigationService';
+import apiService from "../../APIservices";
+import { AppColors } from "../../../assets/constants/colors.js";
+import { AppGradients } from "../../../assets/constants/colors.js";
+import CustomAlertDialog from "../../Customs/CustomDialog.js";
 import LottieView from "lottie-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SelectPlayingXI = ({ route }) => {
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
   const { matchDetails, requestBody } = route.params;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -286,6 +286,10 @@ const SelectPlayingXI = ({ route }) => {
       team1PlayingXIIds: selectedTeam1,
       team2PlayingXIIds: selectedTeam2,
     });
+  };
+
+  const initializeMatchAndTeams = async () => {
+
   };
 
   if (isLoading) {

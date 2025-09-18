@@ -110,11 +110,14 @@ const TournamentMatchOperatives = ({ route, navigation }) => {
       if (tournamentData.banner) {
         const fileName = tournamentData.banner.split("/").pop();
         const fileType = fileName.split(".").pop();
-        formData.append("banner", {
-          uri: tournamentData.banner,
-          name: fileName,
-          type: `image/${fileType}`,
-        });
+        formData.append(
+          "banner",
+          {
+            uri: tournamentData.banner,
+            name: fileName,
+            type: `image/${fileType}`,
+          } as any // Cast to any for React Native compatibility
+        );
       }
 
       const response = await apiService({

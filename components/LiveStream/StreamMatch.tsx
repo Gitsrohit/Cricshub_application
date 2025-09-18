@@ -445,4 +445,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
+  refreshButtonText: {
+    color: AppColors.primaryBlue,
+    fontWeight: '600',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 8,
+  },
 });

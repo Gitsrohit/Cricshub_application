@@ -17,7 +17,8 @@ import {
   FlatList,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useAppNavigation } from '../NavigationService';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
@@ -29,19 +30,19 @@ const { width } = Dimensions.get('window');
 const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 
 const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
   const [scaleValue] = useState(new Animated.Value(1));
   const [opacityValue] = useState(new Animated.Value(0));
 
   useEffect(() => {
-    Animated.sequence([
+    (Animated.sequence([
       Animated.delay(index * 100),
       Animated.timing(opacityValue, {
         toValue: 1,
         duration: 500,
         useNativeDriver: true,
       })
-    ]).start();
+    ]) as any).start();
   }, [index, opacityValue]);
 
   const handlePressIn = () => {
@@ -161,19 +162,19 @@ const TournamentCardOthers = ({ tournament, tournamentTimeStatus, index }) => {
 };
 
 const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
   const [scaleValue] = useState(new Animated.Value(1));
   const [opacityValue] = useState(new Animated.Value(0));
 
   useEffect(() => {
-    Animated.sequence([
+    (Animated.sequence([
       Animated.delay(index * 100),
       Animated.timing(opacityValue, {
         toValue: 1,
         duration: 500,
         useNativeDriver: true,
       })
-    ]).start();
+    ]) as any).start();
   }, [index, opacityValue]);
 
   const handlePressIn = () => {
@@ -225,7 +226,7 @@ const TournamentCardMy = ({ tournament, onTournamentDeleted, index }) => {
               const { success, error } = await apiService({
                 endpoint: `tournaments/${id}`,
                 method: 'DELETE',
-                token: token,
+                headers: { Authorization: token ? `Bearer ${token}` : '' },
               });
 
               if (success) {
@@ -350,7 +351,7 @@ const Tournaments = () => {
   const [tournaments, setTournaments] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [allTournaments, setAllTournaments] = useState([]);
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
 
   const filterTournaments = (query) => {
     if (query) {
@@ -382,8 +383,8 @@ const Tournaments = () => {
       const response = await apiService({
         endpoint,
         method: 'GET',
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
         params: params,
-        token: token,
       });
 
       if (response.success) {

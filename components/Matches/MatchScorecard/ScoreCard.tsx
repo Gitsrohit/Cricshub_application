@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import apiService from '../APIservices';
+import apiService from '../../APIservices';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
 
@@ -251,6 +251,7 @@ const ScoreCard = ({ route, navigation }) => {
               player={bowler}
               index={index}
               type="bowling"
+              isBatted={false}
             />
           ))
         ) : (
@@ -269,7 +270,7 @@ const ScoreCard = ({ route, navigation }) => {
     return (
       <View style={styles.loadingContainer}>
         <LinearGradient
-          colors={AppGradients.primaryCard}
+          colors={[AppGradients.primaryCard[0], AppGradients.primaryCard[1]]}
           style={styles.fullScreenGradient}
         >
           <MaterialCommunityIcons name="cricket" size={40} color="#fff" />
@@ -344,7 +345,7 @@ const ScoreCard = ({ route, navigation }) => {
         >
           {/* Refactored Match Header */}
           <LinearGradient
-            colors={AppGradients.primaryCard}
+            colors={[AppGradients.primaryCard[0], AppGradients.primaryCard[1]]}
             style={styles.matchHeader}
           >
             <View style={styles.matchTitleContainer}>
@@ -844,6 +845,20 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 12,
     marginBottom: 20,
+  },
+  shimmerSectionTitle: {
+    height: 18,
+    width: 120,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: '#e0e0e0',
+  },
+  shimmerTeamIndicator: {
+    height: 14,
+    width: 80,
+    borderRadius: 7,
+    backgroundColor: '#e0e0e0',
+    marginBottom: 6,
   },
 });
 

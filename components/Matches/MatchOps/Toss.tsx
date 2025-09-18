@@ -11,11 +11,11 @@ import {
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import apiService from '../APIservices';
+import { useAppNavigation } from '../../NavigationService';
+import apiService from '../../APIservices';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { AppGradients, AppColors, AppButtons } from '../../assets/constants/colors.js';
+import { AppGradients, AppColors, AppButtons } from '../../../assets/constants/colors.js';
 
 const Toss = ({ route }) => {
   const [matchDetails, setMatchDetails] = useState(null);
@@ -27,7 +27,7 @@ const Toss = ({ route }) => {
   const [message, setMessage] = useState({ text: '', type: '' }); 
 
   const { matchId } = route.params;
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
 
   useEffect(() => {
     setMatchDetails(route.params.matchDetails);

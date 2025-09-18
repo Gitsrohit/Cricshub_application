@@ -12,14 +12,14 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import bg from '../../assets/images/cricsLogo.png';
+const bg = require('../../../assets/images/cricsLogo.png');
 import { Picker } from '@react-native-picker/picker';
 import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
 import { useNavigation } from '@react-navigation/native';
-import apiService from '../APIservices';
+import apiService from '../../APIservices';
 import { MaterialIcons } from "@expo/vector-icons";
-import { AppColors } from '../../assets/constants/colors';
+import { AppColors } from '../../../assets/constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 const driveImage = require('../../assets/images/DriveShot.png');
 const cutImage = require('../../assets/images/squareShot.png');

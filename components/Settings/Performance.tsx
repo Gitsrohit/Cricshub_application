@@ -180,7 +180,7 @@ const Performance = ({ navigation, route }) => {
         ]}
       >
         <LinearGradient
-          colors={AppGradients.primaryCard}
+          colors={[AppGradients.primaryCard[0], AppGradients.primaryCard[1]]}
           style={styles.statCardBackground}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -337,7 +337,7 @@ const Performance = ({ navigation, route }) => {
         ]}
       >
         <LinearGradient
-          colors={AppGradients.primaryCard}
+          colors={[AppGradients.primaryCard[0], AppGradients.primaryCard[1]]}
           style={styles.profileCard}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
