@@ -85,6 +85,8 @@ const ScoringScreen = ({ route, navigation }) => {
   const [selectedRunForShot, setSelectedRunForShot] = useState(null);
   const liveSocketRef = useRef(null);
   const canReconnectRef = useRef(true);
+  const [enableScoreButton, setEnableScoreButton] = useState(true);
+  const [canSelectBatsman, setCanSelectBatsman] = useState(false);
   const cricketShots = [
     'Drive',
     'Cut',
@@ -123,7 +125,7 @@ const ScoringScreen = ({ route, navigation }) => {
   const center = 150;
 
   const handleRunSelection = (run) => {
-    console.log(run);
+    setEnableScoreButton(false);
     setSelectedRunForShot(run);
     setShotModalVisible(true);
   };
@@ -150,27 +152,43 @@ const ScoringScreen = ({ route, navigation }) => {
     });
   };
 
+  const getInitials = (name) => {
+    if (!name) return "";
+
+    const parts = name.trim().split(" ").filter(Boolean);
+
+    if (parts.length === 1) {
+      // single word name -> return as is
+      return parts[0];
+    }
+
+    // multiple words -> take first letter of each
+    return parts.map((p) => p[0].toUpperCase()).join("");
+  };
+
   const matchStateUpdateHandler = (data) => {
     setOverDetails((prev) => prev + " " + data?.ballString);
     setBowler({
       id: data.currentBowler?.id,
-      name: data.currentBowler?.name,
+      name: getInitials(data.currentBowler?.name),
       overs: data.currentBowler?.overs,
       runsConceded: data.currentBowler?.runsConceded,
       wickets: data.currentBowler?.wickets
     });
     setStriker({
       id: data.striker?.id,
-      name: data.striker?.name,
+      name: getInitials(data.striker?.name),
       runs: data.striker?.runs,
       ballsFaced: data.striker?.ballsFaced
     });
     setNonStriker({
       id: data.nonStriker?.id,
-      name: data.nonStriker?.name,
+      name: getInitials(data.nonStriker?.name),
       runs: data.nonStriker?.runs,
       ballsFaced: data.nonStriker?.ballsFaced
     });
+    if (data.striker?.id === null || data.nonStriker?.id === null || data.striker === null || data.nonStriker === null)
+      setCanSelectBatsman(true);
     setCompletedOvers(data?.overNumber);
     setScore(data?.totalRuns);
     setWicket(data?.wicketsLost);
@@ -237,7 +255,7 @@ const ScoringScreen = ({ route, navigation }) => {
       clientRef.current.configure({
         webSocketFactory: () => {
           console.log(`[${type}] Creating SockJS connection...`);
-          return new SockJS('https://41d83e6106c9.ngrok-free.app/ws');
+          return new SockJS('https://6cf21e7a7265.ngrok-free.app/ws');
         },
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,
@@ -260,6 +278,7 @@ const ScoringScreen = ({ route, navigation }) => {
               }
 
               const { eventName, payload } = parsed;
+              setEnableScoreButton(true);
 
               switch (eventName) {
                 case 'ball-update':
@@ -359,6 +378,7 @@ const ScoringScreen = ({ route, navigation }) => {
   }, [matchId]);
 
   const getMatchState = async () => {
+    setEnableScoreButton(false);
     newBowlerSelectionRef.current = false;
     setModals({
       bye: false,
@@ -389,7 +409,7 @@ const ScoringScreen = ({ route, navigation }) => {
 
       setBowler({
         id: data?.currentBowler?.playerId,
-        name: data?.currentBowler?.name,
+        name: getInitials(data?.currentBowler?.name),
         overs: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.overs || 0,
         runsConceded: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.runsConceded || 0,
         wickets: data?.bowlingTeam?.playingXI?.find(p => p.playerId === data?.currentBowler?.playerId)?.wicketsTaken || 0
@@ -397,17 +417,20 @@ const ScoringScreen = ({ route, navigation }) => {
 
       setStriker({
         id: data?.currentStriker?.playerId,
-        name: data?.currentStriker?.name,
+        name: getInitials(data?.currentStriker?.name),
         runs: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentStriker?.playerId)?.runs || 0,
         ballsFaced: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentStriker?.playerId)?.ballsFaced || 0
       });
 
       setNonStriker({
         id: data?.currentNonStriker?.playerId,
-        name: data?.currentNonStriker?.name,
+        name: getInitials(data?.currentNonStriker?.name),
         runs: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentNonStriker?.playerId)?.runs || 0,
         ballsFaced: data?.battingTeam?.playingXI?.find(p => p.playerId === data?.currentNonStriker?.playerId)?.ballsFaced || 0
       });
+
+      if (data.currentStriker?.id === null || data.currentNonStriker?.id === null || data.currentStriker === null || data.currentNonStriker === null)
+        setCanSelectBatsman(true);
 
       setCompletedOvers(data?.completedOvers || 0);
       setScore(data?.battingTeam?.score || 0);
@@ -451,6 +474,8 @@ const ScoringScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.log("Error fetching match state:", error);
+    } finally {
+      setEnableScoreButton(true);
     }
   };
 
@@ -512,6 +537,7 @@ const ScoringScreen = ({ route, navigation }) => {
   };
 
   const handleExtrasWicketSelection = (value) => {
+    setEnableScoreButton(false);
     if (value === 'Wide') {
       setModals({ ...modals, wide: true });
     } else if (value === 'Bye') {
@@ -532,6 +558,7 @@ const ScoringScreen = ({ route, navigation }) => {
       Alert.alert('Error', 'Please select a batsman first');
       return;
     }
+    setCanSelectBatsman(false);
 
     if (striker.id === selectedPlayer.playerId) {
       setStriker({ id: null, name: null, runs: 0, ballsFaced: 0 });
@@ -752,7 +779,11 @@ const ScoringScreen = ({ route, navigation }) => {
           numColumns={3}
           keyExtractor={(item) => item}
           renderItem={({ item }) => (
-            <Pressable style={styles.runButton} onPress={() => handleRunSelection(item)}>
+            <Pressable
+              disabled={!enableScoreButton}
+              style={[styles.runButton, !enableScoreButton && styles.disabledButton]}
+              onPress={() => handleRunSelection(item)}
+            >
               <Text style={styles.runText}>{item}</Text>
             </Pressable>
           )}
@@ -762,7 +793,11 @@ const ScoringScreen = ({ route, navigation }) => {
           numColumns={3}
           keyExtractor={(item) => item.key}
           renderItem={({ item }) => (
-            <Pressable style={styles.runButton} onPress={() => handleExtrasWicketSelection(item.value)}>
+            <Pressable
+              style={[styles.runButton, !enableScoreButton && styles.disabledButton]}
+              onPress={() => handleExtrasWicketSelection(item.value)}
+              disabled={!enableScoreButton}
+            >
               <Text style={styles.runText}>{item.key}</Text>
             </Pressable>
           )}
@@ -996,7 +1031,7 @@ const ScoringScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-      <Modal visible={modals.nextBatsman} transparent animationType="slide">
+      <Modal visible={modals.nextBatsman && canSelectBatsman} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Pressable
@@ -1400,6 +1435,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
+  },
+  disabledButton: {
+    opacity: 0.5,
+    backgroundColor: AppColors.gray,
   },
   runText: {
     fontSize: 20,

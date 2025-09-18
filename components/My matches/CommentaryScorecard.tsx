@@ -105,7 +105,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
   const [bowlingTeamWickets, setBowlingTeamWickets] = useState(null);
   const [totalOvers, setTotalOvers] = useState(null);
   const [battingWicket, setbattingWicket] = useState(null);
-  const [showWaitingAnimation, setShowWaitingAnimation] = useState(true); 
+  const [showWaitingAnimation, setShowWaitingAnimation] = useState(true);
   const [completedOvers, setCompletedOvers] = useState(0);
   const [overDetails, setOverDetails] = useState("");
   const legalDeliveriesRef = useRef(0);
@@ -343,66 +343,6 @@ const CommentaryScorecard = ({ route, navigation }) => {
     }
   };
 
-  const matchScoreUpdateHandler = (data) => {
-    setBattingTeamName(data?.battingTeam?.name);
-    setBowlingTeamName(data?.bowlingTeam?.name);
-
-    // Update over details with the latest ball string
-    setOverDetails((prev) => {
-      // Logic to append or replace based on over completion
-      const currentOverBalls = data?.currentOver?.map(ball => {
-        let event = ball.runs?.toString() || "0";
-        if (ball.wicket) event += " W";
-        if (ball.noBall) event += " NB";
-        if (ball.wide) event += " Wd";
-        if (ball.bye) event += " B";
-        if (ball.legBye) event += " LB";
-        return event.trim();
-      }).join(" ");
-      return currentOverBalls || "";
-    });
-
-    // Update bowler stats with a new object to ensure re-render
-    setBowler(prevBowler => ({
-      ...prevBowler,
-      id: data?.currentBowler?.id,
-      name: data?.currentBowler?.name,
-      overs: data?.currentBowler?.overs,
-      runsConceded: data?.currentBowler?.runsConceded,
-      wickets: data?.currentBowler?.wickets,
-      economyRate: data?.currentBowler?.economyRate,
-    }));
-
-    // Update striker and non-striker stats
-    setStriker(prevStriker => ({
-      ...prevStriker,
-      id: data?.striker?.id,
-      name: data?.striker?.name,
-      runs: data?.striker?.runs,
-      ballsFaced: data?.striker?.ballsFaced,
-    }));
-
-    setNonStriker(prevNonStriker => ({
-      ...prevNonStriker,
-      id: data?.nonStriker?.id,
-      name: data?.nonStriker?.name,
-      runs: data?.nonStriker?.runs,
-      ballsFaced: data?.nonStriker?.ballsFaced,
-    }));
-
-    // Update main scorecard numbers
-    setCompletedOvers(data?.overNumber);
-    setbattingScore(data?.totalRuns);
-    setbattingWicket(data?.wicketsLost);
-
-    // Update legal deliveries count live
-    const deliveryCount = data?.currentOver?.filter(ball => !ball.noBall && !ball.wide).length || 0;
-    setLegalDeliveries(deliveryCount);
-
-    // Call the secondary update handler to refresh all data tables
-    matchScoreCardUpdateHandler(data);
-  };
-
   const matchScoreCardUpdateHandler = (data) => {
     setShowScoreCard(true);
     setShowWaitingAnimation(false);
@@ -462,11 +402,11 @@ const CommentaryScorecard = ({ route, navigation }) => {
     const formattedOverDetails =
       data?.currentOver?.map((ball) => {
         let event = ball.runs?.toString() || "0";
-        if (ball.wicket) event += " W";
-        if (ball.noBall) event += " NB";
-        if (ball.wide) event += " Wd";
-        if (ball.bye) event += " B";
-        if (ball.legBye) event += " LB";
+        if (ball.wicket) event += "W";
+        if (ball.noBall) event += "NB";
+        if (ball.wide) event += "Wd";
+        if (ball.bye) event += "B";
+        if (ball.legBye) event += "LB";
         return event.trim();
       }) || [];
 
@@ -510,7 +450,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
       clientRef.current = new Client();
       clientRef.current.configure({
-        webSocketFactory: () => new SockJS('https://41d83e6106c9.ngrok-free.app/ws'),
+        webSocketFactory: () => new SockJS('https://6cf21e7a7265.ngrok-free.app/ws'),
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
@@ -791,111 +731,86 @@ const CommentaryScorecard = ({ route, navigation }) => {
     );
   };
 
-  const handleInningsTabPress = (teamName) => {
-    const selectedInnings = teamName === battingFirstTeamName ? '1st' : '2nd';
-    setInnings(selectedInnings);
-    // setSubTab('Batting');
-
-    const cachedData = scorecardCache[teamName];
-    if (cachedData) {
-      if (selectedInnings === '1st') {
-        setBattingFirst(cachedData.batting);
-        setBowlingFirst(cachedData.bowling);
-      } else {
-        setBattingSecond(cachedData.batting);
-        setBowlingSecond(cachedData.bowling);
-      }
-    } else {
-      if (selectedInnings === '1st') {
-        setBattingFirst([]);
-        setBowlingFirst([]);
-      } else {
-        setBattingSecond([]);
-        setBowlingSecond([]);
-      }
-    }
-  };
-
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={AppColors.darkBlue} />
-        {loading ? (
-          <View style={styles.shimmerFullScreen}>
-            <ShimmerCard />
-          </View>
-        ) : (
-          <>
-            <SafeAreaView style={styles.safeArea}>
-              <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => navigation.goBack()}
-                >
-                  <Ionicons name="arrow-back" size={24} color={AppColors.darkBlue} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Match Details</Text>
-                <View style={styles.headerRight} />
-              </View>
-            </SafeAreaView>
-  
-            <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
-              <View style={styles.stickyScorecard}>
-                {renderScorecard()}
-              </View>
-              <ScrollView
-                style={styles.scrollableContent}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={refreshing}
-                    tintColor={AppColors.blue}
-                    onRefresh={getMatchState}
-                  />
-                }
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={AppColors.darkBlue} />
+      {loading ? (
+        <View style={styles.shimmerFullScreen}>
+          <ShimmerCard />
+        </View>
+      ) : (
+        <>
+          <SafeAreaView style={styles.safeArea}>
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
               >
-                {showWaitingAnimation && !showScoreCard ? (
-                  <View style={styles.waitingAnimationContainer}>
-                    <LottieView
-                      source={waitingAnimation}
-                      autoPlay
-                      loop
-                      style={styles.waitingAnimation}
-                    />
-                    <Text style={styles.waitingText}>Waiting for match data...</Text>
-                  </View>
-                ) : activeTab === 'commentary' ? (
-                  <FlatList
-                    data={getAllCommentary()}
-                    renderItem={renderCommentary}
-                    keyExtractor={(_, index) => index.toString()}
-                    scrollEnabled={false}
-                    contentContainerStyle={styles.commentaryList}
-                    ListEmptyComponent={
-                      <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No commentary available yet</Text>
-                      </View>
-                    }
+                <Ionicons name="arrow-back" size={24} color={AppColors.darkBlue} />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Match Details</Text>
+              <View style={styles.headerRight} />
+            </View>
+          </SafeAreaView>
+
+          <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
+            <View style={styles.stickyScorecard}>
+              {renderScorecard()}
+            </View>
+            <ScrollView
+              style={styles.scrollableContent}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  tintColor={AppColors.blue}
+                  onRefresh={getMatchState}
+                />
+              }
+            >
+              {showWaitingAnimation && !showScoreCard ? (
+                <View style={styles.waitingAnimationContainer}>
+                  <LottieView
+                    source={waitingAnimation}
+                    autoPlay
+                    loop
+                    style={styles.waitingAnimation}
                   />
-                ) : (
-                  <View style={styles.detailedScorecard}>
-                    {showScoreCard && (
-                      <>
-                        <Text style={styles.inningsDetail}>1st Innings</Text>
-                        <BattingTable data={battingFirst} />
-                        <BowlingTable data={bowlingFirst} />
-                        <Text style={styles.inningsDetail}>2nd Innings</Text>
-                        <BattingTable data={battingSecond} />
-                        <BowlingTable data={bowlingSecond} />
-                      </>
-                    )}
-                  </View>
-                )}
-              </ScrollView>
-            </ImageBackground>
-          </>
-        )}
-      </SafeAreaView>
-    );
-  };
+                  <Text style={styles.waitingText}>Waiting for match data...</Text>
+                </View>
+              ) : activeTab === 'commentary' ? (
+                <FlatList
+                  data={getAllCommentary()}
+                  renderItem={renderCommentary}
+                  keyExtractor={(_, index) => index.toString()}
+                  scrollEnabled={false}
+                  contentContainerStyle={styles.commentaryList}
+                  ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                      <Text style={styles.emptyText}>No commentary available yet</Text>
+                    </View>
+                  }
+                />
+              ) : (
+                <View style={styles.detailedScorecard}>
+                  {showScoreCard && (
+                    <>
+                      <Text style={styles.inningsDetail}>1st Innings</Text>
+                      <BattingTable data={battingFirst} />
+                      <BowlingTable data={bowlingFirst} />
+                      <Text style={styles.inningsDetail}>2nd Innings</Text>
+                      <BattingTable data={battingSecond} />
+                      <BowlingTable data={bowlingSecond} />
+                    </>
+                  )}
+                </View>
+              )}
+            </ScrollView>
+          </ImageBackground>
+        </>
+      )}
+    </SafeAreaView>
+  );
+};
 
 
 const styles = StyleSheet.create({
@@ -914,7 +829,7 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 100,
     paddingHorizontal: 12,
-    paddingTop: Platform.OS === 'ios' ? 10 : 10, 
+    paddingTop: Platform.OS === 'ios' ? 10 : 10,
   },
   scrollableContent: {
     marginTop: 300,
