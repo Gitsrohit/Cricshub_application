@@ -12,24 +12,23 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import bg from '../../assets/images/cricsLogo.png';
+const bg = require('../../../assets/images/cricsLogo.png');
 import { Picker } from '@react-native-picker/picker';
 import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
-import { useNavigation } from '@react-navigation/native';
-import apiService from '../APIservices';
+import apiService from '../../APIservices';
 import { MaterialIcons } from "@expo/vector-icons";
-import { AppColors } from '../../assets/constants/colors';
+import { AppColors } from '../../../assets/constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-const driveImage = require('../../assets/images/DriveShot.png');
-const cutImage = require('../../assets/images/squareShot.png');
-const pullImage = require('../../assets/images/HookShot.png');
-const hookImage = require('../../assets/images/HookShot.png');
-const sweepImage = require('../../assets/images/Sweep.png');
-const reverseSweepImage = require('../../assets/images/Sweep.png');
-const flickImage = require('../../assets/images/FlickShot.png');
-const defensiveImage = require('../../assets/images/Defence.png');
-const loftedImage = require('../../assets/images/LoaftedShot.png');
+const driveImage = require('../../../assets/images/DriveShot.png');
+const cutImage = require('../../../assets/images/squareShot.png');
+const pullImage = require('../../../assets/images/HookShot.png');
+const hookImage = require('../../../assets/images/HookShot.png');
+const sweepImage = require('../../../assets/images/Sweep.png');
+const reverseSweepImage = require('../../../assets/images/Sweep.png');
+const flickImage = require('../../../assets/images/FlickShot.png');
+const defensiveImage = require('../../../assets/images/Defence.png');
+const loftedImage = require('../../../assets/images/LoaftedShot.png');
 
 const ScoringScreen = ({ route, navigation }) => {
   const [matchId, setMatchId] = useState(route.params.matchId);
@@ -255,7 +254,7 @@ const ScoringScreen = ({ route, navigation }) => {
       clientRef.current.configure({
         webSocketFactory: () => {
           console.log(`[${type}] Creating SockJS connection...`);
-          return new SockJS('https://539b92c4d3f9.ngrok-free.app/ws');
+          return new SockJS('https://8ddc781de8ca.ngrok-free.app/ws');
         },
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,

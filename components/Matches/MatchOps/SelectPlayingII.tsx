@@ -12,22 +12,22 @@ import {
   Animated,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
 } from "react-native";
 import React, { useEffect, useState, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import apiService from "../APIservices";
-import { AppColors } from "../../assets/constants/colors.js";
-import { AppGradients } from "../../assets/constants/colors.js";
-import CustomAlertDialog from "../Customs/CustomDialog.js";
+import { useAppNavigation } from '../../NavigationService';
+import apiService from "../../APIservices";
+import { AppColors } from "../../../assets/constants/colors.js";
+import { AppGradients } from "../../../assets/constants/colors.js";
+import CustomAlertDialog from "../../Customs/CustomDialog.js";
 import LottieView from "lottie-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SelectPlayingXI = ({ route }) => {
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
   const { matchDetails, requestBody } = route.params;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -163,7 +163,7 @@ const SelectPlayingXI = ({ route }) => {
       <View style={styles.playerInfoContainer}>
         <View style={styles.profileIconContainer}>
           <Image
-            source={require("../../assets/defaultLogo.png")}
+            source={require("../../../assets/defaultLogo.png")}
             style={styles.userImage}
           />
         </View>
@@ -288,13 +288,17 @@ const SelectPlayingXI = ({ route }) => {
     });
   };
 
+  const initializeMatchAndTeams = async () => {
+
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <StatusBar backgroundColor={AppColors.BgColor} barStyle="dark-content" />
         <View style={styles.loadingContainer}>
           <LottieView
-            source={require("../../assets/animations/Search for Players.json")}
+            source={require("../../../assets/animations/Search for Players.json")}
             autoPlay
             loop
             style={styles.lottieLoader}

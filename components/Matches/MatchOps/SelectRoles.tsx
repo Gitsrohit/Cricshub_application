@@ -3,10 +3,10 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import apiService from '../APIservices';
-import { AppGradients, AppColors } from '../../assets/constants/colors.js';
+import apiService from '../../APIservices';
+import { AppGradients, AppColors } from '../../../assets/constants/colors.js';
 import LottieView from 'lottie-react-native';
-import CustomAlertDialog from '../Customs/CustomDialog.js';
+import CustomAlertDialog from '../../Customs/CustomDialog.js';
 const MIN_LOAD_TIME = 3000;
 
 const SelectRoles = ({ route, navigation }) => {
@@ -54,12 +54,12 @@ const SelectRoles = ({ route, navigation }) => {
         apiService({
           endpoint: `matches/${matchId}/playingXI/batting`,
           method: 'GET',
-          token: token,
+          headers: { Authorization: token ? `Bearer ${token}` : '' },
         }),
         apiService({
           endpoint: `matches/${matchId}/playingXI/bowling`,
           method: 'GET',
-          token: token,
+          headers: { Authorization: token ? `Bearer ${token}` : '' },
         }),
       ]);
 
@@ -228,7 +228,7 @@ const SelectRoles = ({ route, navigation }) => {
           nonStriker: nonStrikerId,
           bowler: bowlerId,
         },
-        token: token,
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
       });
 
       if (response.success) {
@@ -280,7 +280,7 @@ const SelectRoles = ({ route, navigation }) => {
       <View style={styles.playerInfoContainer}>
         <View style={styles.profileIconContainer}>
           <Image
-            source={require("../../assets/defaultLogo.png")}
+            source={require("../../../assets/defaultLogo.png")}
             style={styles.userImage}
           />
         </View>
@@ -343,7 +343,7 @@ const SelectRoles = ({ route, navigation }) => {
     return (
       <View style={styles.loadingContainer}>
         <LottieView
-          source={require('../../assets/animations/Search for Players.json')}
+          source={require('../../../assets/animations/Search for Players.json')}
           autoPlay
           loop
           style={styles.lottieLoader}

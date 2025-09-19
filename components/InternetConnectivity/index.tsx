@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../NavigationService';
 
 export default function InternetConnectivityCheck({ children }) {
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
   const hasShownAlert = useRef(false);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function InternetConnectivityCheck({ children }) {
                 hasShownAlert.current = false;
                 navigation.reset({
                   index: 0,
-                  routes: [{ name: 'Login' }],
+                  routes: [{ name: 'Login' as never }],
                 });
               },
             },

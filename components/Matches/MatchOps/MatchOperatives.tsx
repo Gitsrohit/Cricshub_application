@@ -16,8 +16,8 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import apiService from "../APIservices";
-import { AppColors } from "../../assets/constants/colors";
+import apiService from "../../APIservices";
+import { AppColors } from "../../../assets/constants/colors";
 
 const MatchOperatives = ({ route, navigation }) => {
   const { matchDetails, requestBody, source } = route.params;
@@ -172,7 +172,7 @@ const MatchOperatives = ({ route, navigation }) => {
             source={
               item.logoPath
                 ? { uri: item.logoPath }
-                : require("../../assets/defaultLogo.png")
+                : require("../../../assets/defaultLogo.png")
             }
             style={styles.userImage}
           />
@@ -191,7 +191,7 @@ const MatchOperatives = ({ route, navigation }) => {
           source={
             item.logoPath
               ? { uri: item.logoPath }
-              : require("../../assets/defaultLogo.png")
+              : require("../../../assets/defaultLogo.png")
           }
           style={styles.userImage}
         />

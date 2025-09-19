@@ -39,8 +39,6 @@ const Login = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const logoAnim = useRef(new Animated.Value(0)).current;
   const contentAnim = useRef(new Animated.Value(height * 0.1)).current;
-
-  // Mask for a typical 10-digit phone number
   const phoneNumberMask = [/\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/, /\d/];
 
   const checkIsRegistered = async () => {

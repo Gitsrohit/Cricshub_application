@@ -1,19 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, Text, Animated, Easing, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { StyleSheet, View, Text, Animated, Easing, Modal, Pressable } from 'react-native';
+import { useAppNavigation } from '../../NavigationService';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AppColors, AppGradients } from '../../assets/constants/colors.js';
-import LottieView from 'lottie-react-native'; 
-const MatchStartTransition = ({ route }) => {
-  const navigation = useNavigation();
+import { AppColors, AppGradients } from '../../../assets/constants/colors.js';
+import LottieView from 'lottie-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-  const mainMessageFadeAnim = useRef(new Animated.Value(0)).current; 
-  const goMessageScaleAnim = useRef(new Animated.Value(0)).current; 
-  const loaderTranslateY = useRef(new Animated.Value(50)).current; 
+const MatchStartTransition = ({ route }) => {
+  const navigation = useAppNavigation();
+
+  const mainMessageFadeAnim = useRef(new Animated.Value(0)).current;
+  const goMessageScaleAnim = useRef(new Animated.Value(0)).current;
+  const loaderTranslateY = useRef(new Animated.Value(50)).current;
   const subMessageTranslateY = useRef(new Animated.Value(50)).current;
-  const subMessageOpacityAnim = useRef(new Animated.Value(0)).current; 
+  const subMessageOpacityAnim = useRef(new Animated.Value(0)).current;
 
   const [currentPhase, setCurrentPhase] = useState('initial');
+  const [modalVisible, setModalVisible] = useState(true);
 
   const {
     matchId,
@@ -57,12 +60,12 @@ const MatchStartTransition = ({ route }) => {
     ]).start(() => {
       Animated.timing(mainMessageFadeAnim, {
         toValue: 0,
-        duration: 300, 
+        duration: 300,
         useNativeDriver: true,
       }).start(() => {
         console.log('Transitioning to "Let\'s Go!" phase');
         setCurrentPhase('go');
-        mainMessageFadeAnim.setValue(0); 
+        mainMessageFadeAnim.setValue(0);
         goMessageScaleAnim.setValue(0.8);
         Animated.parallel([
           Animated.timing(mainMessageFadeAnim, {
@@ -78,14 +81,17 @@ const MatchStartTransition = ({ route }) => {
         ]).start();
       });
     });
-    const goMessageAnimationDuration = 500; 
+
+    const goMessageAnimationDuration = 500;
     const totalTransitionDuration =
-      1000 + 
-      300 + 
-      goMessageAnimationDuration + 
-      200; 
+      1000 +
+      300 +
+      goMessageAnimationDuration +
+      200;
+
     const timer = setTimeout(() => {
-      console.log('Navigating to Scoring screen'); 
+      console.log('Navigating to Scoring screen');
+      setModalVisible(false);
       navigation.replace('Scoring', {
         matchId,
         strikerId,
@@ -101,6 +107,7 @@ const MatchStartTransition = ({ route }) => {
         matchDetails
       });
     }, totalTransitionDuration);
+
     return () => clearTimeout(timer);
   }, [
     navigation,
@@ -114,44 +121,75 @@ const MatchStartTransition = ({ route }) => {
   ]);
 
   return (
-    <LinearGradient
-      colors={AppGradients.mainBackground}
-      style={styles.container}
-      start={{ x: 0.1, y: 0.1 }}
-      end={{ x: 0.9, y: 0.9 }}
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={modalVisible}
+      onRequestClose={() => { }} // Disabling modal close by back button
     >
-      {currentPhase === 'initial' && (
-        <>
-          <Animated.View style={[styles.lottieContainer, { transform: [{ translateY: loaderTranslateY }] }]}>
-            <LottieView
-              source={require('../../assets/animations/loader.json')}
-              autoPlay
-              loop
-              style={styles.lottieAnimation}
-            />
-          </Animated.View>
-          <Animated.Text style={[styles.messageText, { opacity: mainMessageFadeAnim }]}>
-            Get Ready!
-          </Animated.Text>
-        </>
-      )}
-      {currentPhase === 'go' && (
-        <Animated.Text style={[styles.messageText, { opacity: mainMessageFadeAnim, transform: [{ scale: goMessageScaleAnim }] }]}>
-          Let's Go!
-        </Animated.Text>
-      )}
-      <Animated.Text style={[styles.subMessageText, { opacity: subMessageOpacityAnim, transform: [{ translateY: subMessageTranslateY }] }]}>
-        Let's get the scorebook ready!
-      </Animated.Text>
-    </LinearGradient>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <LinearGradient
+            colors={AppGradients.primaryCard}
+            style={styles.modalGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.messageContainer}>
+              {currentPhase === 'initial' && (
+                <>
+                  <Animated.View style={[styles.lottieContainer, { transform: [{ translateY: loaderTranslateY }] }]}>
+                    <LottieView
+                      source={require('../../../assets/animations/loader.json')}
+                      autoPlay
+                      loop
+                      style={styles.lottieAnimation}
+                    />
+                  </Animated.View>
+                  <Animated.Text style={[styles.messageText, { opacity: mainMessageFadeAnim }]}>
+                    Get Ready!
+                  </Animated.Text>
+                </>
+              )}
+              {currentPhase === 'go' && (
+                <Animated.Text style={[styles.messageText, { opacity: mainMessageFadeAnim, transform: [{ scale: goMessageScaleAnim }] }]}>
+                  Let's Go!
+                </Animated.Text>
+              )}
+              <Animated.Text style={[styles.subMessageText, { opacity: subMessageOpacityAnim, transform: [{ translateY: subMessageTranslateY }] }]}>
+                Let's get the scorebook ready!
+              </Animated.Text>
+            </View>
+          </LinearGradient>
+        </View>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  modalGradient: {
+    padding: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
   },
   lottieContainer: {
     marginBottom: 20,

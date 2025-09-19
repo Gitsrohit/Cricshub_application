@@ -4,17 +4,17 @@ import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppColors, AppGradients } from '../../assets/constants/colors'; // Corrected import path
-import apiService from '../APIservices';
+import { AppColors, AppGradients } from '../../../assets/constants/colors'; // Corrected import path
+import apiService from '../../APIservices';
 
 const TossScreen = ({ navigation, route }) => {
-    const { matchId, team1PlayingXIIds, team2PlayingXIIds, matchDetails } = route.params;
+  const { matchId, team1PlayingXIIds, team2PlayingXIIds, matchDetails } = route.params;
 
   const [apiCallStatus, setApiCallStatus] = useState('pending'); // 'pending', 'success', 'failed'
   const [apiError, setApiError] = useState(null); // Stores API error message
 
   // Lottie animation reference
-  const coinTossAnimation = require('../../assets/animations/turning coin.json'); // Engaging animation
+  const coinTossAnimation = require('../../../assets/animations/turning coin.json'); // Engaging animation
 
   // --- API Call Effect (Runs once on mount) ---
   const startMatchApiCall = async () => { // Moved outside useEffect for retry
@@ -44,7 +44,7 @@ const TossScreen = ({ navigation, route }) => {
         endpoint: `matches/${matchId}/start`,
         method: 'POST',
         body: requestBody,
-        token: token, // Pass token explicitly if your apiService requires it this way
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
       });
 
       console.log("TossScreen: API Response:", response); // Log the full response
@@ -59,23 +59,23 @@ const TossScreen = ({ navigation, route }) => {
 
         // --- IMPROVED ERROR HANDLING ---
         if (response.error) {
-            if (typeof response.error === 'string') {
-                errorMessage = response.error;
-            } else if (response.error.message) {
-                errorMessage = response.error.message;
-            } else if (response.error.detail) { // Common for some APIs (e.g., Django REST Framework)
-                errorMessage = response.error.detail;
-            } else {
-                // If it's an object without a specific message field, stringify it
-                errorMessage = JSON.stringify(response.error, null, 2);
-            }
+          if (typeof response.error === 'string') {
+            errorMessage = response.error;
+          } else if (response.error.message) {
+            errorMessage = response.error.message;
+          } else if (response.error.detail) { // Common for some APIs (e.g., Django REST Framework)
+            errorMessage = response.error.detail;
+          } else {
+            // If it's an object without a specific message field, stringify it
+            errorMessage = JSON.stringify(response.error, null, 2);
+          }
         }
         // --- END IMPROVED ERROR HANDLING ---
 
         setApiError(`Failed to set up match: ${errorMessage}`);
         console.error("API Error in TossScreen (start match):", response.error);
         if (response.error && typeof response.error === 'object') {
-            console.error("TossScreen: Detailed API Error Object:", JSON.stringify(response.error, null, 2));
+          console.error("TossScreen: Detailed API Error Object:", JSON.stringify(response.error, null, 2));
         }
       }
     } catch (err) {

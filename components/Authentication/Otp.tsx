@@ -286,7 +286,7 @@ const Otp = ({ route, navigation }) => {
                       handleBackspace(digit, index);
                     }
                   }}
-                  ref={el => otpInputs.current[index] = el}
+                  ref={el => { otpInputs.current[index] = el as any; }}
                 />
               ))}
             </View>

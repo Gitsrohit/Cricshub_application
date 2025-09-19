@@ -15,7 +15,7 @@ import {
   Modal,
 } from "react-native";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useAppNavigation } from '../NavigationService';
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppGradients, AppColors } from "../../assets/constants/colors.js";
@@ -23,7 +23,7 @@ import { AppGradients, AppColors } from "../../assets/constants/colors.js";
 const { width } = Dimensions.get("window");
 
 const Home = () => {
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
   const sidebarAnim = useRef(new Animated.Value(-width)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
@@ -315,7 +315,7 @@ const Home = () => {
                 { icon: "help-circle-outline", text: "Support", screen: "Support" },
                 { icon: "radio-button-on", text: "Toss", screen: "TossFlip" },
                 { icon: "copy", text: "Privacy Policy", screen: "PrivacyPolicy" },
-                { icon: "globe-outline", text: "Web", screen: "WebSocketTest" },
+                // { icon: "globe-outline", text: "Web", screen: "WebSocketTest" },
               ].map(({ icon, text, screen }) => (
                 <TouchableOpacity
                   key={screen}
@@ -325,7 +325,7 @@ const Home = () => {
                     closeSidebar();
                   }}
                 >
-                  <Ionicons name={icon} size={22} color={AppColors.blue} />
+                  <Ionicons name={icon as any} size={22} color={AppColors.blue} />
                   <Text style={styles.sidebarItemTextDark}>{text}</Text>
                 </TouchableOpacity>
               ))}
@@ -387,7 +387,7 @@ const Home = () => {
                       end={{ x: 1, y: 1 }}
                     >
                       <MaterialIcons
-                        name={item.icon}
+                        name={item.icon as any}
                         size={40}
                         color={AppColors.white}
                         style={styles.cardIcon}

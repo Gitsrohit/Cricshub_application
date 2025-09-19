@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from './NavigationService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const Footer = () => {
   const [activeTab, setActiveTab] = useState('HOME');
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
 
   const footerTabs = [
-    { key: 'MATCHES', icon: 'sports-cricket', label: 'Matches', route: 'Main', nestedRoute: 'MyMatches' },
-    { key: 'TOURNAMENTS', icon: 'trophy', label: 'Tournaments', route: 'Main', nestedRoute: 'Tournaments' },
-    { key: 'HOME', icon: 'home', label: 'Home', route: 'Main', nestedRoute: 'Home' },
-    { key: 'TEAMS', icon: 'users', label: 'Teams', route: 'Main', nestedRoute: 'Teams' },
+    { key: 'MATCHES', icon: 'sports-cricket', label: 'Matches', route: 'Main', nestedRoute: 'MyMatches', iconType: 'material' },
+    { key: 'TOURNAMENTS', icon: 'trophy', label: 'Tournaments', route: 'Main', nestedRoute: 'Tournaments', iconType: 'fontawesome' },
+    { key: 'HOME', icon: 'home', label: 'Home', route: 'Main', nestedRoute: 'Home', iconType: 'fontawesome' },
+    { key: 'TEAMS', icon: 'users', label: 'Teams', route: 'Main', nestedRoute: 'Teams', iconType: 'fontawesome' },
   ];
 
   const animatedValues = footerTabs.map(() => new Animated.Value(1));
@@ -56,16 +56,16 @@ const Footer = () => {
                 { transform: [{ scale: animatedValues[index] }] },
               ]}
             >
-              {tab.key !== 'MATCHES' ? (
-                <Icon
-                  name={tab.icon}
-                  size={26}
+              {tab.iconType === 'material' ? (
+                <MaterialIcons
+                  name={tab.icon as any}
+                  size={28}
                   color={activeTab === tab.key ? '#4A90E2' : '#777'}
                 />
               ) : (
-                <MaterialIcons
-                  name={tab.icon}
-                  size={28}
+                <Icon
+                  name={tab.icon as any}
+                  size={26}
                   color={activeTab === tab.key ? '#4A90E2' : '#777'}
                 />
               )}

@@ -152,13 +152,14 @@ const ConnectLiveStream = ({ route, navigation }) => {
         const data = JSON.parse(e.data);
         if (data.op === 0) {
           const identifyPayload = { op: 1, d: { rpcVersion: 1 } };
+          // Fix authentication assignment
           if (data.d.authentication?.challenge) {
             const auth = await generateAuthToken(
               obsPassword,
               data.d.authentication.salt,
               data.d.authentication.challenge
             );
-            identifyPayload.d.authentication = auth;
+            (identifyPayload.d as any).authentication = auth;
           }
           socket.send(JSON.stringify(identifyPayload));
         } else if (data.op === 2) {
@@ -183,7 +184,11 @@ const ConnectLiveStream = ({ route, navigation }) => {
   const fetchAvailableScenes = useCallback(async () => {
     try {
       const result = await sendOBSEvent({ requestType: 'GetSceneList' });
-      setAvailableScenes(result.scenes.map((scene) => scene.sceneName));
+      if (result && typeof result === 'object' && 'scenes' in result && Array.isArray((result as any).scenes)) {
+        setAvailableScenes((result as any).scenes.map((scene: any) => scene.sceneName));
+      } else {
+        setAvailableScenes([]);
+      }
     } catch (error) {
       console.error('Fetching scenes failed:', error);
     }
@@ -213,13 +218,15 @@ const ConnectLiveStream = ({ route, navigation }) => {
           },
         });
 
-        const { sceneItemId } = await sendOBSEvent({
+        // Fix sceneItemId destructure
+        const sceneItemIdResp = await sendOBSEvent({
           requestType: 'GetSceneItemId',
           params: {
             sceneName: scene.name,
             sourceName: `${scene.name}_browser`,
           },
         });
+        const sceneItemId = sceneItemIdResp && typeof sceneItemIdResp === 'object' && 'sceneItemId' in sceneItemIdResp ? (sceneItemIdResp as any).sceneItemId : undefined;
 
         await sendOBSEvent({
           requestType: 'SetSceneItemTransform',
@@ -425,7 +432,7 @@ const ConnectLiveStream = ({ route, navigation }) => {
                 </View>
 
                 <TouchableOpacity style={[styles.button, styles.disconnectButton]} onPress={disconnectFromOBS}>
-                  <MaterialCommunityIcons name="connection-off" size={20} color="#fff" />
+                  <MaterialCommunityIcons name="connection" size={20} color="#fff" />
                   <Text style={styles.buttonText}> Disconnect</Text>
                 </TouchableOpacity>
               </>

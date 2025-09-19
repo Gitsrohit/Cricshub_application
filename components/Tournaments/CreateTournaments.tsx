@@ -27,7 +27,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import moment from "moment";
 import * as MediaLibrary from 'expo-media-library';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../NavigationService';
 import apiService from '../APIservices';
 
 // Color constants for consistency
@@ -89,7 +89,7 @@ const Notification = ({ message, type, visible, onHide }) => {
       ]}
     >
       <View style={styles.notificationContent}>
-        <Ionicons name={iconName} size={22} color="#fff" />
+        <Ionicons name={iconName === 'check-circle' ? 'checkmark-circle' : iconName} size={22} color="#fff" />
         <Text style={styles.notificationText}>{message}</Text>
       </View>
       <TouchableOpacity onPress={onHide} style={styles.notificationClose}>
@@ -170,7 +170,7 @@ const DropdownModal = ({ visible, options, onSelect, onClose, selectedValue, tit
 };
 
 const CreateTournament = () => {
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
 
   // Tournament state
   const [tournamentName, setTournamentName] = useState('');

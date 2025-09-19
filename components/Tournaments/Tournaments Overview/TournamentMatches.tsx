@@ -5,7 +5,7 @@ import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../../NavigationService';
 import apiService from '../../APIservices';
 import { AppColors } from '../../../assets/constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -53,7 +53,7 @@ export const Matches = ({ id, isCreator }) => {
   const [tournamentData, setTournamentData] = useState(null);
   const [showPlayOffMatchScheduler, setShowPlayOffMatchScheduler] = useState(false);
   const [canSchedulePlayoff, setCanSchedulePlayoff] = useState(false);
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
 
   const fetchMatchDetails = async (id) => {
     setLoading(true);

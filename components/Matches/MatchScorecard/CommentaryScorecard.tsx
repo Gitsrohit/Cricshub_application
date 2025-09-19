@@ -10,14 +10,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
-import apiService from '../APIservices';
+import apiService from '../../APIservices';
 import { LinearGradient } from 'expo-linear-gradient';
 import LottieView from 'lottie-react-native';
 import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
-const waitingAnimation = require('../../assets/animations/Waiting P.json');
+const waitingAnimation = require('../../../assets/animations/Waiting P.json');
 
 const { width, height } = Dimensions.get('window');
-const background = require('../../assets/images/cricsLogo.png');
+const background = require('../../../assets/images/cricsLogo.png');
 const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 const AppColors = {
   white: "#FFFFFF",
@@ -558,7 +558,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
     return (
       <LinearGradient
-        colors={AppGradients.primaryCard}
+        colors={[AppGradients.primaryCard[0], AppGradients.primaryCard[1]]}
         style={styles.scorecardContainer}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}

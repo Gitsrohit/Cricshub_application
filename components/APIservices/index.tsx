@@ -1,11 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import Constants from 'expo-constants';
 
-//dev
-const baseURL = 'https://f7556dcd460b.ngrok-free.app/api/v1/';
-
-//prod
-// const baseURL = 'http://34.47.150.57:8080/api/v1/';
+// const baseURL = Constants.manifest?.extra?.BASE_URL || 'https://your-default-url.com';
+const baseURL = `https://8ddc781de8ca.ngrok-free.app/api/v1`;
 
 const apiService = async ({
   endpoint = '',
@@ -17,7 +15,7 @@ const apiService = async ({
 }) => {
   try {
     const token = await AsyncStorage.getItem('jwtToken');
-    const config = {
+    const config: any = {
       baseURL,
       url: endpoint,
       method: method.toLowerCase(),

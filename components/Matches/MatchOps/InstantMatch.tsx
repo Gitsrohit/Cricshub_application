@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../../NavigationService';
 import apiService from '../../APIservices';
 import { AppGradients, AppColors, AppButtons } from '../../../assets/constants/colors.js';
 
@@ -54,7 +54,7 @@ const InstantMatch = () => {
   const team2ShakeAnim = useRef(new Animated.Value(0)).current;
 
   const slideAnim = useRef(new Animated.Value(500)).current;
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
 
   useEffect(() => {
     if (teamModalVisible) {

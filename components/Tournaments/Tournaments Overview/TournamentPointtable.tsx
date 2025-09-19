@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, ActivityIndicator, Dimensions, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../../NavigationService';
 import apiService from '../../APIservices';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppColors } from '../../../assets/constants/colors';
 
 const PointsTable = ({ id }) => {
-  const navigation = useNavigation();
+  const navigation = useAppNavigation();
   const screenWidth = Dimensions.get('window').width;
 
   const columnStyles = {

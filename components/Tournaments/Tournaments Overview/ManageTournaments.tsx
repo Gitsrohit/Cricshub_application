@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   FlatList,
   Animated,
@@ -20,6 +19,7 @@ import React from "react";
 import { useNavigation, RouteProp } from "@react-navigation/native";
 import apiService from "../../APIservices";
 import moment from "moment";
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Info from "./TournamentInfo";
 import Teams from "./TournamentTeams";

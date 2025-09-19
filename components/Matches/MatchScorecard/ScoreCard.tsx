@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import apiService from '../APIservices';
+import apiService from '../../APIservices';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
 
@@ -30,7 +30,7 @@ const AppGradients = {
 };
 
 const { height } = Dimensions.get('window');
-const background = require('../../assets/images/cricsLogo.png');
+const background = require('../../../assets/images/cricsLogo.png');
 const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 const AppColors = {
   white: "#FFFFFF",
@@ -159,11 +159,11 @@ const ScoreCard = ({ route, navigation }) => {
       const formattedOverDetails =
         data?.currentOver?.map((ball) => {
           let event = ball.runs?.toString() || "0";
-          if (ball.wicket) event += " W";
-          if (ball.noBall) event += " NB";
-          if (ball.wide) event += " Wd";
-          if (ball.bye) event += " B";
-          if (ball.legBye) event += " LB";
+          if (ball.wicket) event += "W";
+          if (ball.noBall) event += "NB";
+          if (ball.wide) event += "Wd";
+          if (ball.bye) event += "B";
+          if (ball.legBye) event += "LB";
           return event.trim();
         }) || [];
 
