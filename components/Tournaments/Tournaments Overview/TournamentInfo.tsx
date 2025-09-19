@@ -163,7 +163,7 @@ const Info = ({ id, isCreator }) => {
                 </TouchableOpacity>
               )}
             </View>
-            
+
             <View style={styles.dateLocationContainer}>
               <View style={styles.dateLocationRow}>
                 <Icon name="event" size={16} color="#6c757d" />
@@ -203,7 +203,7 @@ const Info = ({ id, isCreator }) => {
               <View style={styles.cardHeader}>
                 <Icon name="groups" size={20} color="#4A90E2" />
                 <Text style={styles.cardTitle}>Teams</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.eyeButton}
                   onPress={() => setShowTeamsModal(true)}
                 >
@@ -228,7 +228,7 @@ const Info = ({ id, isCreator }) => {
                     <Text style={styles.detailValue}>{tournamentDetails.type || 'N/A'}</Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.detailItem}>
                   <View style={styles.detailIconContainer}>
                     <Icon name="sports-cricket" size={20} color="#4A90E2" />
@@ -238,7 +238,7 @@ const Info = ({ id, isCreator }) => {
                     <Text style={styles.detailValue}>{tournamentDetails.ballType || 'N/A'}</Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.detailItem}>
                   <View style={styles.detailIconContainer}>
                     <Icon name="description" size={20} color="#4A90E2" />
@@ -258,7 +258,7 @@ const Info = ({ id, isCreator }) => {
           <Text style={styles.emptyText}>No tournament details available</Text>
         </View>
       )}
-      
+
       {/* Teams Modal - Enhanced */}
       <Modal
         visible={showTeamsModal}
@@ -270,20 +270,20 @@ const Info = ({ id, isCreator }) => {
           <View style={styles.teamsModalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Participating Teams</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowTeamsModal(false)}
                 style={styles.closeButton}
               >
                 <Icon name="close" size={24} color="#6c757d" />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.teamsCountHeader}>
               <Text style={styles.teamsCountText}>
                 {tournamentDetails?.teamNames?.length || 0} teams participating
               </Text>
             </View>
-            
+
             <ScrollView style={styles.teamsList}>
               {tournamentDetails?.teamNames?.map((team, index) => (
                 <View key={index} style={styles.teamListItem}>
@@ -293,7 +293,7 @@ const Info = ({ id, isCreator }) => {
                   <Text style={styles.teamListName}>{team?.name || 'Unknown Team'}</Text>
                 </View>
               ))}
-              
+
               {(!tournamentDetails?.teamNames || tournamentDetails.teamNames.length === 0) && (
                 <View style={styles.noTeamsContainer}>
                   <Icon name="info-outline" size={40} color="#95a5a6" />
@@ -316,7 +316,7 @@ const Info = ({ id, isCreator }) => {
           <View style={styles.editModalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Tournament</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setEditingTournament(false)}
                 style={styles.closeButton}
               >
@@ -476,11 +476,11 @@ const Info = ({ id, isCreator }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    marginTop:10,
-    flexGrow: 1, 
+  container: {
+    marginTop: 10,
+    flexGrow: 1,
     backgroundColor: '#f5f7fa',
-    borderRadius:10,
+    borderRadius: 10,
     padding: 10,
   },
   animatedContainer: {
@@ -489,76 +489,76 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 10,
   },
-  centeredContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    padding: 24 
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24
   },
-  loader: { 
-    marginBottom: 16 
+  loader: {
+    marginBottom: 16
   },
-  loadingText: { 
-    marginTop: 16, 
-    color: '#6c757d', 
-    fontSize: 16, 
-    fontWeight: '500' 
+  loadingText: {
+    marginTop: 16,
+    color: '#6c757d',
+    fontSize: 16,
+    fontWeight: '500'
   },
-  errorText: { 
-    color: '#dc3545', 
-    marginVertical: 16, 
-    fontSize: 16, 
+  errorText: {
+    color: '#dc3545',
+    marginVertical: 16,
+    fontSize: 16,
     textAlign: 'center',
     fontWeight: '500'
   },
-  emptyText: { 
-    color: '#6c757d', 
-    fontSize: 16, 
+  emptyText: {
+    color: '#6c757d',
+    fontSize: 16,
     marginTop: 16,
     fontWeight: '500'
   },
   headerContainer: {
-    padding: 24, 
+    padding: 24,
     borderBottomWidth: 1,
     borderBottomColor: '#eaeaea',
     backgroundColor: '#f9fafb',
   },
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'flex-start', 
-    marginBottom: 16 
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16
   },
-  title: { 
-    fontSize: 24, 
-    fontWeight: '600', 
-    color: '#2c3e50', 
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#2c3e50',
     flex: 1,
     marginRight: 12,
   },
-  iconButton: { 
+  iconButton: {
     padding: 4,
   },
   dateLocationContainer: {
     marginTop: 8,
   },
   dateLocationRow: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 8 
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8
   },
-  dateLocationText: { 
-    color: '#6c757d', 
-    marginLeft: 8, 
-    fontSize: 14 
+  dateLocationText: {
+    color: '#6c757d',
+    marginLeft: 8,
+    fontSize: 14
   },
-  contentContainer: { 
-    padding: 20 
+  contentContainer: {
+    padding: 20
   },
-  card: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 20, 
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
     marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: {
@@ -569,22 +569,22 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  cardHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 12 
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12
   },
-  cardTitle: { 
-    fontSize: 16, 
-    fontWeight: '600', 
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#2c3e50',
     marginLeft: 8,
     flex: 1,
   },
-  cardContent: { 
-    fontSize: 15, 
-    color: '#495057', 
-    lineHeight: 22 
+  cardContent: {
+    fontSize: 15,
+    color: '#495057',
+    lineHeight: 22
   },
   eyeButton: {
     padding: 4,
@@ -593,59 +593,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6c757d',
   },
-  detailsSection: { 
-    marginTop: 8 
+  detailsSection: {
+    marginTop: 8
   },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontWeight: '600', 
-    color: '#2c3e50', 
-    marginBottom: 16 
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 16
   },
   detailGrid: {
     flexDirection: 'column',
   },
-  detailItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eaeaea',
   },
-  detailIconContainer: { 
-    backgroundColor: '#e8f4fd', 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 12 
+  detailIconContainer: {
+    backgroundColor: '#e8f4fd',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12
   },
-  detailLabel: { 
-    fontSize: 12, 
-    color: '#6c757d', 
-    marginBottom: 4, 
-    fontWeight: '500', 
-    textTransform: 'uppercase', 
-    letterSpacing: 0.5 
+  detailLabel: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginBottom: 4,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
   },
-  detailValue: { 
-    fontSize: 15, 
-    fontWeight: '500', 
-    color: '#2c3e50' 
+  detailValue: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#2c3e50'
   },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
-    padding: 20,
+    padding: 10,
   },
   teamsModalContainer: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    width: "90%",
+    width: "95%",
     maxHeight: "80%",
     overflow: 'hidden',
     shadowColor: "#000",

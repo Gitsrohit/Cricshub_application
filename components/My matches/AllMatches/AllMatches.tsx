@@ -265,7 +265,7 @@ const AllMatches = () => {
             <Icon name="arrow-back" size={28} color={AppColors.white} />
           </TouchableOpacity>
 
-          <View style={styles.searchBarContainer}>
+          {/* <View style={styles.searchBarContainer}>
             <Icon name="search" size={20} color={AppColors.white} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
@@ -275,7 +275,7 @@ const AllMatches = () => {
               value={searchQuery}
               returnKeyType="search"
             />
-          </View>
+          </View> */}
         </View>
 
         <ScrollView

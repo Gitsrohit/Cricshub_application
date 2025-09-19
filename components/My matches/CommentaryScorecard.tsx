@@ -450,7 +450,7 @@ const CommentaryScorecard = ({ route, navigation }) => {
 
       clientRef.current = new Client();
       clientRef.current.configure({
-        webSocketFactory: () => new SockJS('https://6cf21e7a7265.ngrok-free.app/ws'),
+        webSocketFactory: () => new SockJS('https://539b92c4d3f9.ngrok-free.app/ws'),
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,

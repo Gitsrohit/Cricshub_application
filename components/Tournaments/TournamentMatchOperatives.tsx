@@ -24,6 +24,7 @@ const TournamentMatchOperatives = ({ route, navigation }) => {
   const [filteredPlayers, setFilteredPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedOperatives, setSelectedOperatives] = useState([]);
+  const [enableButton, setEnableButton] = useState(true);
 
   const fetchPlayers = async (query) => {
     try {
@@ -117,6 +118,7 @@ const TournamentMatchOperatives = ({ route, navigation }) => {
         });
       }
 
+      setEnableButton(false);
       const response = await apiService({
         endpoint: `tournaments/${tournamentData.userId}`,
         method: "POST",
@@ -128,9 +130,11 @@ const TournamentMatchOperatives = ({ route, navigation }) => {
         Alert.alert("Success", "Tournament created successfully!");
         navigation.navigate("Tournaments");
       } else {
+        setEnableButton(true);
         Alert.alert("Error", response.error?.message || "Failed to create tournament");
       }
     } catch (err) {
+      setEnableButton(true);
       console.error(err);
       Alert.alert("Error", "Something went wrong while creating tournament.");
     }
@@ -257,7 +261,7 @@ const TournamentMatchOperatives = ({ route, navigation }) => {
           )}
         </View>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={!enableButton}>
           <Text style={styles.submitButtonText}>Create Tournament</Text>
         </TouchableOpacity>
       </View>

@@ -25,6 +25,7 @@ const MatchOperatives = ({ route, navigation }) => {
   const [filteredPlayers, setFilteredPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedOperatives, setSelectedOperatives] = useState([]);
+  const [disbaleButton, setDisableButton] = useState(false);
 
   const fetchPlayers = async (query) => {
     try {
@@ -107,6 +108,8 @@ const MatchOperatives = ({ route, navigation }) => {
         team2Logo: matchDetails.team2Logo,
       };
 
+      setDisableButton(true);
+
       const response = await apiService({
         endpoint: "matches/schedule",
         method: "POST",
@@ -125,9 +128,11 @@ const MatchOperatives = ({ route, navigation }) => {
           });
         }
       } else {
+        setDisableButton(false);
         Alert.alert("Error", response.error || "Failed to schedule match");
       }
     } catch (err) {
+      setDisableButton(false);
       console.error(err);
       Alert.alert("Error", "Something went wrong while scheduling match.");
     }
@@ -252,7 +257,7 @@ const MatchOperatives = ({ route, navigation }) => {
         </View>
       </View>
       <View style={styles.submitButtonContainer}>
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={disbaleButton}>
           <Text style={styles.submitButtonText}>Schedule Match</Text>
         </TouchableOpacity>
       </View>

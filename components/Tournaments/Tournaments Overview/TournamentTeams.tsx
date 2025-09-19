@@ -320,29 +320,32 @@ const Teams = ({ id, isCreator }) => {
                     tintColor={colors.accent}
                   />
                 }
+                ListFooterComponent={
+                  isCreator && (
+                    <View style={styles.addButtonContainer}>
+                      <TouchableOpacity
+                        style={styles.floatingAddButton}
+                        onPress={openModal}
+                        activeOpacity={0.85}
+                        disabled={loading.value && loading.key === 'All'}
+                      >
+                        <LinearGradient
+                          colors={['#007AFF', '#0047AB']}
+                          style={styles.gradientButton}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        >
+                          <Icon name="add" size={28} color="#FFF" />
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+                  )
+                }
               />
             ) : (
               renderEmptyState()
             )}
           </>
-        )}
-
-        {isCreator && teams.length > 0 && (
-          <TouchableOpacity
-            style={styles.floatingAddButton}
-            onPress={openModal}
-            activeOpacity={0.85}
-            disabled={loading.value && loading.key === 'All'}
-          >
-            <LinearGradient
-              colors={['#007AFF', '#0047AB']} // A deeper blue for gradient
-              style={styles.gradientButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Icon name="add" size={28} color="#FFF" />
-            </LinearGradient>
-          </TouchableOpacity>
         )}
 
         <Modal visible={modalVisible} transparent animationType="none" onRequestClose={closeModal}>
@@ -544,11 +547,16 @@ const styles = StyleSheet.create({
     padding: 10,
     marginLeft: 10,
   },
+  addButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 10,
+  },
   floatingAddButton: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    width: 60,
+    // position: 'absolute',
+    // bottom: 30,
+    // right: 20,
+    // width: 60,
     height: 60,
     borderRadius: 30,
     justifyContent: 'center',
@@ -563,6 +571,8 @@ const styles = StyleSheet.create({
   gradientButton: {
     width: '100%',
     height: '100%',
+    minHeight: 60,
+    minWidth: 60,
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',

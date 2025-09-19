@@ -92,7 +92,7 @@ const MainScreens = () => {
     "SelectRoles",
     "SelectRoles2ndInnings",
     "MatchStartTransition",
-    "ScoreCard",
+    "MatchScoreCard",
     "ScheduleMatch",
     "InstantMatch",
     "CommentaryScorecard",

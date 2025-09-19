@@ -20,15 +20,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const OBS_REQUEST_TIMEOUT = 5000;
 
-
 const manualScenes = [
-  // 'wicketScene',
-  // 'newBowlerScene',
   'mainScene',
   'newBatsmanScene',
-  // 'scoreCardScene',
   'playingXIScene',
-  // 'firstInningsCompleteScene',
 ];
 
 const ConnectLiveStream = ({ route, navigation }) => {
@@ -40,53 +35,14 @@ const ConnectLiveStream = ({ route, navigation }) => {
   const [obsConfigLoading, setObsConfigLoading] = useState(false);
   const [availableScenes, setAvailableScenes] = useState([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [currentScene, setCurrentScene] = useState('mainScene'); // track active scene
 
   const SCENES = [
     {
       name: 'mainScene',
       inputSettings: {
-        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        url: `https://539b92c4d3f9.ngrok-free.app/api/v1/overlay/${matchId}?type=standard`,
         width: 1900,
-        height: 300,
-        positionX: 0,
-        positionY: 0,
-      },
-    },
-    {
-      name: 'boundaryScene',
-      inputSettings: {
-        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
-        width: '20000vw',
-        height: 300,
-        positionX: 0,
-        positionY: 0,
-      },
-    },
-    {
-      name: 'sixScene',
-      inputSettings: {
-        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
-        width: '100vw',
-        height: 300,
-        positionX: 0,
-        positionY: 0,
-      },
-    },
-    {
-      name: 'wicketScene',
-      inputSettings: {
-        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
-        width: '100vw',
-        height: 300,
-        positionX: 0,
-        positionY: 0,
-      },
-    },
-    {
-      name: 'newBowlerScene',
-      inputSettings: {
-        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
-        width: '100vw',
         height: 300,
         positionX: 0,
         positionY: 0,
@@ -95,7 +51,7 @@ const ConnectLiveStream = ({ route, navigation }) => {
     {
       name: 'newBatsmanScene',
       inputSettings: {
-        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
+        url: `https://539b92c4d3f9.ngrok-free.app/api/v1/overlay/${matchId}?type=newBatsman`,
         width: 800,
         height: 400,
         positionX: 0,
@@ -103,44 +59,13 @@ const ConnectLiveStream = ({ route, navigation }) => {
       },
     },
     {
-      name: 'scoreCardScene',
-      inputSettings: {
-        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
-        width: '100vw',
-        height: 300,
-        positionX: 0,
-        positionY: 0,
-      },
-    },
-    {
-      name: 'playingTeamsScene',
-      inputSettings: {
-        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
-        width: '100vw',
-        height: 300,
-        positionX: 0,
-        positionY: 0,
-      },
-    },
-    {
-      name: 'firstInningsCompleteScene',
-      inputSettings: {
-        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=standard`,
-        width: '100vw',
-        height: 300,
-        positionX: 0,
-        positionY: 0,
-      },
-    },
-    {
       name: 'playingXIScene',
       inputSettings: {
-        url: `http://34.47.150.57:8081/api/v1/overlay/${matchId}?type=playingXI`,
+        url: `https://539b92c4d3f9.ngrok-free.app/api/v1/overlay/${matchId}?type=playingXI`,
         width: 1600,
-        height: 900
+        height: 900,
       },
-    }
-
+    },
   ];
 
   const wsRef = useRef(null);
@@ -190,35 +115,22 @@ const ConnectLiveStream = ({ route, navigation }) => {
       }));
     });
   }, []);
+
   const setSceneTransform = (sceneName, sceneItemId) => {
     if (sceneName === 'playingXIScene') {
       const left = 86, right = 234, top = 128, bottom = 52;
       const width = 1920 - left - right;
       const height = 1080 - top - bottom;
-      return {
-        positionX: left,
-        positionY: top,
-        width,
-        height,
-      };
+      return { positionX: left, positionY: top, width, height };
     }
-
     if (sceneName === 'newBatsmanScene') {
       const bottom = 65;
-      const width = 800; // full width
-      const height = 400; // example, replace with your actual overlay height
-      return {
-        positionX: 0,
-        positionY: 1080 - height - bottom, // stick from bottom
-        width,
-        height,
-      };
+      const width = 800;
+      const height = 400;
+      return { positionX: 0, positionY: 1080 - height - bottom, width, height };
     }
-
-    // fallback
     return { positionX: 0, positionY: 780 };
   };
-
 
   const connectToOBS = useCallback(() => {
     if (!obsIp) return Alert.alert('Enter OBS IP');
@@ -238,7 +150,6 @@ const ConnectLiveStream = ({ route, navigation }) => {
     socket.onmessage = async (e) => {
       try {
         const data = JSON.parse(e.data);
-        console.log('OBS Message:', data.op, data);
         if (data.op === 0) {
           const identifyPayload = { op: 1, d: { rpcVersion: 1 } };
           if (data.d.authentication?.challenge) {
@@ -318,7 +229,6 @@ const ConnectLiveStream = ({ route, navigation }) => {
             sceneItemTransform: setSceneTransform(scene.name, sceneItemId),
           },
         });
-
       }
 
       await sendOBSEvent({
@@ -327,9 +237,7 @@ const ConnectLiveStream = ({ route, navigation }) => {
           sceneName: 'mainScene',
           inputName: 'Webcam',
           inputKind: 'dshow_input',
-          inputSettings: {
-            device_name: 'OBS Virtual Camera',
-          },
+          inputSettings: { device_name: 'OBS Virtual Camera' },
         },
       });
 
@@ -343,9 +251,11 @@ const ConnectLiveStream = ({ route, navigation }) => {
     }
   }, [sendOBSEvent, isObsConnected, fetchAvailableScenes]);
 
+  // Switch scene and track current
   const switchScene = async (sceneName) => {
     try {
       await sendOBSEvent({ requestType: 'SetCurrentProgramScene', params: { sceneName } });
+      setCurrentScene(sceneName);
     } catch (error) {
       Alert.alert('Scene Error', error.message);
     }
@@ -356,6 +266,35 @@ const ConnectLiveStream = ({ route, navigation }) => {
     wsRef.current = null;
     setIsObsConnected(false);
   };
+
+  // Add this function inside your component
+  const refreshScenes = useCallback(async () => {
+    try {
+      for (const scene of SCENES) {
+        await sendOBSEvent({
+          requestType: 'PressInputPropertiesButton',
+          params: {
+            inputName: `${scene.name}_browser`,
+            propertyName: 'refreshnocache', // OBS Browser Source refresh button
+          },
+        });
+        console.log(`Refreshed ${scene.name}_browser`);
+      }
+    } catch (err) {
+      console.error("Auto-refresh failed:", err.message);
+    }
+  }, [sendOBSEvent]);
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!isObsConnected) return;
+
+    const interval = setInterval(() => {
+      refreshScenes();
+    }, 5000); // every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [isObsConnected, refreshScenes]);
 
   return (
     <>
@@ -399,9 +338,7 @@ const ConnectLiveStream = ({ route, navigation }) => {
                 style={styles.advancedToggle}
                 onPress={() => setShowAdvanced(!showAdvanced)}
               >
-                <Text style={styles.advancedToggleText}>
-                  Advanced Settings
-                </Text>
+                <Text style={styles.advancedToggleText}>Advanced Settings</Text>
                 <MaterialIcons
                   name={showAdvanced ? "keyboard-arrow-up" : "keyboard-arrow-down"}
                   size={24}
@@ -476,10 +413,7 @@ const ConnectLiveStream = ({ route, navigation }) => {
                           <MaterialCommunityIcons name="monitor" size={18} color="#fff" />
                           <Text style={styles.buttonText}>
                             {scene === 'mainScene' && 'Show Scoring Overlay'}
-                            {scene === 'wicketScene' && 'Show Wicket'}
-                            {scene === 'newBowlerScene' && 'Show New Bowler'}
                             {scene === 'newBatsmanScene' && 'Show New Batsman'}
-                            {scene === 'scorecardScene' && 'Show Scorecard'}
                             {scene === 'playingXIScene' && 'Show Playing XI'}
                           </Text>
                         </TouchableOpacity>
@@ -489,7 +423,6 @@ const ConnectLiveStream = ({ route, navigation }) => {
                     )}
                   </View>
                 </View>
-
 
                 <TouchableOpacity style={[styles.button, styles.disconnectButton]} onPress={disconnectFromOBS}>
                   <MaterialCommunityIcons name="connection-off" size={20} color="#fff" />
@@ -507,178 +440,32 @@ const ConnectLiveStream = ({ route, navigation }) => {
 export default ConnectLiveStream;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: AppColors.white
-  },
-  topBarWrapper: {
-    backgroundColor: AppColors.white,
-    shadowColor: AppColors.black,
-    elevation: 3,
-    zIndex: 10,
-  },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    minHeight: 56,
-  },
-  backButton: {
-    paddingRight: 15,
-    paddingVertical: 5,
-  },
-  topBarTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: AppColors.blue,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: AppColors.white
-  },
-  section: {
-    padding: 16,
-  },
-  card: {
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 3,
-    borderColor: AppColors.cardBorder,
-    shadowColor: AppColors.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.75,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    color: AppColors.white,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  inputContainer: {
-    marginBottom: 15,
-  },
-  inputLabel: {
-    color: AppColors.white,
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 10,
-    padding: 15,
-    color: '#333',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  advancedToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    marginBottom: 10,
-  },
-  advancedToggleText: {
-    color: AppColors.white,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: AppColors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  connectButton: {
-    backgroundColor: '#2196F3',
-  },
-  configureButton: {
-    backgroundColor: '#4CAF50',
-  },
-  disconnectButton: {
-    backgroundColor: '#F44336',
-  },
-  // buttonText: {
-  //   color: AppColors.white,
-  //   fontSize: 16,
-  //   fontWeight: '600',
-  //   marginLeft: 8,
-  // },
-  connectionStatusContainer: {
-    marginBottom: 20,
-  },
-  connectionStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(76, 175, 80, 0.5)',
-  },
-  connectionStatusText: {
-    color: '#249628', // proper green
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-
-  scenesSection: {
-    marginTop: 20,
-    paddingHorizontal: 16,
-  },
-
-  scenesTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',   // visible white text
-    marginBottom: 8,
-  },
-
-  scenesGrid: {
-    // flexDirection: 'row',
-    // flexWrap: 'wrap',
-    // marginTop: 8,
-  },
-
-  sceneButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E88E5',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    marginRight: 12,
-  },
-
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-
+  safeArea: { flex: 1, backgroundColor: AppColors.white },
+  topBarWrapper: { backgroundColor: AppColors.white, shadowColor: AppColors.black, elevation: 3, zIndex: 10 },
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "flex-start", paddingHorizontal: 15, paddingVertical: 10, minHeight: 56 },
+  backButton: { paddingRight: 15, paddingVertical: 5 },
+  topBarTitle: { fontSize: 18, fontWeight: "600", color: AppColors.blue },
+  container: { flex: 1, backgroundColor: AppColors.white },
+  section: { padding: 16 },
+  card: { borderRadius: 15, padding: 20, marginBottom: 20, borderWidth: 3, borderColor: AppColors.cardBorder, shadowColor: AppColors.black, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.75, shadowRadius: 4, elevation: 5 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  sectionTitle: { color: AppColors.white, fontSize: 18, fontWeight: 'bold', marginLeft: 10 },
+  inputContainer: { marginBottom: 15 },
+  inputLabel: { color: AppColors.white, fontSize: 14, fontWeight: '600', marginBottom: 8 },
+  input: { backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 10, padding: 15, color: '#333', fontSize: 16, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)' },
+  advancedToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, marginBottom: 10 },
+  advancedToggleText: { color: AppColors.white, fontSize: 14, fontWeight: '500' },
+  button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, marginBottom: 12, shadowColor: AppColors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
+  buttonDisabled: { opacity: 0.7 },
+  connectButton: { backgroundColor: '#2196F3' },
+  configureButton: { backgroundColor: '#4CAF50' },
+  disconnectButton: { backgroundColor: '#F44336' },
+  connectionStatusContainer: { marginBottom: 20 },
+  connectionStatus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(76, 175, 80, 0.2)', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.5)' },
+  connectionStatusText: { color: '#249628', fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  scenesSection: { marginVertical: 20 },
+  scenesTitle: { fontSize: 16, fontWeight: '600', marginBottom: 10, color: AppColors.blue },
+  scenesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  sceneButton: { backgroundColor: '#2196F3', padding: 12, borderRadius: 10, marginRight: 10, marginBottom: 10, flexDirection: 'row', alignItems: 'center' },
+  buttonText: { color: '#fff', fontWeight: '500', marginLeft: 6 },
 });

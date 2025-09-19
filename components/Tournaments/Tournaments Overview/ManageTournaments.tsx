@@ -117,8 +117,18 @@ export default function ManageTournaments({
 
   const formatTournamentDates = () => {
     if (tournamentDetails?.startDate && tournamentDetails?.endDate) {
-      const start = moment(tournamentDetails.startDate).format("MMM D, YYYY");
-      const end = moment(tournamentDetails.endDate).format("MMM D, YYYY");
+      const start = moment([
+        tournamentDetails.startDate[0],
+        tournamentDetails.startDate[1] - 1,   // month (0-based)
+        tournamentDetails.startDate[2]
+      ]).format("DD MMM YYYY");
+
+      const end = moment([
+        tournamentDetails.endDate[0],
+        tournamentDetails.endDate[1] - 1,
+        tournamentDetails.endDate[2]
+      ]).format("DD MMM YYYY");
+
       return `${start} - ${end}`;
     }
     return "";

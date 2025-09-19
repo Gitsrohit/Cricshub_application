@@ -123,128 +123,89 @@ const ScoreCard = ({ route, navigation }) => {
   const [battingSecondOvers, setBattingSecondOvers] = useState(null);
   const [battingFirstTeamName, setBattingFirstTeamName] = useState(null);
   const [battingSecondTeamName, setBattingSecondTeamName] = useState(null);
+  const [winner, setWinner] = useState(null);
+  const [winBy, setWinBy] = useState(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const safeNumber = (n, d = 0) => (Number.isFinite(n) ? n : d);
 
-  const getMatchState = useCallback(async (isManualRefresh = false) => {
+  const getMatchState = async () => {
     try {
-      if (isManualRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-      setLoadingError(null);
+      setLoading(true);
+      const { success, data, error } = await apiService({
+        endpoint: `matches/matchstate/${matchId}`,
+        method: 'GET',
+      });
 
-      const token = await AsyncStorage.getItem("jwtToken");
-      if (!token) {
-        setLoadingError("Authentication required. Please login again.");
+      if (!success) {
+        console.log("Error fetching match state:", error);
         return;
       }
 
-      const response = await apiService({
-        endpoint: `matches/${matchId}`,
-        method: "GET",
-        headers: { timeout: 15000 },
-      });
+      setBattingFirstTeamName(data?.battingTeam?.name);
+      setBattingSecondTeamName(data?.bowlingTeam?.name);
 
-      if (response.success && response.data) {
-        const rawData = response.data.matchState;
-        console.log(rawData);
+      setCompletedOvers(data?.completedOvers || 0);
+      setbattingScore(data?.battingTeam?.score || 0);
+      setbattingWicket(data?.battingTeam?.wickets || 0);
+      setBattingTeamName(data?.battingTeam?.name || "");
+      setTotalOvers(data.totalOvers);
 
-        // ✅ Parse stringified JSON fields safely
-        const data = {
-          ...rawData,
-          team1: rawData.team1 ? JSON.parse(rawData.team1) : null,
-          team2: rawData.team2 ? JSON.parse(rawData.team2) : null,
-          battingTeam: rawData.battingTeam ? JSON.parse(rawData.battingTeam) : null,
-          bowlingTeam: rawData.bowlingTeam ? JSON.parse(rawData.bowlingTeam) : null,
-          currentStriker: rawData.currentStriker ? JSON.parse(rawData.currentStriker) : null,
-          currentNonStriker: rawData.currentNonStriker ? JSON.parse(rawData.currentNonStriker) : null,
-          currentBowler: rawData.currentBowler ? JSON.parse(rawData.currentBowler) : null,
-        };
+      setBowlingTeamName(data?.bowlingTeam?.name || "");
+      setBowlingTeamScore(data?.bowlingTeam?.score || 0);
+      setBowlingTeamWickets(data?.bowlingTeam?.wickets || 0);
 
-        setMatchState(data);
+      const formattedOverDetails =
+        data?.currentOver?.map((ball) => {
+          let event = ball.runs?.toString() || "0";
+          if (ball.wicket) event += " W";
+          if (ball.noBall) event += " NB";
+          if (ball.wide) event += " Wd";
+          if (ball.bye) event += " B";
+          if (ball.legBye) event += " LB";
+          return event.trim();
+        }) || [];
 
-        // ✅ Batting / Bowling Teams
-        setBattingFirstTeamName(data?.battingTeam?.name || "");
-        setBattingSecondTeamName(data?.bowlingTeam?.name || "");
+      setOverDetails(formattedOverDetails.join(" "));
 
-        // ✅ Scores & Overs
-        setCompletedOvers(data?.completedOvers || 0);
-        setbattingScore(data?.battingTeam?.score || 0);
-        setbattingWicket(data?.battingTeam?.wickets || 0);
-        setBattingTeamName(data?.battingTeam?.name || "");
-        setTotalOvers(data?.totalOvers || 0);
+      const deliveryCount =
+        data?.currentOver?.reduce((count, ball) => {
+          return count + (ball.noBall || ball.wide ? 0 : 1);
+        }, 0) || 0;
 
-        setBowlingTeamName(data?.bowlingTeam?.name || "");
-        setBowlingTeamScore(data?.bowlingTeam?.score || 0);
-        setBowlingTeamWickets(data?.bowlingTeam?.wickets || 0);
+      legalDeliveriesRef.current = deliveryCount;
+      setLegalDeliveries(deliveryCount);
 
-        // ✅ Current Over Details
-        const formattedOverDetails =
-          data?.currentOver?.map((ball) => {
-            let event = ball.runs?.toString() || "0";
-            if (ball.wicket) event += " W";
-            if (ball.noBall) event += " NB";
-            if (ball.wide) event += " Wd";
-            if (ball.bye) event += " B";
-            if (ball.legBye) event += " LB";
-            return event.trim();
-          }) || [];
-
-        setOverDetails(formattedOverDetails.join(" "));
-
-        const deliveryCount =
-          data?.currentOver?.reduce((count, ball) => {
-            return count + (ball.noBall || ball.wide ? 0 : 1);
-          }, 0) || 0;
-
-        legalDeliveriesRef.current = deliveryCount;
-        setLegalDeliveries(deliveryCount);
-
-        if (
-          data?.completedOvers !== 0 &&
-          deliveryCount === 0 &&
-          data?.completedOvers !== data?.totalOvers
-        ) {
-          setOverDetails("");
-        }
-
-        // ✅ Orders (if API sends them)
-        setBattingFirst(data?.team1BattingOrder || []);
-        setBattingSecond(data?.team2BattingOrder || []);
-        setBowlingFirst(data?.team1BowlingOrder || []);
-        setBowlingSecond(data?.team2BowlingOrder || []);
-
-        setBattingFirstOvers(data?.battingTeam?.overs || 0);
-        setBattingSecondOvers(data?.bowlingTeam?.overs || 0);
-
-        // ✅ Team name from team1
-        setTeam(data?.team1?.name || "");
-      } else {
-        setLoadingError("No match data received");
-        setMatchState(null);
+      if (
+        data?.completedOvers !== 0 &&
+        deliveryCount === 0 &&
+        data?.completedOvers !== data?.totalOvers
+      ) {
+        setOverDetails("");
       }
+
+      setBattingFirst(data?.team1BattingOrder);
+      setBattingSecond(data?.team2BattingOrder);
+      setBowlingFirst(data?.team1BowlingOrder);
+      setBowlingSecond(data?.team2BowlingOrder);
+
+      setBattingFirstOvers(data?.battingTeam?.overs);
+      setBattingSecondOvers(data?.bowlingTeam?.overs);
+
+      setWinBy(data?.winBy);
+      setWinner(data?.winner);
+
     } catch (error) {
-      console.error("API Error:", error);
-      let errorMessage = "Failed to load match data. ";
-
-      if (error.response) {
-        errorMessage += `Server error: ${error.response.status}`;
-      } else if (error.request) {
-        errorMessage += "No response from server. Check your connection.";
-      } else {
-        errorMessage += error.message || "";
-      }
-      setLoadingError(errorMessage);
-      setMatchState(null);
+      console.log("Error fetching match state:", error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  }, [matchId]);
+  };
+
+  useEffect(() => {
+    getMatchState();
+  }, [])
 
   const ballsToOvers = (balls) => {
     const b = safeNumber(balls, 0);
@@ -433,18 +394,16 @@ const ScoreCard = ({ route, navigation }) => {
         </View>
       ) : (
         <>
-          <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-              >
-                <Ionicons name="arrow-back" size={24} color={AppColors.darkBlue} />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Match Details</Text>
-              <View style={styles.headerRight} />
-            </View>
-          </SafeAreaView>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color={AppColors.darkBlue} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Match Details</Text>
+            <View style={styles.headerRight} />
+          </View>
 
           <ImageBackground source={background} style={styles.background} imageStyle={styles.backgroundImage}>
             <Animated.ScrollView
@@ -457,41 +416,17 @@ const ScoreCard = ({ route, navigation }) => {
             >
               <View style={styles.topSpacer} />
 
+              {winner ?
+                <View style={styles.winnerTab}>
+                  <Ionicons name='trophy' size={18} color={AppColors.blue} />
+                  <Text style={styles.winnerText}>{winner} {winBy}</Text>
+                </View>
+                : null
+              }
+
               {renderScorecard()}
 
               <View style={styles.detailedScorecard}>
-                {/* <View style={styles.inningsTabsRow}>
-                    <TouchableOpacity
-                      style={[styles.inningsTabBtn, innings === "1st" && styles.inningsTabActive]}
-                      onPress={() => handleInningsTabPress(battingFirstTeamName)}
-                    >
-                      <Text style={[styles.inningsTabText, innings === "1st" && styles.inningsTabTextActive]}>{battingFirstTeamName}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.inningsTabBtn, innings === "2nd" && styles.inningsTabActive]}
-                      onPress={() => handleInningsTabPress(battingSecondTeamName)}
-                    >
-                      <Text style={[styles.inningsTabText, innings === "2nd" && styles.inningsTabTextActive]}>{battingSecondTeamName}</Text>
-                    </TouchableOpacity>
-                  </View> */}
-                {/* <View style={styles.scoreTabsRow}>
-                    <TouchableOpacity
-                      style={[styles.scoreTabBtn, subTab === "Batting" && styles.scoreTabActive]}
-                      onPress={() => setSubTab("Batting")}
-                    >
-                      <Text style={[styles.scoreTabText, subTab === "Batting" && styles.scoreTabTextActive]}>
-                        Batting
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.scoreTabBtn, subTab === "Bowling" && styles.scoreTabActive]}
-                      onPress={() => setSubTab("Bowling")}
-                    >
-                      <Text style={[styles.scoreTabText, subTab === "Bowling" && styles.scoreTabTextActive]}>
-                        Bowling
-                      </Text>
-                    </TouchableOpacity>
-                  </View> */}
                 <Text style={styles.inningsDetail}>1st Innings</Text>
                 <BattingTable data={battingFirst} />
                 <BowlingTable data={bowlingFirst} />
@@ -514,15 +449,15 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.background
   },
   safeArea: {
-    backgroundColor: AppColors.darkBlue,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    // backgroundColor: AppColors.darkBlue,
+    // paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    // paddingVertical: 15,
     backgroundColor: AppColors.white,
   },
   backButton: {
@@ -535,6 +470,17 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     width: 40,
+  },
+  winnerTab: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  winnerText: {
+    fontSize: 18,
+    color: AppColors.blue,
+    fontWeight: 'bold',
+    marginVertical: 10,
   },
   // Shimmer-specific styles
   shimmerFullScreen: {
@@ -674,7 +620,7 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.white,
     borderRadius: 12,
     padding: 5,
-    marginTop: 15,
+    // marginTop: 15,
     marginBottom: 10,
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 2 },
@@ -704,7 +650,7 @@ const styles = StyleSheet.create({
   scorecardContainer: {
     borderRadius: 15,
     padding: 15,
-    marginTop: 8,
+    marginVertical: 8,
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
@@ -791,11 +737,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.8
   },
-  matchInfoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8
-  },
   infoItem: {
     flex: 1
   },
@@ -843,13 +784,6 @@ const styles = StyleSheet.create({
   },
   commentaryList: {
     paddingVertical: 12
-  },
-  emptyContainer: {
-    padding: 20,
-    alignItems: 'center'
-  },
-  emptyText: {
-    color: AppColors.lightText
   },
   scoreTabsRow: {
     flexDirection: 'row',
